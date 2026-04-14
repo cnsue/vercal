@@ -286,6 +286,7 @@ header{
     </div>
     <div class="accum-box">
       <b>📌 积累阶段逻辑</b>：每年用「当年实时股价」买入追加股票，同时将当年股息全部DRIP再投（按当年股价）。
+      所有买入股数统一按 A 股整手规则向下取整到 100 股整数倍。
       积累期结束后，持有的股票进入「纯股息养老期」，不再追加买入，只靠股息+DRIP持续增长。
     </div>
   </div>
@@ -448,6 +449,11 @@ function summarizeHoldings(holdings) {
   return parts.length ? parts.join(' · ') : '—';
 }
 
+function roundDownToBoardLot(rawShares) {
+  const wholeShares = Math.floor(rawShares);
+  return Math.floor(wholeShares / 100) * 100;
+}
+
 function applyPreset(presetKey) {
   const preset = PRESETS[presetKey];
   if (!preset) return;
@@ -505,7 +511,7 @@ function run() {
     holdings[key] = 0;
     if (weights[key] > 0 && initMoney > 0) {
       const initialBudget = initMoney * weights[key];
-      const shares = Math.floor(initialBudget / prices[key]);
+      const shares = roundDownToBoardLot(initialBudget / prices[key]);
       holdings[key] = shares;
       totalInvested += shares * prices[key];
     }
@@ -535,7 +541,7 @@ function run() {
           return;
         }
         const avgPx = prices[key] / (1 + priceGrow/2);
-        const shares = Math.floor(allocatedAmount / avgPx);
+        const shares = roundDownToBoardLot(allocatedAmount / avgPx);
         const usedAmount = shares * avgPx;
         addedShares[key] = shares;
         holdings[key] += shares;
@@ -561,7 +567,7 @@ function run() {
         dripShares[key] = 0;
         return;
       }
-      const shares = Math.floor(allocatedDrip / prices[key]);
+      const shares = roundDownToBoardLot(allocatedDrip / prices[key]);
       dripShares[key] = shares;
       holdings[key] += shares;
     });
