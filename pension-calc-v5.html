@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>银行股养老全收益计算器 · 分批建仓版</title>
+<title>银行股 + 长江电力养老全收益计算器 · 组合版</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -130,7 +130,7 @@ header{
 
 /* TABLE */
 .tbl-wrap{overflow-x:auto;}
-.tbl{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--border);min-width:900px;}
+.tbl{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--border);min-width:1120px;}
 .tbl th{
   background:var(--ink);color:var(--bg);padding:8px 10px;
   font-weight:400;font-size:9.5px;letter-spacing:1px;text-align:right;white-space:nowrap;
@@ -138,6 +138,7 @@ header{
 .tbl th:first-child{text-align:left;}
 .tbl td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--border2);white-space:nowrap;}
 .tbl td:first-child{text-align:left;color:var(--ink3);}
+.tbl td.detail{text-align:left;white-space:normal;line-height:1.55;font-size:10px;min-width:170px;}
 .tbl tr:hover td{background:var(--bg2);}
 
 /* Phase rows */
@@ -169,21 +170,22 @@ header{
 
 <header>
   <div>
-    <div class="hd-title">银行股养老计算器 · 分批建仓版</div>
-    <div class="hd-sub">初始买入 · 定期追加 · 积累达标 · 纯股息养老 · DRIP真实复投</div>
+    <div class="hd-title">银行股 + 长江电力养老计算器 · 组合版</div>
+    <div class="hd-sub">初始买入 · 定期追加 · 自定义持仓比例 · 积累达标 · 纯股息养老 · DRIP真实复投</div>
   </div>
   <div class="hd-meta">
-    <div class="chip">2026年02月 · FY2025预估分红</div><br>
-    招行 ¥38.83（预估股息5.36%）<br>
-    宁波 ¥31.39（预估股息3.19%）
+    <div class="chip">2026年04月 · 三资产内置快照</div><br>
+    招行 ¥38.83 · 宁波 ¥31.39<br>
+    长江电力 ¥27.16 · 2024全年分红 ¥0.943
   </div>
 </header>
 
 <div class="wrap">
 
 <div class="notice">
-  ⚠ <b>说明</b>：招行2025年末期分红为预估值（年报预计2026年3月公布）。股价与股息增长均为假设。
-  本计算器模拟「分批建仓积累期」+「纯股息养老期」全流程，仅供学习参考，不构成投资建议。
+  ⚠ <b>说明</b>：当前页面已支持「招商银行 + 宁波银行 + 长江电力」三资产组合测算。
+  长江电力内置股价参考 2026-03-05 AASTOCKS 页面快照 ¥27.16，股息按公司 2024 年度利润分配方案的全年现金红利 ¥0.943/股；
+  银行股仍沿用当前页面内置快照。股价与股息增长均为假设，本计算器仅供学习参考，不构成投资建议。
 </div>
 
 <!-- ① 标的与养老目标 -->
@@ -194,12 +196,15 @@ header{
   <div class="panel-body">
     <div class="fgrid g4">
       <div class="field">
-        <label>投资标的</label>
-        <select id="sel">
-          <option value="cmb">招商银行（¥38.83）</option>
-          <option value="nb">宁波银行（¥31.39）</option>
-          <option value="both">组合：7成招行+3成宁波</option>
+        <label>组合预设</label>
+        <select id="preset">
+          <option value="cmb_only" selected>单标的：招商银行</option>
+          <option value="nb_only">单标的：宁波银行</option>
+          <option value="cypc_only">单标的：长江电力</option>
+          <option value="bank_pair">银行双资产：7成招行 + 3成宁波</option>
+          <option value="custom">自定义三资产比例</option>
         </select>
+        <div class="hint">你也可以直接修改下面的权重输入框；手动改动后会自动切换到“自定义三资产比例”。</div>
       </div>
       <div class="field">
         <label>每月养老目标（元）</label>
@@ -223,6 +228,20 @@ header{
         </select>
       </div>
     </div>
+    <div class="fgrid g3" style="margin-top:14px;">
+      <div class="field">
+        <label>招商银行持仓比例（%）</label>
+        <input type="number" id="weightCmb" value="100" min="0" max="100" step="5">
+      </div>
+      <div class="field">
+        <label>宁波银行持仓比例（%）</label>
+        <input type="number" id="weightNb" value="0" min="0" max="100" step="5">
+      </div>
+      <div class="field">
+        <label>长江电力持仓比例（%）</label>
+        <input type="number" id="weightCypc" value="0" min="0" max="100" step="5">
+      </div>
+    </div>
     <div class="fgrid g2" style="margin-top:14px;">
       <div class="field">
         <label>持股税率档</label>
@@ -237,6 +256,9 @@ header{
         <input type="number" id="totalYrs" value="20" min="5" max="40" step="1">
         <div class="hint">含积累期+养老期，建议20-30年</div>
       </div>
+    </div>
+    <div class="accum-box" style="margin-top:14px;">
+      <b>📊 当前组合比例说明</b>：<span id="weightHint">当前权重合计 100%，将按输入比例直接参与整体测算。</span>
     </div>
   </div>
 </div>
@@ -327,12 +349,12 @@ header{
       <thead>
         <tr>
           <th style="text-align:left">年份/阶段</th>
-          <th>当年股价(¥)</th>
-          <th>每股股息(¥)</th>
+          <th>组合参考均价(¥)</th>
+          <th>税后股息率</th>
           <th>追加买入(¥)</th>
-          <th>追加买入股数</th>
-          <th>DRIP股数</th>
-          <th>期末持仓股数</th>
+          <th>追加买入明细</th>
+          <th>DRIP明细</th>
+          <th>期末持仓明细</th>
           <th>税后年股息(¥)</th>
           <th>月收入(¥)</th>
           <th>持仓市值(万¥)</th>
@@ -348,12 +370,17 @@ header{
 </div><!-- /wrap -->
 
 <script>
-const BANKS = {
-  cmb:  { name:'招商银行', price:38.83, div2025:2.08 },
-  nb:   { name:'宁波银行', price:31.39, div2025:1.00 },
-  both: { name:'7招+3宁组合',
-          price: 38.83*0.7+31.39*0.3,
-          div2025: 2.08*0.7+1.00*0.3 }
+const ASSETS = {
+  cmb:  { name:'招商银行', short:'招', price:38.83, annualDividend:2.08, basis:'FY2025预估分红' },
+  nb:   { name:'宁波银行', short:'宁', price:31.39, annualDividend:1.00, basis:'FY2025预估分红' },
+  cypc: { name:'长江电力', short:'长', price:27.16, annualDividend:0.943, basis:'2024全年现金分红' }
+};
+const ASSET_KEYS = ['cmb', 'nb', 'cypc'];
+const PRESETS = {
+  cmb_only: { cmb:100, nb:0, cypc:0 },
+  nb_only: { cmb:0, nb:100, cypc:0 },
+  cypc_only: { cmb:0, nb:0, cypc:100 },
+  bank_pair: { cmb:70, nb:30, cypc:0 }
 };
 
 function calcIRR(cashflows, guess=0.08) {
@@ -372,8 +399,85 @@ function calcIRR(cashflows, guess=0.08) {
   return r;
 }
 
+function getWeightFieldId(key) {
+  return `weight${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+}
+
+function getRawWeights() {
+  return ASSET_KEYS.reduce((acc, key) => {
+    acc[key] = Math.max(0, parseFloat(document.getElementById(getWeightFieldId(key)).value) || 0);
+    return acc;
+  }, {});
+}
+
+function getNormalizedWeights() {
+  const raw = getRawWeights();
+  const total = ASSET_KEYS.reduce((sum, key) => sum + raw[key], 0);
+  if (total <= 0) {
+    return {
+      raw,
+      total,
+      normalized: { cmb:1, nb:0, cypc:0 }
+    };
+  }
+  const normalized = {};
+  ASSET_KEYS.forEach((key) => {
+    normalized[key] = raw[key] / total;
+  });
+  return { raw, total, normalized };
+}
+
+function formatWeightSummary(weights) {
+  return ASSET_KEYS
+    .filter((key) => weights[key] > 0)
+    .map((key) => `${ASSETS[key].name}${(weights[key] * 100).toFixed(0)}%`)
+    .join(' / ');
+}
+
+function summarizeShareMap(shares) {
+  const parts = ASSET_KEYS
+    .filter((key) => (shares[key] || 0) > 0)
+    .map((key) => `${ASSETS[key].short}${Math.round(shares[key]).toLocaleString()}股`);
+  return parts.length ? parts.join(' · ') : '—';
+}
+
+function summarizeHoldings(holdings) {
+  const parts = ASSET_KEYS
+    .filter((key) => (holdings[key] || 0) > 0)
+    .map((key) => `${ASSETS[key].short}${Math.round(holdings[key]).toLocaleString()}股`);
+  return parts.length ? parts.join(' · ') : '—';
+}
+
+function applyPreset(presetKey) {
+  const preset = PRESETS[presetKey];
+  if (!preset) return;
+  ASSET_KEYS.forEach((key) => {
+    document.getElementById(getWeightFieldId(key)).value = preset[key];
+  });
+  updateWeightHint();
+}
+
+function updateWeightHint() {
+  const { raw, total, normalized } = getNormalizedWeights();
+  const rawText = ASSET_KEYS.map((key) => `${ASSETS[key].short}${raw[key].toFixed(0)}%`).join(' / ');
+  const normalizedText = formatWeightSummary(normalized) || '招商银行100%';
+  const msg = total > 0
+    ? `当前输入为 ${rawText}，系统将按归一化后比例计算：${normalizedText}。`
+    : '当前权重合计为 0，系统会回退为招商银行 100% 进行测算。';
+  document.getElementById('weightHint').textContent = msg;
+}
+
+function syncPresetByWeights() {
+  const raw = getRawWeights();
+  const matched = Object.entries(PRESETS).find(([, preset]) =>
+    ASSET_KEYS.every((key) => Number(raw[key]) === Number(preset[key]))
+  );
+  document.getElementById('preset').value = matched ? matched[0] : 'custom';
+  updateWeightHint();
+}
+
 function run() {
-  const bk         = BANKS[document.getElementById('sel').value];
+  const { normalized: weights } = getNormalizedWeights();
   const monthly    = parseFloat(document.getElementById('monthly').value)||5000;
   const priceGrow  = parseFloat(document.getElementById('priceGrow').value);
   const divGrow    = parseFloat(document.getElementById('divGrow').value);
@@ -384,80 +488,120 @@ function run() {
   const accumYrs   = Math.min(parseInt(document.getElementById('accumYrs').value)||10, totalYrs);
   const retireDrip = document.getElementById('retireDrip').value==='1';
   const dripRatio  = parseFloat(document.getElementById('dripRatio').value)/100;
+  const effectiveDripRatio = retireDrip ? dripRatio : 0;
   const targetCov  = parseFloat(document.getElementById('targetCov').value)/100;
   const annualGoal = monthly*12;
   const annualAdd  = monthlyAdd*12;
+  const allocationText = formatWeightSummary(weights);
 
-  // ── 逐年模拟 ──
-  let px  = bk.price;
-  let dps = bk.div2025;
-  let sh  = Math.floor(initMoney / px);  // 初始股数
-  let totalInvested = sh * px;            // 已投入成本
+  const prices = {};
+  const dividends = {};
+  const holdings = {};
+  let totalInvested = 0;
 
-  const cfIRR   = [-totalInvested];       // IRR现金流：初始投入为负
+  ASSET_KEYS.forEach((key) => {
+    prices[key] = ASSETS[key].price;
+    dividends[key] = ASSETS[key].annualDividend;
+    holdings[key] = 0;
+    if (weights[key] > 0 && initMoney > 0) {
+      const initialBudget = initMoney * weights[key];
+      const shares = Math.floor(initialBudget / prices[key]);
+      holdings[key] = shares;
+      totalInvested += shares * prices[key];
+    }
+  });
+
+  const cfIRR   = [-totalInvested];
   const rows    = [];
-  let hitYear   = null;                   // 首次达标年份
-  let accumEndShares = 0;
+  let hitYear   = null;
+  let accumEndHoldings = {};
   let accumEndVal    = 0;
   let accumEndDiv    = 0;
 
   for (let y = 1; y <= totalYrs; y++) {
-    px  *= (1 + priceGrow);
-    dps *= (1 + divGrow);
+    ASSET_KEYS.forEach((key) => {
+      prices[key] *= (1 + priceGrow);
+      dividends[key] *= (1 + divGrow);
+    });
     const isAccum = y <= accumYrs;
 
-    // 追加买入（积累期）
-    let addedSh = 0;
     let addedAmt = 0;
+    const addedShares = {};
     if (isAccum && annualAdd > 0) {
-      // 按月分12次买入（每次买入时股价线性增长）
-      // 简化：全年追加金额 / 当年平均股价（去年底到今年底的中间值）
-      const avgPx = px / (1 + priceGrow/2); // 近似当年平均价
-      addedSh  = Math.floor(annualAdd / avgPx);
-      addedAmt = addedSh * avgPx;
-      sh += addedSh;
+      ASSET_KEYS.forEach((key) => {
+        const allocatedAmount = annualAdd * weights[key];
+        if (allocatedAmount <= 0) {
+          addedShares[key] = 0;
+          return;
+        }
+        const avgPx = prices[key] / (1 + priceGrow/2);
+        const shares = Math.floor(allocatedAmount / avgPx);
+        const usedAmount = shares * avgPx;
+        addedShares[key] = shares;
+        holdings[key] += shares;
+        addedAmt += usedAmount;
+      });
       totalInvested += addedAmt;
       cfIRR.push(-addedAmt); // 追加投入为负现金流
     } else {
+      ASSET_KEYS.forEach((key) => {
+        addedShares[key] = 0;
+      });
       cfIRR.push(0);
     }
 
-    // 年度股息
-    const grossDiv = sh * dps;
+    const grossDiv = ASSET_KEYS.reduce((sum, key) => sum + holdings[key] * dividends[key], 0);
     const netDiv   = grossDiv * taxK;
 
-    // DRIP：养老期按dripRatio比例再投；积累期全部DRIP
-    const dripAmt  = isAccum ? netDiv : netDiv * dripRatio;
-    const dripSh   = Math.floor(dripAmt / px);
-    sh += dripSh;
+    const dripAmt  = isAccum ? netDiv : netDiv * effectiveDripRatio;
+    const dripShares = {};
+    ASSET_KEYS.forEach((key) => {
+      const allocatedDrip = dripAmt * weights[key];
+      if (allocatedDrip <= 0) {
+        dripShares[key] = 0;
+        return;
+      }
+      const shares = Math.floor(allocatedDrip / prices[key]);
+      dripShares[key] = shares;
+      holdings[key] += shares;
+    });
 
-    // 可用于生活的月收入
-    const spendDiv = isAccum ? 0 : netDiv * (1 - dripRatio);
+    const spendDiv = isAccum ? 0 : netDiv * (1 - effectiveDripRatio);
     const mon      = Math.round(spendDiv / 12);
-    const mktVal   = sh * px;
+    const mktVal   = ASSET_KEYS.reduce((sum, key) => sum + holdings[key] * prices[key], 0);
     const cov      = annualGoal > 0 ? spendDiv / annualGoal : 0;
+    const blendPrice = ASSET_KEYS.reduce((sum, key) => sum + prices[key] * weights[key], 0);
+    const afterTaxYield = mktVal > 0 ? netDiv / mktVal : 0;
 
     if (y === accumYrs) {
-      accumEndShares = sh;
+      accumEndHoldings = { ...holdings };
       accumEndVal    = mktVal;
       accumEndDiv    = netDiv;
     }
 
-    // 达标判断（养老期）
     if (!isAccum && !hitYear && cov >= targetCov) hitYear = y;
 
-    // IRR：养老期股息作为正现金流；最后一年加市值
     if (!isAccum) {
       cfIRR[cfIRR.length-1] += spendDiv + (y===totalYrs ? mktVal : 0);
     }
     if (y === totalYrs && isAccum) {
-      cfIRR[cfIRR.length-1] += mktVal; // 全是积累期时末年加市值
+      cfIRR[cfIRR.length-1] += mktVal;
     }
 
     rows.push({
-      y, isAccum, px, dps, addedSh, addedAmt:Math.round(addedAmt),
-      dripSh, sh, netDiv:Math.round(netDiv),
-      spendDiv:Math.round(spendDiv), mon, mktVal, cov
+      y,
+      isAccum,
+      blendPrice,
+      afterTaxYield,
+      addedAmt:Math.round(addedAmt),
+      addedSummary:summarizeShareMap(addedShares),
+      dripSummary:summarizeShareMap(dripShares),
+      holdingSummary:summarizeHoldings(holdings),
+      netDiv:Math.round(netDiv),
+      spendDiv:Math.round(spendDiv),
+      mon,
+      mktVal,
+      cov
     });
   }
 
@@ -477,8 +621,8 @@ function run() {
     <div class="phase-arrow">→</div>
     <div class="phase phase-retire">
       <div class="phase-label">纯股息养老期（第${accumYrs+1}年起）</div>
-      <div class="phase-val green">积累结束时持仓</div>
-      <div class="phase-sub">${accumEndShares.toLocaleString()}股 · 市值${(accumEndVal/10000).toFixed(0)}万</div>
+      <div class="phase-val green">积累结束时组合持仓</div>
+      <div class="phase-sub">${summarizeHoldings(accumEndHoldings)} · 市值${(accumEndVal/10000).toFixed(0)}万</div>
       <div class="phase-val green" style="margin-top:6px;font-size:14px;">年股息约${(accumEndDiv/10000).toFixed(1)}万元</div>
     </div>`;
 
@@ -487,7 +631,7 @@ function run() {
   const firstRetireRow = retireRows[0];
   document.getElementById('kpiRow').innerHTML = `
     <div class="kpi"><div class="kv b">${(totalInvested/10000).toFixed(1)}</div><div class="kl">累计总投入（万元）</div></div>
-    <div class="kpi"><div class="kv">${accumEndShares.toLocaleString()}</div><div class="kl">积累结束持仓（股）</div></div>
+    <div class="kpi"><div class="kv">${(accumEndVal/10000).toFixed(1)}</div><div class="kl">积累结束组合市值（万元）</div></div>
     <div class="kpi"><div class="kv g">${firstRetireRow ? firstRetireRow.mon.toLocaleString() : '—'}</div><div class="kl">第${accumYrs+1}年月股息（元）</div></div>
     <div class="kpi"><div class="kv g">${lastRow.mon.toLocaleString()}</div><div class="kl">第${totalYrs}年月股息（元）</div></div>
     <div class="kpi"><div class="kv o">${irr>0?(irr*100).toFixed(1)+'%':'—'}</div><div class="kl">综合年化IRR</div></div>`;
@@ -512,10 +656,11 @@ function run() {
 
   // ── Insight ──
   document.getElementById('insight').innerHTML =
-    `<b>${bk.name}</b>，当前股价 <b>¥${bk.price}</b>，预估年股息 <b>¥${bk.div2025.toFixed(2)}</b>/股（${(taxK*100).toFixed(0)}%税后口径）。<br>` +
-    `初始投入 <b>¥${(initMoney/10000).toFixed(1)}万</b>（约${Math.floor(initMoney/bk.price).toLocaleString()}股），此后每月追加 <b>¥${monthlyAdd.toLocaleString()}</b>，` +
-    `连续积累 <b>${accumYrs}年</b>，期间股息全部DRIP复投（按当年实时股价买入）。<br>` +
-    `${accumYrs}年积累结束时：持有约 <b>${accumEndShares.toLocaleString()}股</b>，市值约 <b>${(accumEndVal/10000).toFixed(0)}万元</b>，` +
+    `<b>当前组合</b>：${allocationText || '招商银行100%'}。<br>` +
+    `${ASSET_KEYS.filter((key) => weights[key] > 0).map((key) => `${ASSETS[key].name} ¥${ASSETS[key].price} / 年股息 ${ASSETS[key].annualDividend.toFixed(3)}（${ASSETS[key].basis}）`).join('；')}。<br>` +
+    `初始投入 <b>¥${(initMoney/10000).toFixed(1)}万</b>，此后每月追加 <b>¥${monthlyAdd.toLocaleString()}</b>，` +
+    `连续积累 <b>${accumYrs}年</b>，期间股息全部DRIP复投（按当年实时股价买入，并按当前组合比例拆分）。<br>` +
+    `${accumYrs}年积累结束时：组合持仓为 <b>${summarizeHoldings(accumEndHoldings)}</b>，市值约 <b>${(accumEndVal/10000).toFixed(0)}万元</b>，` +
     `累计总投入约 <b>${(totalInvested/10000).toFixed(1)}万元</b>，税后年股息约 <b>${(accumEndDiv/10000).toFixed(1)}万元</b>（月均 <b>${Math.round(accumEndDiv/12).toLocaleString()}元</b>，覆盖目标 <b>${Math.round(accumCov*100)}%</b>）。<br>` +
     `股价假设年增 <b>${(priceGrow*100).toFixed(0)}%</b>，股息假设年增 <b>${(divGrow*100).toFixed(0)}%</b>，` +
     `${retireDrip ? `养老期DRIP <b>${(dripRatio*100).toFixed(0)}%</b> 股息继续复投` : '养老期全部股息花用'}，` +
@@ -528,10 +673,10 @@ function run() {
   rows.forEach(r => {
     const phase = r.isAccum ? 'accum' : 'retire';
     if (phase !== lastPhase) {
-      const tr = document.createElement('tr');
-      tr.className='phase-divider';
-      tr.innerHTML = `<td colspan="11">${r.isAccum ? '▶ 积累阶段（每月追加+DRIP全部复投）' : '▶ 纯股息养老阶段（停止追加，DRIP'+Math.round(dripRatio*100)+'%）'}</td>`;
-      tbody.appendChild(tr);
+    const tr = document.createElement('tr');
+    tr.className='phase-divider';
+    tr.innerHTML = `<td colspan="11">${r.isAccum ? '▶ 积累阶段（每月追加+DRIP全部复投，均按组合比例拆分）' : '▶ 纯股息养老阶段（停止追加，DRIP'+Math.round(effectiveDripRatio*100)+'%）'}</td>`;
+    tbody.appendChild(tr);
       lastPhase = phase;
     }
     const hit = !r.isAccum && r.cov >= targetCov;
@@ -539,12 +684,12 @@ function run() {
     tr.className = hit ? 'row-hit' : (r.isAccum ? 'row-accum' : 'row-retire');
     tr.innerHTML =
       `<td>第${r.y}年${hit?' ★':''}</td>`+
-      `<td>¥${r.px.toFixed(2)}</td>`+
-      `<td>¥${r.dps.toFixed(3)}</td>`+
+      `<td>¥${r.blendPrice.toFixed(2)}</td>`+
+      `<td>${(r.afterTaxYield*100).toFixed(2)}%</td>`+
       `<td>${r.isAccum && r.addedAmt>0 ? r.addedAmt.toLocaleString() : '—'}</td>`+
-      `<td>${r.isAccum && r.addedSh>0 ? '+'+r.addedSh.toLocaleString() : '—'}</td>`+
-      `<td>+${r.dripSh.toLocaleString()}</td>`+
-      `<td>${r.sh.toLocaleString()}</td>`+
+      `<td class="detail">${r.isAccum ? r.addedSummary : '—'}</td>`+
+      `<td class="detail">${r.dripSummary}</td>`+
+      `<td class="detail">${r.holdingSummary}</td>`+
       `<td>${r.netDiv.toLocaleString()}</td>`+
       `<td>${r.isAccum ? '<span style="color:var(--ink3);font-size:10px">DRIP中</span>' : r.mon.toLocaleString()}</td>`+
       `<td>${(r.mktVal/10000).toFixed(1)}</td>`+
@@ -555,6 +700,20 @@ function run() {
   document.getElementById('results').classList.add('on');
   document.getElementById('results').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
+
+document.getElementById('preset').addEventListener('change', (event) => {
+  if (event.target.value !== 'custom') {
+    applyPreset(event.target.value);
+  }
+  updateWeightHint();
+});
+
+['weightCmb', 'weightNb', 'weightCypc'].forEach((id) => {
+  document.getElementById(id).addEventListener('input', syncPresetByWeights);
+});
+
+applyPreset('cmb_only');
+syncPresetByWeights();
 </script>
 </body>
 </html>
