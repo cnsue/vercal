@@ -107,7 +107,7 @@ header{
 .phase-sub{font-size:10px;color:var(--ink3);margin-top:3px;}
 
 /* KPI row */
-.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
 .kpi{border:1px solid var(--border);padding:14px 12px;text-align:center;background:var(--bg);}
 .kv{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:500;letter-spacing:-0.5px;}
 .kv.g{color:var(--green);}
@@ -130,7 +130,7 @@ header{
 
 /* TABLE */
 .tbl-wrap{overflow-x:auto;}
-.tbl{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--border);min-width:1120px;}
+.tbl{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--border);min-width:1240px;}
 .tbl th{
   background:var(--ink);color:var(--bg);padding:8px 10px;
   font-weight:400;font-size:9.5px;letter-spacing:1px;text-align:right;white-space:nowrap;
@@ -358,6 +358,7 @@ header{
           <th>期末持仓明细</th>
           <th>税后年股息(¥)</th>
           <th>月收入(¥)</th>
+          <th>期末剩余现金(¥)</th>
           <th>持仓市值(万¥)</th>
           <th>目标覆盖率</th>
         </tr>
@@ -454,6 +455,16 @@ function roundDownToBoardLot(rawShares) {
   return Math.floor(wholeShares / 100) * 100;
 }
 
+function deployCashToBoardLots(cashAmount, price) {
+  const shares = roundDownToBoardLot(cashAmount / price);
+  const usedAmount = shares * price;
+  return {
+    shares,
+    usedAmount,
+    remainingCash: cashAmount - usedAmount
+  };
+}
+
 function applyPreset(presetKey) {
   const preset = PRESETS[presetKey];
   if (!preset) return;
@@ -503,17 +514,20 @@ function run() {
   const prices = {};
   const dividends = {};
   const holdings = {};
+  const cashBalances = {};
   let totalInvested = 0;
 
   ASSET_KEYS.forEach((key) => {
     prices[key] = ASSETS[key].price;
     dividends[key] = ASSETS[key].annualDividend;
     holdings[key] = 0;
+    cashBalances[key] = 0;
     if (weights[key] > 0 && initMoney > 0) {
       const initialBudget = initMoney * weights[key];
-      const shares = roundDownToBoardLot(initialBudget / prices[key]);
-      holdings[key] = shares;
-      totalInvested += shares * prices[key];
+      const trade = deployCashToBoardLots(initialBudget, prices[key]);
+      holdings[key] = trade.shares;
+      cashBalances[key] = trade.remainingCash;
+      totalInvested += initialBudget;
     }
   });
 
@@ -523,6 +537,7 @@ function run() {
   let accumEndHoldings = {};
   let accumEndVal    = 0;
   let accumEndDiv    = 0;
+  let accumEndCash   = 0;
 
   for (let y = 1; y <= totalYrs; y++) {
     ASSET_KEYS.forEach((key) => {
@@ -540,15 +555,16 @@ function run() {
           addedShares[key] = 0;
           return;
         }
+        cashBalances[key] += allocatedAmount;
         const avgPx = prices[key] / (1 + priceGrow/2);
-        const shares = roundDownToBoardLot(allocatedAmount / avgPx);
-        const usedAmount = shares * avgPx;
-        addedShares[key] = shares;
-        holdings[key] += shares;
-        addedAmt += usedAmount;
+        const trade = deployCashToBoardLots(cashBalances[key], avgPx);
+        addedShares[key] = trade.shares;
+        holdings[key] += trade.shares;
+        cashBalances[key] = trade.remainingCash;
+        addedAmt += trade.usedAmount;
       });
-      totalInvested += addedAmt;
-      cfIRR.push(-addedAmt); // 追加投入为负现金流
+      totalInvested += annualAdd;
+      cfIRR.push(-annualAdd); // 追加投入为负现金流
     } else {
       ASSET_KEYS.forEach((key) => {
         addedShares[key] = 0;
@@ -567,14 +583,18 @@ function run() {
         dripShares[key] = 0;
         return;
       }
-      const shares = roundDownToBoardLot(allocatedDrip / prices[key]);
-      dripShares[key] = shares;
-      holdings[key] += shares;
+      cashBalances[key] += allocatedDrip;
+      const trade = deployCashToBoardLots(cashBalances[key], prices[key]);
+      dripShares[key] = trade.shares;
+      holdings[key] += trade.shares;
+      cashBalances[key] = trade.remainingCash;
     });
 
     const spendDiv = isAccum ? 0 : netDiv * (1 - effectiveDripRatio);
     const mon      = Math.round(spendDiv / 12);
     const mktVal   = ASSET_KEYS.reduce((sum, key) => sum + holdings[key] * prices[key], 0);
+    const cashTotal = ASSET_KEYS.reduce((sum, key) => sum + cashBalances[key], 0);
+    const portfolioVal = mktVal + cashTotal;
     const cov      = annualGoal > 0 ? spendDiv / annualGoal : 0;
     const blendPrice = ASSET_KEYS.reduce((sum, key) => sum + prices[key] * weights[key], 0);
     const afterTaxYield = mktVal > 0 ? netDiv / mktVal : 0;
@@ -583,15 +603,16 @@ function run() {
       accumEndHoldings = { ...holdings };
       accumEndVal    = mktVal;
       accumEndDiv    = netDiv;
+      accumEndCash   = cashTotal;
     }
 
     if (!isAccum && !hitYear && cov >= targetCov) hitYear = y;
 
     if (!isAccum) {
-      cfIRR[cfIRR.length-1] += spendDiv + (y===totalYrs ? mktVal : 0);
+      cfIRR[cfIRR.length-1] += spendDiv + (y===totalYrs ? portfolioVal : 0);
     }
     if (y === totalYrs && isAccum) {
-      cfIRR[cfIRR.length-1] += mktVal;
+      cfIRR[cfIRR.length-1] += portfolioVal;
     }
 
     rows.push({
@@ -606,6 +627,7 @@ function run() {
       netDiv:Math.round(netDiv),
       spendDiv:Math.round(spendDiv),
       mon,
+      cashTotal,
       mktVal,
       cov
     });
@@ -628,7 +650,7 @@ function run() {
     <div class="phase phase-retire">
       <div class="phase-label">纯股息养老期（第${accumYrs+1}年起）</div>
       <div class="phase-val green">积累结束时组合持仓</div>
-      <div class="phase-sub">${summarizeHoldings(accumEndHoldings)} · 市值${(accumEndVal/10000).toFixed(0)}万</div>
+      <div class="phase-sub">${summarizeHoldings(accumEndHoldings)} · 市值${(accumEndVal/10000).toFixed(0)}万 · 现金${(accumEndCash/10000).toFixed(2)}万</div>
       <div class="phase-val green" style="margin-top:6px;font-size:14px;">年股息约${(accumEndDiv/10000).toFixed(1)}万元</div>
     </div>`;
 
@@ -638,6 +660,7 @@ function run() {
   document.getElementById('kpiRow').innerHTML = `
     <div class="kpi"><div class="kv b">${(totalInvested/10000).toFixed(1)}</div><div class="kl">累计总投入（万元）</div></div>
     <div class="kpi"><div class="kv">${(accumEndVal/10000).toFixed(1)}</div><div class="kl">积累结束组合市值（万元）</div></div>
+    <div class="kpi"><div class="kv">${Math.round(accumEndCash).toLocaleString()}</div><div class="kl">积累结束剩余现金（元）</div></div>
     <div class="kpi"><div class="kv g">${firstRetireRow ? firstRetireRow.mon.toLocaleString() : '—'}</div><div class="kl">第${accumYrs+1}年月股息（元）</div></div>
     <div class="kpi"><div class="kv g">${lastRow.mon.toLocaleString()}</div><div class="kl">第${totalYrs}年月股息（元）</div></div>
     <div class="kpi"><div class="kv o">${irr>0?(irr*100).toFixed(1)+'%':'—'}</div><div class="kl">综合年化IRR</div></div>`;
@@ -667,9 +690,9 @@ function run() {
     `初始投入 <b>¥${(initMoney/10000).toFixed(1)}万</b>，此后每月追加 <b>¥${monthlyAdd.toLocaleString()}</b>，` +
     `连续积累 <b>${accumYrs}年</b>，期间股息全部DRIP复投（按当年实时股价买入，并按当前组合比例拆分）。<br>` +
     `${accumYrs}年积累结束时：组合持仓为 <b>${summarizeHoldings(accumEndHoldings)}</b>，市值约 <b>${(accumEndVal/10000).toFixed(0)}万元</b>，` +
-    `累计总投入约 <b>${(totalInvested/10000).toFixed(1)}万元</b>，税后年股息约 <b>${(accumEndDiv/10000).toFixed(1)}万元</b>（月均 <b>${Math.round(accumEndDiv/12).toLocaleString()}元</b>，覆盖目标 <b>${Math.round(accumCov*100)}%</b>）。<br>` +
+    `剩余未用现金约 <b>${Math.round(accumEndCash).toLocaleString()}元</b>，累计总投入约 <b>${(totalInvested/10000).toFixed(1)}万元</b>，税后年股息约 <b>${(accumEndDiv/10000).toFixed(1)}万元</b>（月均 <b>${Math.round(accumEndDiv/12).toLocaleString()}元</b>，覆盖目标 <b>${Math.round(accumCov*100)}%</b>）。<br>` +
     `股价假设年增 <b>${(priceGrow*100).toFixed(0)}%</b>，股息假设年增 <b>${(divGrow*100).toFixed(0)}%</b>，` +
-    `${retireDrip ? `养老期DRIP <b>${(dripRatio*100).toFixed(0)}%</b> 股息继续复投` : '养老期全部股息花用'}，` +
+    `${retireDrip ? `养老期DRIP <b>${(dripRatio*100).toFixed(0)}%</b> 股息继续复投` : '养老期全部股息花用'}，第${totalYrs}年末预计现金余额 <b>${Math.round(lastRow.cashTotal).toLocaleString()}元</b>，` +
     `综合年化IRR约 <b>${irr>0?(irr*100).toFixed(1)+'%':'计算中'}</b>。`;
 
   // ── Table ──
@@ -681,7 +704,7 @@ function run() {
     if (phase !== lastPhase) {
     const tr = document.createElement('tr');
     tr.className='phase-divider';
-    tr.innerHTML = `<td colspan="11">${r.isAccum ? '▶ 积累阶段（每月追加+DRIP全部复投，均按组合比例拆分）' : '▶ 纯股息养老阶段（停止追加，DRIP'+Math.round(effectiveDripRatio*100)+'%）'}</td>`;
+    tr.innerHTML = `<td colspan="12">${r.isAccum ? '▶ 积累阶段（每月追加+DRIP全部复投，均按组合比例拆分）' : '▶ 纯股息养老阶段（停止追加，DRIP'+Math.round(effectiveDripRatio*100)+'%）'}</td>`;
     tbody.appendChild(tr);
       lastPhase = phase;
     }
@@ -698,6 +721,7 @@ function run() {
       `<td class="detail">${r.holdingSummary}</td>`+
       `<td>${r.netDiv.toLocaleString()}</td>`+
       `<td>${r.isAccum ? '<span style="color:var(--ink3);font-size:10px">DRIP中</span>' : r.mon.toLocaleString()}</td>`+
+      `<td>${Math.round(r.cashTotal).toLocaleString()}</td>`+
       `<td>${(r.mktVal/10000).toFixed(1)}</td>`+
       `<td>${r.isAccum ? '<span style="color:var(--ink3)">—</span>' : Math.round(r.cov*100)+'%'+(hit?' ✓':'')}</td>`;
     tbody.appendChild(tr);
