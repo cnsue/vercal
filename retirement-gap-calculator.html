@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>退休待遇与养老缺口测算</title>
+  <style>
+    :root {
+      --bg: #f5f1eb;
+      --bg-accent: #efe4d6;
+      --card: rgba(255, 255, 255, 0.88);
+      --line: rgba(105, 70, 43, 0.12);
+      --text: #2f241d;
+      --muted: #7a685b;
+      --accent: #c33e2f;
+      --accent-soft: rgba(195, 62, 47, 0.1);
+      --accent-strong: #8f2418;
+      --good: #19694b;
+      --shadow: 0 18px 40px rgba(109, 76, 48, 0.12);
+      --radius: 24px;
+      --radius-sm: 16px;
+      --font: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
+        "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(195, 62, 47, 0.08), transparent 32%),
+        radial-gradient(circle at top right, rgba(201, 144, 86, 0.18), transparent 30%),
+        linear-gradient(180deg, #fbf7f2 0%, var(--bg) 58%, #f0e8df 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 90%);
+    }
+
+    .page {
+      width: min(1160px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: calc(var(--radius) + 6px);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 247, 241, 0.92)),
+        linear-gradient(135deg, #fff, #fff);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      top: -90px;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(195, 62, 47, 0.18), transparent 66%);
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 5vw, 44px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .tag {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(47, 36, 29, 0.05);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 20px;
+      margin-top: 22px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.54);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .panel h2 {
+      margin: 0 0 6px;
+      font-size: 21px;
+    }
+
+    .panel .desc {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field span {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .field small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    input {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 251, 247, 0.95);
+      color: var(--text);
+      font-size: 16px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: rgba(195, 62, 47, 0.45);
+      box-shadow: 0 0 0 4px rgba(195, 62, 47, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button.primary {
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--accent), #df6649);
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(195, 62, 47, 0.24);
+    }
+
+    button.secondary {
+      padding: 12px 18px;
+      background: rgba(47, 36, 29, 0.06);
+      color: var(--text);
+    }
+
+    .quick-picks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .quick-pick {
+      padding: 8px 12px;
+      border: 1px solid rgba(47, 36, 29, 0.1);
+      border-radius: 999px;
+      background: rgba(255, 251, 247, 0.88);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .quick-pick.active {
+      border-color: rgba(195, 62, 47, 0.28);
+      background: rgba(195, 62, 47, 0.1);
+      color: var(--accent-strong);
+      box-shadow: 0 10px 20px rgba(195, 62, 47, 0.12);
+    }
+
+    .stats {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stat {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border: 1px solid rgba(195, 62, 47, 0.08);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(252, 247, 243, 0.88));
+    }
+
+    .stat-title {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .stat-value {
+      font-size: clamp(26px, 4vw, 34px);
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .stat.highlight {
+      border-color: rgba(195, 62, 47, 0.24);
+      background:
+        linear-gradient(180deg, rgba(255, 245, 243, 0.98), rgba(255, 250, 246, 0.94)),
+        #fff;
+    }
+
+    .stat.highlight .stat-value {
+      color: var(--accent-strong);
+    }
+
+    .metric-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(47, 36, 29, 0.035);
+      font-size: 14px;
+    }
+
+    .metric strong {
+      flex: 0 0 auto;
+      color: var(--text);
+    }
+
+    .metric span {
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .footnote {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 18px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .formula {
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px dashed rgba(47, 36, 29, 0.16);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .formula code {
+      font-family: "SFMono-Regular", "Consolas", monospace;
+      font-size: 12px;
+      color: var(--accent-strong);
+    }
+
+    .ok {
+      color: var(--good);
+    }
+
+    .warn {
+      color: var(--accent-strong);
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        width: min(100% - 18px, 100%);
+        padding-top: 14px;
+      }
+
+      .hero,
+      .panel {
+        padding: 18px;
+        border-radius: 20px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metric {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .metric span {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>退休待遇与养老缺口测算</h1>
+      <p>
+        这个页面按你截图里的字段预填了默认值。你只要把自己的数据填进去，就会实时估算退休月待遇、收入替代率，以及退休后还需要补多少养老金本金。
+      </p>
+      <div class="hero-meta">
+        <div class="tag">单文件 HTML</div>
+        <div class="tag">离线可用</div>
+        <div class="tag">未内置个人数据</div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <div class="stack">
+        <section class="panel">
+          <h2>基础信息</h2>
+          <p class="desc">当前版本已移除个人截图默认值。预计退休年月继续保留为 `YYYYMM` 格式，请按自己的数据填写。</p>
+          <div class="grid">
+            <label class="field">
+              <span>预计退休年月</span>
+              <input id="retirementYm" inputmode="numeric" maxlength="6" value="" placeholder="例如 204512">
+              <small>例如 204512。页面会自动给出按当前日期推算的继续缴费月数参考值。</small>
+            </label>
+            <label class="field">
+              <span>当前在岗职工平均工资（元）</span>
+              <input id="currentAvgWage" type="number" min="0" step="0.01" value="" placeholder="例如 10000">
+              <small>请填写你当前参保地口径下的在岗职工平均工资。</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>社保测算参数</h2>
+          <p class="desc">这部分只放影响社保退休待遇估算的参数，不再混入你自己的养老资金提取假设。</p>
+          <div class="grid">
+            <label class="field">
+              <span>在岗职工平均工资增长率（%）</span>
+              <input id="wageGrowthRate" type="number" step="0.01" value="2.00">
+              <small>用于推算退休时的社会平均工资和未来缴费基数。</small>
+            </label>
+            <label class="field">
+              <span>记账利率（%）</span>
+              <input id="bookRate" type="number" step="0.01" value="1.62">
+              <small>用于估算个人账户余额滚存。</small>
+            </label>
+            <label class="field">
+              <span>替代指数</span>
+              <input id="replacementIndex" type="number" step="0.00001" value="1.00000" placeholder="例如 1.00000">
+              <small>按你当地社保系统口径填写；如不确定可先用 1.00000 做估算。</small>
+            </label>
+            <label class="field">
+              <span>个人账户计发月数</span>
+              <input id="divisor" type="number" min="1" step="1" value="139">
+              <small>常见值：50 岁 195、55 岁 170、60 岁 139。可按实际口径修改。</small>
+            </label>
+            <label class="field">
+              <span>过渡养老金系数（%）</span>
+              <input id="transitionRate" type="number" step="0.01" value="1.30">
+              <small>各地口径可能不同，这里给一个通用可调默认值。</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>参保数据</h2>
+          <p class="desc">这里对应第二张图的缴费月数、平均缴费指数和账户余额。未显示的字段按通用公式处理。</p>
+          <div class="grid">
+            <label class="field">
+              <span>98 年前已经缴费月数</span>
+              <input id="pre98PaidMonths" type="number" min="0" step="1" value="0">
+              <small>如果没有，保持 0。</small>
+            </label>
+            <label class="field">
+              <span>98 年前已缴费平均缴费指数</span>
+              <input id="pre98PaidAvgIndex" type="number" min="0" step="0.00001" value="0.00000">
+              <small>用于整体平均缴费指数估算。</small>
+            </label>
+            <label class="field">
+              <span>98 年前视同缴费月数</span>
+              <input id="pre98DeemedMonths" type="number" min="0" step="1" value="0">
+              <small>主要影响过渡养老金。</small>
+            </label>
+            <label class="field">
+              <span>98 年后已经缴费月数</span>
+              <input id="post98PaidMonths" type="number" min="0" step="1" value="" placeholder="例如 180">
+              <small>请填写你 1998 年后已经实际缴费的月数。</small>
+            </label>
+            <label class="field">
+              <span>98 年后已缴费平均缴费指数</span>
+              <input id="post98PaidAvgIndex" type="number" min="0" step="0.00001" value="" placeholder="例如 1.00000">
+              <small>请填写你 1998 年后已缴费部分的平均缴费指数。</small>
+            </label>
+            <label class="field">
+              <span>98 年后视做缴费月数</span>
+              <input id="post98DeemedMonths" type="number" min="0" step="1" value="0">
+              <small>若无则保持 0。</small>
+            </label>
+            <label class="field">
+              <span>个人账户余额（元）</span>
+              <input id="currentBalance" type="number" min="0" step="0.01" value="" placeholder="例如 100000">
+              <small>请填写你当前个人账户余额。</small>
+            </label>
+            <label class="field">
+              <span>退休前继续缴费月数</span>
+              <input id="futurePayMonths" type="number" min="0" step="1" value="" placeholder="可手填，或点下方快捷选项">
+              <small id="futurePayHint">按当前日期推算的参考值会显示在这里。</small>
+              <div class="quick-picks" id="futurePayQuickPicks">
+                <button type="button" class="quick-pick" data-mode="fixed" data-months="120">10 年</button>
+                <button type="button" class="quick-pick" data-mode="fixed" data-months="180">15 年</button>
+                <button type="button" class="quick-pick" data-mode="fixed" data-months="240">20 年</button>
+                <button type="button" class="quick-pick" data-mode="fixed" data-months="300">25 年</button>
+                <button type="button" class="quick-pick" data-mode="auto">缴到退休</button>
+              </div>
+            </label>
+            <label class="field">
+              <span>退休前继续缴费平均指数</span>
+              <input id="futureAvgIndex" type="number" min="0" step="0.0001" value="1.0000" placeholder="例如 1.0000">
+              <small>填写你预计退休前继续缴费阶段的平均缴费指数。</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>养老缺口测算（可选）</h2>
+          <p class="desc">这部分单独看退休生活还差多少钱，以及如果用你自己的养老储备去补，需要准备多少本金。</p>
+          <div class="grid">
+            <label class="field">
+              <span>退休后目标月支出（元）</span>
+              <input id="targetMonthlySpending" type="number" min="0" step="0.01" value="10000">
+              <small>建议填退休时点的每月支出目标。</small>
+            </label>
+            <label class="field">
+              <span>其他稳定月收入（元）</span>
+              <input id="otherMonthlyIncome" type="number" min="0" step="0.01" value="0">
+              <small>例如企业年金、房租、商业年金等。</small>
+            </label>
+            <label class="field">
+              <span>自有养老储备年提取率（%）</span>
+              <input id="withdrawalRate" type="number" min="0.1" step="0.1" value="4.0">
+              <small>只用于估算你自己的养老储备需要多大，不影响政府养老金发放规则。</small>
+            </label>
+          </div>
+          <div class="actions">
+            <button class="primary" id="recalculate">立即重算</button>
+            <button class="secondary" id="resetDefaults">重置为截图默认值</button>
+            <button class="secondary" id="copySummary">复制测算摘要</button>
+          </div>
+        </section>
+      </div>
+
+        <div class="stack">
+          <section class="panel">
+            <h2>社保养老金结果</h2>
+            <p class="desc">这里只看政府养老金口径下的预计退休待遇，不包含你自己准备的养老储备提取。</p>
+            <div class="stats">
+              <div class="stat highlight">
+                <div class="stat-title">预计退休月待遇</div>
+                <div class="stat-value" id="estimatedMonthlyPension">0 元</div>
+                <div class="stat-note" id="estimatedMonthlyPensionNote">基础养老金 + 个人账户养老金 + 过渡养老金</div>
+              </div>
+            </div>
+
+            <div class="metric-list">
+              <div class="metric"><strong>当前缴费基数</strong><span id="currentContributionBase">0 元/月</span></div>
+              <div class="metric"><strong>每月划入个人账户</strong><span id="monthlyPersonalContribution">0 元/月</span></div>
+              <div class="metric"><strong>预计退休时社平工资</strong><span id="projectedAvgWage">0 元/月</span></div>
+              <div class="metric"><strong>预计退休时个人账户余额</strong><span id="projectedBalance">0 元</span></div>
+              <div class="metric"><strong>综合平均缴费指数</strong><span id="overallAvgIndex">0</span></div>
+              <div class="metric"><strong>累计缴费年限</strong><span id="totalContributionYears">0 年</span></div>
+              <div class="metric"><strong>基础养老金</strong><span id="basePension">0 元/月</span></div>
+              <div class="metric"><strong>个人账户养老金</strong><span id="accountPension">0 元/月</span></div>
+              <div class="metric"><strong>过渡养老金</strong><span id="transitionPension">0 元/月</span></div>
+              <div class="metric"><strong>收入替代率</strong><span id="replacementRateDisplay">0%</span></div>
+            </div>
+
+            <div class="footnote" id="retirementWindowNote">
+              正在根据预计退休年月计算继续缴费月数参考值。
+            </div>
+
+            <div class="formula">
+              <div><code>基础养老金 ≈ 退休时社平工资 × (1 + 综合平均缴费指数) ÷ 2 × 缴费年限 × 1%</code></div>
+              <div><code>个人账户养老金 ≈ 退休时个人账户余额 ÷ 计发月数</code></div>
+              <div><code>过渡养老金 ≈ 退休时社平工资 × 替代指数 × 视同缴费年限 × 过渡养老金系数</code></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>养老缺口结果</h2>
+            <p class="desc">这里把预计社保养老金、其他稳定收入和你的退休支出目标放在一起看，再估算自有养老储备需要多大。</p>
+            <div class="stats">
+              <div class="stat">
+                <div class="stat-title">退休后总月收入</div>
+                <div class="stat-value" id="estimatedMonthlyIncome">0 元</div>
+                <div class="stat-note">已包含你填的其他稳定月收入</div>
+              </div>
+              <div class="stat">
+                <div class="stat-title">养老月缺口</div>
+                <div class="stat-value" id="gapMonthly">0 元</div>
+                <div class="stat-note" id="gapStatus">目标月支出减去退休后总月收入</div>
+              </div>
+              <div class="stat">
+                <div class="stat-title">建议准备的自有养老本金</div>
+                <div class="stat-value" id="requiredPrincipal">0 元</div>
+                <div class="stat-note" id="principalNote">按自有养老储备年提取率折算</div>
+              </div>
+            </div>
+
+            <div class="footnote">
+              这里的“自有养老储备年提取率”不是政府养老金发放规则，而是你自己准备的养老金、储蓄、基金、商业年金等资产的使用节奏假设。
+            </div>
+
+            <div class="formula">
+              <div><code>退休后总月收入 = 预计社保养老金 + 其他稳定月收入</code></div>
+              <div><code>养老月缺口 = 目标月支出 - 退休后总月收入</code></div>
+              <div><code>自有养老本金 ≈ 年缺口 ÷ 自有养老储备年提取率</code></div>
+            </div>
+          </section>
+        </div>
+      </div>
+  </div>
+
+  <script>
+    const storageKey = "retirement-gap-calculator-v2";
+    const futurePayModeKey = "retirement-gap-calculator-future-pay-mode-v2";
+    const defaults = {
+      retirementYm: "",
+      currentAvgWage: "",
+      wageGrowthRate: 2.00,
+      bookRate: 1.62,
+      replacementIndex: 1.0,
+      divisor: 139,
+      transitionRate: 1.30,
+      withdrawalRate: 4.0,
+      pre98PaidMonths: 0,
+      pre98PaidAvgIndex: 0.0,
+      pre98DeemedMonths: 0,
+      post98PaidMonths: "",
+      post98PaidAvgIndex: "",
+      post98DeemedMonths: 0,
+      currentBalance: "",
+      futurePayMonths: "",
+      futureAvgIndex: 1.0,
+      targetMonthlySpending: 10000,
+      otherMonthlyIncome: 0
+    };
+
+    const fieldIds = Object.keys(defaults);
+    let futurePayMode = "manual";
+
+    function getInput(id) {
+      return document.getElementById(id);
+    }
+
+    function readNumber(id) {
+      const value = Number(getInput(id).value);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function setFieldValue(id, value) {
+      getInput(id).value = typeof value === "number" ? String(value) : value;
+    }
+
+    function formatCurrency(value) {
+      return `${new Intl.NumberFormat("zh-CN", {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 0
+      }).format(value)} 元`;
+    }
+
+    function formatCurrencyPrecise(value) {
+      return `${new Intl.NumberFormat("zh-CN", {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2
+      }).format(value)} 元`;
+    }
+
+    function formatPercent(value) {
+      return `${new Intl.NumberFormat("zh-CN", {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2
+      }).format(value)}%`;
+    }
+
+    function formatNumber(value, digits = 4) {
+      return new Intl.NumberFormat("zh-CN", {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: digits
+      }).format(value);
+    }
+
+    function parseRetirementYm(raw) {
+      const normalized = String(raw || "").trim();
+      if (!/^\d{6}$/.test(normalized)) {
+        return null;
+      }
+      const year = Number(normalized.slice(0, 4));
+      const month = Number(normalized.slice(4, 6));
+      if (!Number.isFinite(year) || month < 1 || month > 12) {
+        return null;
+      }
+      return { year, month };
+    }
+
+    function getReferenceFutureMonths(retirementYm) {
+      const parsed = parseRetirementYm(retirementYm);
+      if (!parsed) {
+        return null;
+      }
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth() + 1;
+      const diff = (parsed.year - currentYear) * 12 + (parsed.month - currentMonth);
+      return Math.max(0, diff + 1);
+    }
+
+    function computeProjectedBalance(currentBalance, currentAvgWage, wageGrowthRate, bookRate, futurePayMonths, futureAvgIndex) {
+      const monthlyRate = Math.pow(1 + bookRate / 100, 1 / 12) - 1;
+      let balance = currentBalance;
+      let futureContributionTotal = 0;
+      for (let month = 0; month < futurePayMonths; month += 1) {
+        balance *= 1 + monthlyRate;
+        const growthFactor = Math.pow(1 + wageGrowthRate / 100, month / 12);
+        const contributionBase = currentAvgWage * futureAvgIndex * growthFactor;
+        const personalContribution = contributionBase * 0.08;
+        futureContributionTotal += personalContribution;
+        balance += personalContribution;
+      }
+      return { projectedBalance: balance, futureContributionTotal };
+    }
+
+    function syncFuturePayQuickPicks() {
+      const currentMonths = Math.max(0, readNumber("futurePayMonths"));
+      document.querySelectorAll("#futurePayQuickPicks .quick-pick").forEach((button) => {
+        let active = false;
+        if (futurePayMode === "auto" && button.dataset.mode === "auto") {
+          active = true;
+        }
+        if (
+          futurePayMode === "fixed"
+          && button.dataset.mode === "fixed"
+          && currentMonths === Number(button.dataset.months)
+        ) {
+          active = true;
+        }
+        button.classList.toggle("active", active);
+      });
+    }
+
+    function applyFuturePayMode(mode, months) {
+      futurePayMode = mode;
+      if (mode === "auto") {
+        const referenceFutureMonths = getReferenceFutureMonths(getInput("retirementYm").value);
+        if (referenceFutureMonths !== null) {
+          setFieldValue("futurePayMonths", referenceFutureMonths);
+        }
+      } else if (mode === "fixed" && Number.isFinite(months)) {
+        setFieldValue("futurePayMonths", months);
+      }
+      syncFuturePayQuickPicks();
+      saveState();
+      calculate();
+    }
+
+    function saveState() {
+      const state = {};
+      fieldIds.forEach((id) => {
+        state[id] = getInput(id).value;
+      });
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      localStorage.setItem(futurePayModeKey, futurePayMode);
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        const savedMode = localStorage.getItem(futurePayModeKey);
+        if (savedMode) {
+          futurePayMode = savedMode;
+        }
+        syncFuturePayQuickPicks();
+        return;
+      }
+      try {
+        const state = JSON.parse(raw);
+        fieldIds.forEach((id) => {
+          if (state[id] !== undefined) {
+            setFieldValue(id, state[id]);
+          }
+        });
+        const savedMode = localStorage.getItem(futurePayModeKey);
+        if (savedMode) {
+          futurePayMode = savedMode;
+        }
+        syncFuturePayQuickPicks();
+      } catch (error) {
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(futurePayModeKey);
+      }
+    }
+
+    function resetDefaults() {
+      fieldIds.forEach((id) => {
+        setFieldValue(id, defaults[id]);
+      });
+      futurePayMode = "manual";
+      syncFuturePayQuickPicks();
+      calculate();
+    }
+
+    function calculate() {
+      const retirementYm = getInput("retirementYm").value;
+      const currentAvgWage = readNumber("currentAvgWage");
+      const wageGrowthRate = readNumber("wageGrowthRate");
+      const bookRate = readNumber("bookRate");
+      const replacementIndex = readNumber("replacementIndex");
+      const divisor = Math.max(1, readNumber("divisor"));
+      const transitionRate = readNumber("transitionRate");
+      const withdrawalRate = Math.max(0.1, readNumber("withdrawalRate"));
+      const pre98PaidMonths = Math.max(0, readNumber("pre98PaidMonths"));
+      const pre98PaidAvgIndex = Math.max(0, readNumber("pre98PaidAvgIndex"));
+      const pre98DeemedMonths = Math.max(0, readNumber("pre98DeemedMonths"));
+      const post98PaidMonths = Math.max(0, readNumber("post98PaidMonths"));
+      const post98PaidAvgIndex = Math.max(0, readNumber("post98PaidAvgIndex"));
+      const post98DeemedMonths = Math.max(0, readNumber("post98DeemedMonths"));
+      const currentBalance = Math.max(0, readNumber("currentBalance"));
+      const futurePayMonths = Math.max(0, readNumber("futurePayMonths"));
+      const futureAvgIndex = Math.max(0, readNumber("futureAvgIndex"));
+      const targetMonthlySpending = Math.max(0, readNumber("targetMonthlySpending"));
+      const otherMonthlyIncome = Math.max(0, readNumber("otherMonthlyIncome"));
+
+      const referenceFutureMonths = getReferenceFutureMonths(retirementYm);
+      if (futurePayMode === "auto" && referenceFutureMonths !== null) {
+        setFieldValue("futurePayMonths", referenceFutureMonths);
+      }
+      const effectiveFuturePayMonths = Math.max(0, readNumber("futurePayMonths"));
+      const currentContributionBase = currentAvgWage * futureAvgIndex;
+      const monthlyPersonalContribution = currentContributionBase * 0.08;
+      const projectedAvgWage = currentAvgWage * Math.pow(1 + wageGrowthRate / 100, effectiveFuturePayMonths / 12);
+      const weightedMonths = pre98PaidMonths + post98PaidMonths + effectiveFuturePayMonths;
+      const overallAvgIndex = weightedMonths > 0
+        ? (
+          pre98PaidMonths * pre98PaidAvgIndex
+          + post98PaidMonths * post98PaidAvgIndex
+          + effectiveFuturePayMonths * futureAvgIndex
+        ) / weightedMonths
+        : 0;
+      const totalContributionMonths = pre98PaidMonths + pre98DeemedMonths + post98PaidMonths + post98DeemedMonths + effectiveFuturePayMonths;
+      const totalContributionYears = totalContributionMonths / 12;
+
+      const { projectedBalance, futureContributionTotal } = computeProjectedBalance(
+        currentBalance,
+        currentAvgWage,
+        wageGrowthRate,
+        bookRate,
+        effectiveFuturePayMonths,
+        futureAvgIndex
+      );
+
+      const basePension = projectedAvgWage * ((1 + overallAvgIndex) / 2) * totalContributionYears * 0.01;
+      const transitionMonths = pre98DeemedMonths + post98DeemedMonths;
+      const transitionPension = projectedAvgWage * replacementIndex * (transitionMonths / 12) * (transitionRate / 100);
+      const accountPension = projectedBalance / divisor;
+      const estimatedMonthlyPension = basePension + transitionPension + accountPension;
+      const estimatedMonthlyIncome = estimatedMonthlyPension + otherMonthlyIncome;
+      const monthlyGap = Math.max(0, targetMonthlySpending - estimatedMonthlyIncome);
+      const annualGap = monthlyGap * 12;
+      const requiredPrincipal = annualGap / (withdrawalRate / 100);
+      const replacementRate = currentAvgWage > 0 ? (estimatedMonthlyPension / currentAvgWage) * 100 : 0;
+
+      document.getElementById("estimatedMonthlyPension").textContent = formatCurrency(estimatedMonthlyPension);
+      document.getElementById("estimatedMonthlyPensionNote").textContent =
+        `基础 ${formatCurrency(basePension)} + 个人账户 ${formatCurrency(accountPension)} + 过渡 ${formatCurrency(transitionPension)}`;
+      document.getElementById("estimatedMonthlyIncome").textContent = formatCurrency(estimatedMonthlyIncome);
+      document.getElementById("gapMonthly").textContent = formatCurrency(monthlyGap);
+      document.getElementById("requiredPrincipal").textContent = formatCurrency(requiredPrincipal);
+      document.getElementById("principalNote").textContent =
+        `按 ${formatPercent(withdrawalRate)} 的自有养老储备年提取率折算，覆盖年缺口 ${formatCurrency(annualGap)}`;
+
+      const gapStatus = document.getElementById("gapStatus");
+      if (monthlyGap > 0) {
+        gapStatus.textContent = "存在养老资金缺口，需要靠个人养老金、储蓄或投资继续补足。";
+        gapStatus.className = "stat-note warn";
+      } else {
+        gapStatus.textContent = "按当前目标看没有缺口，退休收入已经覆盖目标支出。";
+        gapStatus.className = "stat-note ok";
+      }
+
+      document.getElementById("currentContributionBase").textContent = `${formatCurrency(currentContributionBase)}/月`;
+      document.getElementById("monthlyPersonalContribution").textContent = `${formatCurrencyPrecise(monthlyPersonalContribution)}/月`;
+      document.getElementById("projectedAvgWage").textContent = `${formatCurrency(projectedAvgWage)}/月`;
+      document.getElementById("projectedBalance").textContent = formatCurrency(projectedBalance);
+      document.getElementById("overallAvgIndex").textContent = formatNumber(overallAvgIndex, 4);
+      document.getElementById("totalContributionYears").textContent = `${formatNumber(totalContributionYears, 2)} 年`;
+      document.getElementById("basePension").textContent = `${formatCurrency(basePension)}/月`;
+      document.getElementById("accountPension").textContent = `${formatCurrency(accountPension)}/月`;
+      document.getElementById("transitionPension").textContent = `${formatCurrency(transitionPension)}/月`;
+      document.getElementById("replacementRateDisplay").textContent = formatPercent(replacementRate);
+
+      const futurePayHint = document.getElementById("futurePayHint");
+      const retirementWindowNote = document.getElementById("retirementWindowNote");
+      if (referenceFutureMonths === null) {
+        futurePayHint.textContent = "退休年月格式不正确，请输入 6 位数字，例如 204512。";
+        retirementWindowNote.textContent = "预计退休年月格式不正确，所以无法自动给出继续缴费月数参考值。";
+      } else {
+        const diff = effectiveFuturePayMonths - referenceFutureMonths;
+        let modeText = "当前为手动输入";
+        if (futurePayMode === "fixed") {
+          modeText = "当前使用快捷年限";
+        }
+        if (futurePayMode === "auto") {
+          modeText = "当前为缴到退休自动模式";
+        }
+        const diffText = diff === 0 ? "与你当前填写值一致" : `与你当前填写值相差 ${diff > 0 ? "+" : ""}${diff} 个月`;
+        futurePayHint.textContent = `按当前日期自动推算约 ${referenceFutureMonths} 个月，${modeText}，${diffText}。`;
+        retirementWindowNote.textContent =
+          `按当前浏览器日期推算，距离 ${retirementYm} 大约还有 ${referenceFutureMonths} 个月。你当前按 ${effectiveFuturePayMonths} 个月测算，未来继续缴费期间，个人账户预计新增缴入 ${formatCurrency(futureContributionTotal)}，退休时总账户余额预计为 ${formatCurrency(projectedBalance)}。`;
+      }
+
+      syncFuturePayQuickPicks();
+      saveState();
+      return {
+        estimatedMonthlyPension,
+        estimatedMonthlyIncome,
+        monthlyGap,
+        requiredPrincipal,
+        projectedBalance,
+        projectedAvgWage,
+        totalContributionYears
+      };
+    }
+
+    function copySummary() {
+      const result = calculate();
+      const summary = [
+        "退休待遇与养老缺口测算摘要",
+        `预计退休年月：${getInput("retirementYm").value}`,
+        `预计退休月待遇：${formatCurrency(result.estimatedMonthlyPension)}`,
+        `退休后总月收入：${formatCurrency(result.estimatedMonthlyIncome)}`,
+        `养老月缺口：${formatCurrency(result.monthlyGap)}`,
+        `建议准备的自有养老本金：${formatCurrency(result.requiredPrincipal)}`,
+        `预计退休时个人账户余额：${formatCurrency(result.projectedBalance)}`,
+        `预计退休时社平工资：${formatCurrency(result.projectedAvgWage)}`,
+        `累计缴费年限：${formatNumber(result.totalContributionYears, 2)} 年`,
+        "提示：这是按通用公式做的前端估算，最终以当地社保系统为准。"
+      ].join("\n");
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(summary).then(() => {
+          window.alert("测算摘要已复制到剪贴板。");
+        }).catch(() => {
+          window.alert(summary);
+        });
+      } else {
+        window.alert(summary);
+      }
+    }
+
+    fieldIds.forEach((id) => {
+      if (id === "futurePayMonths") {
+        return;
+      }
+      getInput(id).addEventListener("input", calculate);
+      getInput(id).addEventListener("change", calculate);
+    });
+
+    ["input", "change"].forEach((eventName) => {
+      getInput("futurePayMonths").addEventListener(eventName, () => {
+        futurePayMode = "manual";
+        syncFuturePayQuickPicks();
+        calculate();
+      });
+    });
+
+    document.querySelectorAll("#futurePayQuickPicks .quick-pick").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (button.dataset.mode === "auto") {
+          applyFuturePayMode("auto");
+          return;
+        }
+        applyFuturePayMode("fixed", Number(button.dataset.months));
+      });
+    });
+
+    document.getElementById("recalculate").addEventListener("click", calculate);
+    document.getElementById("resetDefaults").addEventListener("click", resetDefaults);
+    document.getElementById("copySummary").addEventListener("click", copySummary);
+
+    loadState();
+    calculate();
+  </script>
+</body>
+</html>

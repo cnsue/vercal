@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>银行股养老全收益计算器 · 分批建仓版</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f2ed; --bg2:#edeae3; --bg3:#e2ddd5; --white:#fff;
+  --ink:#16140e; --ink2:#44403a; --ink3:#8a857c;
+  --cmb:#b5281e; --nb:#1a4b7c;
+  --gold:#9a7c3a; --gold-bg:#faf6ec; --gold-border:rgba(154,124,58,0.2);
+  --green:#2a7a4a; --warn:#b56a00;
+  --border:rgba(22,20,14,0.11); --border2:rgba(22,20,14,0.06);
+  --accent:#2563eb;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--ink);font-family:'Noto Serif SC',serif;min-height:100vh;}
+
+header{
+  background:var(--ink);color:var(--bg);
+  padding:26px 36px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;
+}
+.hd-title{font-size:clamp(17px,2.8vw,26px);font-weight:700;letter-spacing:2px;line-height:1.3;}
+.hd-sub{font-size:10px;color:rgba(245,242,237,.5);letter-spacing:3px;margin-top:5px;font-weight:300;}
+.hd-meta{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:rgba(245,242,237,.55);text-align:right;line-height:2;}
+.chip{border:1px solid rgba(245,242,237,.25);padding:2px 9px;font-size:9.5px;letter-spacing:1px;display:inline-block;margin-bottom:4px;}
+
+.wrap{max-width:1100px;margin:0 auto;padding:0 22px 80px;}
+
+.notice{border-left:3px solid var(--warn);background:var(--gold-bg);padding:11px 16px;font-size:11.5px;color:var(--ink2);margin:24px 0;line-height:1.9;}
+.notice b{color:var(--warn);}
+
+.sec{display:flex;align-items:center;gap:14px;margin:30px 0 14px;}
+.sec span{font-size:10px;letter-spacing:4px;color:var(--ink3);white-space:nowrap;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── PARAM PANELS ── */
+.panel{background:var(--white);border:1px solid var(--border);margin-bottom:12px;overflow:hidden;}
+.panel-head{
+  padding:14px 22px;font-size:12px;letter-spacing:2px;font-weight:600;
+  display:flex;align-items:center;gap:10px;
+}
+.ph-a{background:var(--ink);color:var(--bg);}
+.ph-b{background:#1e3a5f;color:var(--bg);}
+.ph-c{background:#2d5a27;color:var(--bg);}
+.badge-num{
+  width:22px;height:22px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:400;flex-shrink:0;
+}
+.panel-body{padding:20px 22px;}
+.fgrid{display:grid;gap:14px;margin-bottom:0;}
+.g4{grid-template-columns:repeat(4,1fr);}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g2{grid-template-columns:repeat(2,1fr);}
+.field label{display:block;font-size:10px;letter-spacing:1.5px;color:var(--ink3);margin-bottom:6px;}
+.field select,.field input[type=number]{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;
+  padding:9px 11px;font-family:'IBM Plex Mono',monospace;font-size:13px;
+  color:var(--ink);outline:none;-webkit-appearance:none;transition:border-color .15s;
+}
+.field select:focus,.field input:focus{border-color:var(--ink);}
+.field .hint{font-size:10px;color:var(--ink3);margin-top:4px;line-height:1.6;}
+
+/* accumulation phase highlight */
+.accum-box{
+  background:linear-gradient(135deg,rgba(37,99,235,0.05),rgba(37,99,235,0.02));
+  border:1px solid rgba(37,99,235,0.15);
+  border-left:3px solid var(--accent);
+  padding:14px 16px;margin-top:14px;font-size:11.5px;color:var(--ink2);line-height:1.9;
+}
+.accum-box b{color:var(--accent);}
+
+.run-btn{
+  width:100%;background:var(--ink);color:var(--bg);border:none;padding:15px;
+  font-family:'Noto Serif SC',serif;font-size:14px;letter-spacing:4px;
+  cursor:pointer;transition:opacity .15s;border-radius:2px;margin-top:14px;
+}
+.run-btn:hover{opacity:.8;}
+
+/* ── RESULTS ── */
+.results{display:none;animation:up .35s ease;}
+.results.on{display:block;}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Phase banner */
+.phase-banner{
+  display:grid;grid-template-columns:1fr auto 1fr;
+  align-items:center;gap:0;margin-bottom:20px;
+  border:1px solid var(--border);overflow:hidden;
+}
+.phase{padding:16px 20px;text-align:center;}
+.phase-accum{background:#eff4fb;}
+.phase-retire{background:#f0faf4;}
+.phase-arrow{
+  background:var(--bg3);padding:16px 12px;
+  font-size:20px;color:var(--ink3);text-align:center;
+  border-left:1px solid var(--border);border-right:1px solid var(--border);
+}
+.phase-label{font-size:10px;letter-spacing:2px;color:var(--ink3);margin-bottom:4px;}
+.phase-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500;}
+.phase-val.blue{color:var(--accent);}
+.phase-val.green{color:var(--green);}
+.phase-sub{font-size:10px;color:var(--ink3);margin-top:3px;}
+
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.kpi{border:1px solid var(--border);padding:14px 12px;text-align:center;background:var(--bg);}
+.kv{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:500;letter-spacing:-0.5px;}
+.kv.g{color:var(--green);}
+.kv.b{color:var(--accent);}
+.kv.o{color:var(--warn);}
+.kv.r{color:var(--cmb);}
+.kl{font-size:10px;color:var(--ink3);margin-top:5px;letter-spacing:.5px;line-height:1.4;}
+
+/* insight */
+.insight{border-left:3px solid var(--ink);padding:13px 16px;background:var(--bg2);font-size:12px;color:var(--ink2);line-height:2.1;margin-bottom:18px;}
+.insight b{color:var(--ink);}
+
+/* target milestone */
+.milestone{
+  border:1px solid rgba(42,122,74,0.3);background:#f0faf4;
+  padding:14px 18px;margin-bottom:18px;font-size:12.5px;color:var(--ink2);line-height:2;
+}
+.milestone b{color:var(--green);}
+.milestone .m-icon{font-size:18px;margin-right:8px;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--border);min-width:900px;}
+.tbl th{
+  background:var(--ink);color:var(--bg);padding:8px 10px;
+  font-weight:400;font-size:9.5px;letter-spacing:1px;text-align:right;white-space:nowrap;
+}
+.tbl th:first-child{text-align:left;}
+.tbl td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--border2);white-space:nowrap;}
+.tbl td:first-child{text-align:left;color:var(--ink3);}
+.tbl tr:hover td{background:var(--bg2);}
+
+/* Phase rows */
+.tbl .row-accum td{background:#f5f8ff;}
+.tbl .row-retire td{background:#f5fbf7;}
+.tbl .row-hit td{background:var(--gold-bg)!important;font-weight:500;}
+.tbl .row-hit td:first-child{color:var(--gold);}
+.tbl .phase-divider td{
+  background:var(--bg3)!important;font-size:9.5px;letter-spacing:2px;
+  color:var(--ink3);text-align:left!important;padding:5px 10px;border-top:2px solid var(--border);
+}
+
+/* progress */
+.prog-wrap{margin-bottom:18px;}
+.prog-head{display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);font-family:'IBM Plex Mono';margin-bottom:6px;}
+.prog-track{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;transition:width .8s ease;}
+
+@media(max-width:700px){
+  header{flex-direction:column;align-items:flex-start;padding:18px;}
+  .g4,.g3,.g2,.kpi-row,.phase-banner{grid-template-columns:1fr 1fr;}
+  .phase-banner{grid-template-columns:1fr;}
+  .phase-arrow{display:none;}
+  .wrap{padding:0 14px 60px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="hd-title">银行股养老计算器 · 分批建仓版</div>
+    <div class="hd-sub">初始买入 · 定期追加 · 积累达标 · 纯股息养老 · DRIP真实复投</div>
+  </div>
+  <div class="hd-meta">
+    <div class="chip">2026年02月 · FY2025预估分红</div><br>
+    招行 ¥38.83（预估股息5.36%）<br>
+    宁波 ¥31.39（预估股息3.19%）
+  </div>
+</header>
+
+<div class="wrap">
+
+<div class="notice">
+  ⚠ <b>说明</b>：招行2025年末期分红为预估值（年报预计2026年3月公布）。股价与股息增长均为假设。
+  本计算器模拟「分批建仓积累期」+「纯股息养老期」全流程，仅供学习参考，不构成投资建议。
+</div>
+
+<!-- ① 标的与养老目标 -->
+<div class="sec"><span>参 数 设 置</span></div>
+
+<div class="panel">
+  <div class="panel-head ph-a"><div class="badge-num">①</div>标的 · 养老目标 · 市场假设</div>
+  <div class="panel-body">
+    <div class="fgrid g4">
+      <div class="field">
+        <label>投资标的</label>
+        <select id="sel">
+          <option value="cmb">招商银行（¥38.83）</option>
+          <option value="nb">宁波银行（¥31.39）</option>
+          <option value="both">组合：7成招行+3成宁波</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>每月养老目标（元）</label>
+        <input type="number" id="monthly" value="5000" min="500" max="200000" step="500">
+      </div>
+      <div class="field">
+        <label>股价年均增长假设</label>
+        <select id="priceGrow">
+          <option value="0.00">0%/年（保守）</option>
+          <option value="0.03" selected>3%/年（中性）</option>
+          <option value="0.05">5%/年（乐观）</option>
+          <option value="0.08">8%/年（强势）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>股息年均增长假设</label>
+        <select id="divGrow">
+          <option value="0.03">3%/年（保守）</option>
+          <option value="0.05" selected>5%/年（中性）</option>
+          <option value="0.08">8%/年（乐观）</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgrid g2" style="margin-top:14px;">
+      <div class="field">
+        <label>持股税率档</label>
+        <select id="tax">
+          <option value="0.80">持股＜1年（税后80%）</option>
+          <option value="0.90">持股1-2年（税后90%）</option>
+          <option value="1.00" selected>持股≥2年（免税100%）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>最长模拟年限（年）</label>
+        <input type="number" id="totalYrs" value="20" min="5" max="40" step="1">
+        <div class="hint">含积累期+养老期，建议20-30年</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ② 分批建仓参数 -->
+<div class="panel">
+  <div class="panel-head ph-b"><div class="badge-num">②</div>分批建仓 · 积累阶段</div>
+  <div class="panel-body">
+    <div class="fgrid g3">
+      <div class="field">
+        <label>当前初始买入金额（元）</label>
+        <input type="number" id="initMoney" value="100000" min="0" step="10000">
+        <div class="hint">现在一次性投入的金额，0表示从零开始</div>
+      </div>
+      <div class="field">
+        <label>每月定期追加买入（元）</label>
+        <input type="number" id="monthlyAdd" value="3000" min="0" step="500">
+        <div class="hint">每月固定追加，按当月股价买入，0表示不追加</div>
+      </div>
+      <div class="field">
+        <label>计划积累年限（年）</label>
+        <input type="number" id="accumYrs" value="10" min="1" max="30" step="1">
+        <div class="hint">积累N年后停止追加，转入纯股息养老模式</div>
+      </div>
+    </div>
+    <div class="accum-box">
+      <b>📌 积累阶段逻辑</b>：每年用「当年实时股价」买入追加股票，同时将当年股息全部DRIP再投（按当年股价）。
+      积累期结束后，持有的股票进入「纯股息养老期」，不再追加买入，只靠股息+DRIP持续增长。
+    </div>
+  </div>
+</div>
+
+<!-- ③ 养老期参数 -->
+<div class="panel">
+  <div class="panel-head ph-c"><div class="badge-num">③</div>纯股息养老期</div>
+  <div class="panel-body">
+    <div class="fgrid g3">
+      <div class="field">
+        <label>养老期是否继续DRIP</label>
+        <select id="retireDrip">
+          <option value="1" selected>是（股息继续复投）</option>
+          <option value="0">否（股息全部花用）</option>
+        </select>
+        <div class="hint">养老期若继续DRIP，月收入来自"部分股息"；若否，全部股息均为收入</div>
+      </div>
+      <div class="field">
+        <label>养老期DRIP比例（%）</label>
+        <input type="number" id="dripRatio" value="30" min="0" max="100" step="5">
+        <div class="hint">如50%=一半股息再投，另一半作为生活费；0%=全部花用</div>
+      </div>
+      <div class="field">
+        <label>目标覆盖率（%）</label>
+        <input type="number" id="targetCov" value="100" min="50" max="200" step="10">
+        <div class="hint">股息需覆盖养老目标的多少比例才算"达标"</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="run-btn" onclick="run()">开 始 计 算 全 流 程</button>
+
+<!-- ── RESULTS ── -->
+<div class="results" id="results">
+
+  <div class="sec"><span>计 算 结 果</span></div>
+
+  <!-- Phase overview -->
+  <div class="phase-banner" id="phaseBanner"></div>
+
+  <!-- KPIs -->
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <!-- Milestone -->
+  <div class="milestone" id="milestone"></div>
+
+  <!-- Progress -->
+  <div class="prog-wrap">
+    <div class="prog-head"><span>积累结束时股息覆盖养老目标</span><span id="covPct">—</span></div>
+    <div class="prog-track"><div class="prog-fill" id="pfill" style="width:0%;background:var(--green)"></div></div>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight" id="insight"></div>
+
+  <!-- Table -->
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="text-align:left">年份/阶段</th>
+          <th>当年股价(¥)</th>
+          <th>每股股息(¥)</th>
+          <th>追加买入(¥)</th>
+          <th>追加买入股数</th>
+          <th>DRIP股数</th>
+          <th>期末持仓股数</th>
+          <th>税后年股息(¥)</th>
+          <th>月收入(¥)</th>
+          <th>持仓市值(万¥)</th>
+          <th>目标覆盖率</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /results -->
+
+</div><!-- /wrap -->
+
+<script>
+const BANKS = {
+  cmb:  { name:'招商银行', price:38.83, div2025:2.08 },
+  nb:   { name:'宁波银行', price:31.39, div2025:1.00 },
+  both: { name:'7招+3宁组合',
+          price: 38.83*0.7+31.39*0.3,
+          div2025: 2.08*0.7+1.00*0.3 }
+};
+
+function calcIRR(cashflows, guess=0.08) {
+  let r = guess;
+  for (let i=0;i<300;i++) {
+    let npv=0,dnpv=0;
+    for (let t=0;t<cashflows.length;t++) {
+      npv  += cashflows[t]/Math.pow(1+r,t);
+      dnpv -= t*cashflows[t]/Math.pow(1+r,t+1);
+    }
+    if (Math.abs(dnpv)<1e-12) break;
+    const nr=r-npv/dnpv;
+    if (Math.abs(nr-r)<1e-9) return nr;
+    r=nr;
+  }
+  return r;
+}
+
+function run() {
+  const bk         = BANKS[document.getElementById('sel').value];
+  const monthly    = parseFloat(document.getElementById('monthly').value)||5000;
+  const priceGrow  = parseFloat(document.getElementById('priceGrow').value);
+  const divGrow    = parseFloat(document.getElementById('divGrow').value);
+  const taxK       = parseFloat(document.getElementById('tax').value);
+  const totalYrs   = parseInt(document.getElementById('totalYrs').value)||20;
+  const initMoney  = parseFloat(document.getElementById('initMoney').value)||0;
+  const monthlyAdd = parseFloat(document.getElementById('monthlyAdd').value)||0;
+  const accumYrs   = Math.min(parseInt(document.getElementById('accumYrs').value)||10, totalYrs);
+  const retireDrip = document.getElementById('retireDrip').value==='1';
+  const dripRatio  = parseFloat(document.getElementById('dripRatio').value)/100;
+  const targetCov  = parseFloat(document.getElementById('targetCov').value)/100;
+  const annualGoal = monthly*12;
+  const annualAdd  = monthlyAdd*12;
+
+  // ── 逐年模拟 ──
+  let px  = bk.price;
+  let dps = bk.div2025;
+  let sh  = Math.floor(initMoney / px);  // 初始股数
+  let totalInvested = sh * px;            // 已投入成本
+
+  const cfIRR   = [-totalInvested];       // IRR现金流：初始投入为负
+  const rows    = [];
+  let hitYear   = null;                   // 首次达标年份
+  let accumEndShares = 0;
+  let accumEndVal    = 0;
+  let accumEndDiv    = 0;
+
+  for (let y = 1; y <= totalYrs; y++) {
+    px  *= (1 + priceGrow);
+    dps *= (1 + divGrow);
+    const isAccum = y <= accumYrs;
+
+    // 追加买入（积累期）
+    let addedSh = 0;
+    let addedAmt = 0;
+    if (isAccum && annualAdd > 0) {
+      // 按月分12次买入（每次买入时股价线性增长）
+      // 简化：全年追加金额 / 当年平均股价（去年底到今年底的中间值）
+      const avgPx = px / (1 + priceGrow/2); // 近似当年平均价
+      addedSh  = Math.floor(annualAdd / avgPx);
+      addedAmt = addedSh * avgPx;
+      sh += addedSh;
+      totalInvested += addedAmt;
+      cfIRR.push(-addedAmt); // 追加投入为负现金流
+    } else {
+      cfIRR.push(0);
+    }
+
+    // 年度股息
+    const grossDiv = sh * dps;
+    const netDiv   = grossDiv * taxK;
+
+    // DRIP：养老期按dripRatio比例再投；积累期全部DRIP
+    const dripAmt  = isAccum ? netDiv : netDiv * dripRatio;
+    const dripSh   = Math.floor(dripAmt / px);
+    sh += dripSh;
+
+    // 可用于生活的月收入
+    const spendDiv = isAccum ? 0 : netDiv * (1 - dripRatio);
+    const mon      = Math.round(spendDiv / 12);
+    const mktVal   = sh * px;
+    const cov      = annualGoal > 0 ? spendDiv / annualGoal : 0;
+
+    if (y === accumYrs) {
+      accumEndShares = sh;
+      accumEndVal    = mktVal;
+      accumEndDiv    = netDiv;
+    }
+
+    // 达标判断（养老期）
+    if (!isAccum && !hitYear && cov >= targetCov) hitYear = y;
+
+    // IRR：养老期股息作为正现金流；最后一年加市值
+    if (!isAccum) {
+      cfIRR[cfIRR.length-1] += spendDiv + (y===totalYrs ? mktVal : 0);
+    }
+    if (y === totalYrs && isAccum) {
+      cfIRR[cfIRR.length-1] += mktVal; // 全是积累期时末年加市值
+    }
+
+    rows.push({
+      y, isAccum, px, dps, addedSh, addedAmt:Math.round(addedAmt),
+      dripSh, sh, netDiv:Math.round(netDiv),
+      spendDiv:Math.round(spendDiv), mon, mktVal, cov
+    });
+  }
+
+  const irr = calcIRR(cfIRR);
+  const lastRow = rows[rows.length-1];
+  const accumCov = accumEndDiv / annualGoal;
+
+  // ── 渲染 Phase Banner ──
+  const accumTotalInvest = (totalInvested/10000).toFixed(1);
+  document.getElementById('phaseBanner').innerHTML = `
+    <div class="phase phase-accum">
+      <div class="phase-label">积 累 阶 段（前${accumYrs}年）</div>
+      <div class="phase-val blue">${accumYrs}年累计投入</div>
+      <div class="phase-sub">初始¥${(initMoney/10000).toFixed(1)}万 + 每月追加¥${monthlyAdd.toLocaleString()}</div>
+      <div class="phase-val blue" style="margin-top:6px;font-size:14px;">${accumTotalInvest}万元</div>
+    </div>
+    <div class="phase-arrow">→</div>
+    <div class="phase phase-retire">
+      <div class="phase-label">纯股息养老期（第${accumYrs+1}年起）</div>
+      <div class="phase-val green">积累结束时持仓</div>
+      <div class="phase-sub">${accumEndShares.toLocaleString()}股 · 市值${(accumEndVal/10000).toFixed(0)}万</div>
+      <div class="phase-val green" style="margin-top:6px;font-size:14px;">年股息约${(accumEndDiv/10000).toFixed(1)}万元</div>
+    </div>`;
+
+  // ── KPIs ──
+  const retireRows = rows.filter(r=>!r.isAccum);
+  const firstRetireRow = retireRows[0];
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi"><div class="kv b">${(totalInvested/10000).toFixed(1)}</div><div class="kl">累计总投入（万元）</div></div>
+    <div class="kpi"><div class="kv">${accumEndShares.toLocaleString()}</div><div class="kl">积累结束持仓（股）</div></div>
+    <div class="kpi"><div class="kv g">${firstRetireRow ? firstRetireRow.mon.toLocaleString() : '—'}</div><div class="kl">第${accumYrs+1}年月股息（元）</div></div>
+    <div class="kpi"><div class="kv g">${lastRow.mon.toLocaleString()}</div><div class="kl">第${totalYrs}年月股息（元）</div></div>
+    <div class="kpi"><div class="kv o">${irr>0?(irr*100).toFixed(1)+'%':'—'}</div><div class="kl">综合年化IRR</div></div>`;
+
+  // ── Milestone ──
+  let msHtml = '';
+  if (hitYear) {
+    msHtml = `<span class="m-icon">🎯</span>预计在 <b>第${hitYear}年（积累${accumYrs}年后第${hitYear-accumYrs}年）</b>，
+      月股息首次覆盖养老目标的 <b>${(targetCov*100).toFixed(0)}%</b>（每月${monthly.toLocaleString()}元），
+      届时持仓市值约 <b>${(rows[hitYear-1].mktVal/10000).toFixed(0)}万元</b>。`;
+  } else {
+    msHtml = `<span class="m-icon">⚠️</span>在${totalYrs}年模拟期内，月股息尚未达到养老目标的 <b>${(targetCov*100).toFixed(0)}%</b>。
+      建议增加初始投入、提高月度追加金额，或延长积累年限。
+      第${totalYrs}年月股息约 <b>${lastRow.mon.toLocaleString()}元</b>，覆盖率 <b>${Math.round(lastRow.cov*100)}%</b>。`;
+  }
+  document.getElementById('milestone').innerHTML = msHtml;
+
+  // ── Coverage progress ──
+  const covPct = Math.min(100, Math.round(accumCov*100));
+  document.getElementById('covPct').textContent = covPct+'%';
+  document.getElementById('pfill').style.width = covPct+'%';
+
+  // ── Insight ──
+  document.getElementById('insight').innerHTML =
+    `<b>${bk.name}</b>，当前股价 <b>¥${bk.price}</b>，预估年股息 <b>¥${bk.div2025.toFixed(2)}</b>/股（${(taxK*100).toFixed(0)}%税后口径）。<br>` +
+    `初始投入 <b>¥${(initMoney/10000).toFixed(1)}万</b>（约${Math.floor(initMoney/bk.price).toLocaleString()}股），此后每月追加 <b>¥${monthlyAdd.toLocaleString()}</b>，` +
+    `连续积累 <b>${accumYrs}年</b>，期间股息全部DRIP复投（按当年实时股价买入）。<br>` +
+    `${accumYrs}年积累结束时：持有约 <b>${accumEndShares.toLocaleString()}股</b>，市值约 <b>${(accumEndVal/10000).toFixed(0)}万元</b>，` +
+    `累计总投入约 <b>${(totalInvested/10000).toFixed(1)}万元</b>，税后年股息约 <b>${(accumEndDiv/10000).toFixed(1)}万元</b>（月均 <b>${Math.round(accumEndDiv/12).toLocaleString()}元</b>，覆盖目标 <b>${Math.round(accumCov*100)}%</b>）。<br>` +
+    `股价假设年增 <b>${(priceGrow*100).toFixed(0)}%</b>，股息假设年增 <b>${(divGrow*100).toFixed(0)}%</b>，` +
+    `${retireDrip ? `养老期DRIP <b>${(dripRatio*100).toFixed(0)}%</b> 股息继续复投` : '养老期全部股息花用'}，` +
+    `综合年化IRR约 <b>${irr>0?(irr*100).toFixed(1)+'%':'计算中'}</b>。`;
+
+  // ── Table ──
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  let lastPhase = null;
+  rows.forEach(r => {
+    const phase = r.isAccum ? 'accum' : 'retire';
+    if (phase !== lastPhase) {
+      const tr = document.createElement('tr');
+      tr.className='phase-divider';
+      tr.innerHTML = `<td colspan="11">${r.isAccum ? '▶ 积累阶段（每月追加+DRIP全部复投）' : '▶ 纯股息养老阶段（停止追加，DRIP'+Math.round(dripRatio*100)+'%）'}</td>`;
+      tbody.appendChild(tr);
+      lastPhase = phase;
+    }
+    const hit = !r.isAccum && r.cov >= targetCov;
+    const tr = document.createElement('tr');
+    tr.className = hit ? 'row-hit' : (r.isAccum ? 'row-accum' : 'row-retire');
+    tr.innerHTML =
+      `<td>第${r.y}年${hit?' ★':''}</td>`+
+      `<td>¥${r.px.toFixed(2)}</td>`+
+      `<td>¥${r.dps.toFixed(3)}</td>`+
+      `<td>${r.isAccum && r.addedAmt>0 ? r.addedAmt.toLocaleString() : '—'}</td>`+
+      `<td>${r.isAccum && r.addedSh>0 ? '+'+r.addedSh.toLocaleString() : '—'}</td>`+
+      `<td>+${r.dripSh.toLocaleString()}</td>`+
+      `<td>${r.sh.toLocaleString()}</td>`+
+      `<td>${r.netDiv.toLocaleString()}</td>`+
+      `<td>${r.isAccum ? '<span style="color:var(--ink3);font-size:10px">DRIP中</span>' : r.mon.toLocaleString()}</td>`+
+      `<td>${(r.mktVal/10000).toFixed(1)}</td>`+
+      `<td>${r.isAccum ? '<span style="color:var(--ink3)">—</span>' : Math.round(r.cov*100)+'%'+(hit?' ✓':'')}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('results').classList.add('on');
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+</script>
+</body>
+</html>
