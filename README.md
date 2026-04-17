@@ -2,7 +2,7 @@
 
 这个仓库是一个纯静态站点，适合直接部署到 Vercel。
 
-当前包含两个可公开访问的页面：
+当前包含三个可公开访问的页面：
 
 - `index.html`
   站点首页，提供工具导航入口。
@@ -10,11 +10,14 @@
   退休待遇与养老缺口测算页。
 - `pension-calc-v5.html`
   银行股养老全收益计算器。
+- `flex-pension-city-compare.html`
+  多城灵活就业养老金测算页。
 
 ## 本地文件结构
 
 ```text
 .
+├── flex-pension-city-compare.html
 ├── index.html
 ├── pension-calc-v5.html
 ├── retirement-gap-calculator.html
@@ -28,6 +31,7 @@
 - `/`
 - `/retirement-gap-calculator`
 - `/pension-calc-v5`
+- `/flex-pension-city-compare`
 
 ## 推送到 GitHub
 

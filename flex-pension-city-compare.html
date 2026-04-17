@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多城灵活就业养老金测算</title>
+  <style>
+    :root {
+      --bg: #f6f1ea;
+      --bg-accent: #eee2d3;
+      --card: rgba(255, 255, 255, 0.9);
+      --line: rgba(95, 71, 53, 0.12);
+      --line-strong: rgba(95, 71, 53, 0.22);
+      --text: #2e241d;
+      --muted: #726458;
+      --accent: #b33a2b;
+      --accent-strong: #8f2217;
+      --accent-soft: rgba(179, 58, 43, 0.12);
+      --good: #175d44;
+      --warn: #9a5a06;
+      --shadow: 0 20px 44px rgba(112, 82, 55, 0.12);
+      --radius: 24px;
+      --radius-sm: 16px;
+      --font: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
+        "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(179, 58, 43, 0.08), transparent 28%),
+        radial-gradient(circle at top right, rgba(198, 141, 90, 0.16), transparent 30%),
+        linear-gradient(180deg, #fbf7f2 0%, var(--bg) 60%, #ede3d8 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+      background-size: 30px 30px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.32), transparent 88%);
+    }
+
+    a {
+      color: var(--accent-strong);
+    }
+
+    .page {
+      width: min(1320px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+
+    .hero,
+    .panel,
+    .city-card {
+      border: 1px solid rgba(255, 255, 255, 0.48);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 30px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -86px;
+      top: -96px;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(179, 58, 43, 0.16), transparent 67%);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(30px, 4.8vw, 44px);
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 840px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .tag {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(46, 36, 29, 0.06);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .panel .desc {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .field.wide {
+      grid-column: span 2;
+    }
+
+    .field span {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .field small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    input,
+    select {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 251, 246, 0.95);
+      color: var(--text);
+      font: inherit;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: rgba(179, 58, 43, 0.45);
+      box-shadow: 0 0 0 4px rgba(179, 58, 43, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .inline-row {
+      display: flex;
+      gap: 12px;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .inline-row > * {
+      flex: 1 1 0;
+    }
+
+    .actions,
+    .summary-grid,
+    .summary-cards,
+    .city-grid,
+    .formula-grid,
+    .links,
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .actions {
+      margin-top: 18px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      font: inherit;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button.primary {
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--accent), #d15e48);
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(179, 58, 43, 0.22);
+    }
+
+    button.secondary {
+      padding: 12px 18px;
+      background: rgba(46, 36, 29, 0.06);
+      color: var(--text);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .summary-card {
+      padding: 16px;
+      border: 1px solid rgba(179, 58, 43, 0.08);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(252, 247, 243, 0.9));
+    }
+
+    .summary-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .summary-card .value {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .summary-card .note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .toolbar .field {
+      min-width: 220px;
+      max-width: 320px;
+    }
+
+    .city-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .city-card {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      min-height: 100%;
+    }
+
+    .city-card.featured {
+      border-color: rgba(179, 58, 43, 0.28);
+      box-shadow: 0 18px 38px rgba(179, 58, 43, 0.12);
+    }
+
+    .city-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .city-header h3 {
+      margin: 0 0 4px;
+      font-size: 22px;
+    }
+
+    .city-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .badge.accent {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .badge.warn {
+      background: rgba(154, 90, 6, 0.12);
+      color: var(--warn);
+    }
+
+    .badge.good {
+      background: rgba(23, 93, 68, 0.12);
+      color: var(--good);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      padding: 12px;
+      border: 1px solid rgba(46, 36, 29, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 252, 247, 0.92);
+    }
+
+    .metric strong,
+    .section-title {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .metric .value {
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .metric .subnote,
+    .city-note,
+    .panel-note,
+    .formula-card p,
+    details li,
+    details p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .kpi-strip {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(179, 58, 43, 0.08), rgba(255, 241, 228, 0.9));
+      border: 1px solid rgba(179, 58, 43, 0.14);
+    }
+
+    .kpi-strip .eyebrow {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .kpi-strip .primary-value {
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .city-note-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    details {
+      border-top: 1px dashed rgba(46, 36, 29, 0.14);
+      padding-top: 12px;
+    }
+
+    details summary {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-strong);
+    }
+
+    details ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .formula-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .formula-card {
+      padding: 16px;
+      border: 1px solid rgba(46, 36, 29, 0.08);
+      border-radius: 18px;
+      background: rgba(255, 252, 247, 0.92);
+    }
+
+    code {
+      display: block;
+      padding: 10px 12px;
+      margin-top: 10px;
+      border-radius: 14px;
+      background: rgba(46, 36, 29, 0.06);
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+
+    .muted-box {
+      padding: 14px 16px;
+      border: 1px dashed rgba(46, 36, 29, 0.14);
+      border-radius: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      background: rgba(255, 252, 247, 0.72);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1160px) {
+      .controls-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .city-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .formula-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100%, calc(100% - 20px));
+        padding-top: 16px;
+      }
+
+      .hero,
+      .panel,
+      .city-card {
+        padding: 18px;
+        border-radius: 20px;
+      }
+
+      .controls-grid,
+      .summary-grid,
+      .city-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.wide {
+        grid-column: span 1;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>多城灵活就业养老金测算</h1>
+      <p>把上海、杭州、北京、广州、深圳放在同一张页面里看。上半部分比较当前按不同基数参保时的养老与医保缴费，下半部分用统一企业职工养老金公式估算退休月待遇，并明确每个城市采用的官方快照时间与规则差异。</p>
+      <div class="hero-meta">
+        <span class="tag">五城并排比较</span>
+        <span class="tag">养老 + 医保</span>
+        <span class="tag">内置官方快照</span>
+        <span class="tag">统一养老金公式</span>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>共享输入</h2>
+        <p class="desc">当前缴费比较与退休待遇估算共用一套输入。页面不会内置任何个人数据，只会把你的输入保存在当前浏览器本地。</p>
+
+        <div class="controls-grid">
+          <label class="field">
+            <span>出生年月</span>
+            <input id="birthYm" type="month">
+            <small>用于生成参考退休年月，仍可手动改写。</small>
+          </label>
+
+          <label class="field">
+            <span>性别</span>
+            <select id="sex">
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+            <small>用于配合退休口径给出参考退休年月。</small>
+          </label>
+
+          <label class="field" id="femaleTrackField">
+            <span>女性退休口径</span>
+            <select id="femaleTrack">
+              <option value="55">按 55 岁口径</option>
+              <option value="58">按 58 岁口径</option>
+            </select>
+            <small>灵活就业女性常见存在不同口径，页面不替你代判。</small>
+          </label>
+
+          <label class="field">
+            <span>预计退休年月</span>
+            <input id="retirementYm" type="month">
+            <small id="retirementHint">先选出生年月与口径，页面会自动填一版参考值。</small>
+          </label>
+
+          <label class="field">
+            <span>缴费档位</span>
+            <select id="contributionTier">
+              <option value="minimum">最低档</option>
+              <option value="0.6">60%</option>
+              <option value="0.8">80%</option>
+              <option value="1">100%</option>
+              <option value="1.5">150%</option>
+              <option value="2">200%</option>
+              <option value="3">300%</option>
+              <option value="custom">自定义基数</option>
+            </select>
+            <small>百分比档位按各地法定参考工资分别换算。</small>
+          </label>
+
+          <label class="field" id="customBaseField">
+            <span>自定义基数（元/月）</span>
+            <input id="customBase" type="number" min="0" step="1" placeholder="例如 12000">
+            <small>同一输入会分别按各险种当地上下限自动校正。</small>
+          </label>
+
+          <label class="field">
+            <span>已缴养老月数</span>
+            <input id="currentContributionMonths" type="number" min="0" step="1" placeholder="例如 151">
+            <small>只填已确认缴入企业职工养老保险体系的累计月数。</small>
+          </label>
+
+          <label class="field">
+            <span>个人账户当前余额（元）</span>
+            <input id="currentBalance" type="number" min="0" step="0.01" placeholder="例如 120000">
+            <small>没有时可先留空，页面会按 0 元起算。</small>
+          </label>
+
+          <label class="field">
+            <span>平均缴费指数</span>
+            <input id="avgContributionIndex" type="number" min="0.6" step="0.01" value="1">
+            <small>不知道时可先用 1.00 看中性情景。</small>
+          </label>
+
+          <label class="field">
+            <span>未来缴费方式</span>
+            <select id="futureMode">
+              <option value="to-retirement">缴到预计退休</option>
+              <option value="fixed-years">固定年数</option>
+            </select>
+            <small>固定年数适合测试提前停缴等情形。</small>
+          </label>
+
+          <label class="field" id="fixedYearsField">
+            <span>固定继续缴费年数</span>
+            <input id="fixedYears" type="number" min="0" step="0.5" value="20">
+            <small>仅在“固定年数”模式下生效。</small>
+          </label>
+
+          <label class="field">
+            <span>记账利率 / 账户年化（%）</span>
+            <input id="bookRate" type="number" min="0" step="0.1" value="2">
+            <small>用于估算个人账户余额滚存速度。</small>
+          </label>
+
+          <label class="field">
+            <span>工资 / 计发基数年增长率（%）</span>
+            <input id="wageGrowthRate" type="number" min="0" step="0.1" value="2.5">
+            <small>用于把当前快照推到退休时点。</small>
+          </label>
+
+          <label class="field">
+            <span>计发月数</span>
+            <input id="divisor" type="number" min="1" step="1" value="139">
+            <small>默认 139，对应常见 60 岁退休口径，可自行改。</small>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="recalculate">立即重算</button>
+          <button class="secondary" id="applyRetirementHint">按口径回填退休年月</button>
+          <button class="secondary" id="copySummary">复制测算摘要</button>
+          <button class="secondary" id="resetState">清空输入</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>结果总览</h2>
+            <p class="desc">先看哪个城市当前月缴费压力最低，再看哪个城市在同样输入下的预计月养老金更高。广州医保部分会在卡片里额外标明快照有效期。</p>
+          </div>
+          <label class="field">
+            <span>排序视图</span>
+            <select id="sortMode">
+              <option value="monthly_total_asc">按当前月缴费低到高</option>
+              <option value="pension_desc">按预计月养老金高到低</option>
+              <option value="ratio_desc">按养老金 / 月缴费回报比</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <strong>当前月缴费最低</strong>
+            <div class="value" id="cheapestCityValue">待计算</div>
+            <div class="note" id="cheapestCityNote">补完档位后即可比较五城的养老 + 医保月缴费。</div>
+          </div>
+
+          <div class="summary-card">
+            <strong>预计月养老金最高</strong>
+            <div class="value" id="bestPensionCityValue">待计算</div>
+            <div class="note" id="bestPensionCityNote">补完退休参数后会自动显示基础养老金 + 个人账户养老金。</div>
+          </div>
+
+          <div class="summary-card">
+            <strong>回报比最高</strong>
+            <div class="value" id="bestRatioCityValue">待计算</div>
+            <div class="note" id="bestRatioCityNote">回报比 = 预计月养老金 ÷ 当前月缴费，不代表真实投资收益率。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>五城对比</h2>
+        <p class="desc" id="compareDesc">当前结果会根据排序视图重新排列。每张卡片都会注明养老和医保采用的快照时间、是否按固定月缴、是否存在口径提醒。</p>
+        <div class="city-grid" id="cityCards"></div>
+      </section>
+
+      <section class="panel">
+        <h2>口径说明</h2>
+        <p class="desc">这里把页面背后的统一公式、快照边界和你最容易误解的地方一次说清楚，避免把“社保待遇公式”和“地方缴费口径”混在一起。</p>
+
+        <div class="formula-grid">
+          <article class="formula-card">
+            <strong>1. 当前缴费怎么比</strong>
+            <p>页面把你选的档位换算成各地的法定参考工资，再分别套入养老与医保规则。遇到固定月缴或固定基数的城市，不会强行伪装成“同一百分比”。</p>
+            <code>养老月缴费 = 养老缴费基数 × 养老费率
+医保月缴费 = 按各地规则单独计算
+合计月缴费 = 养老月缴费 + 医保月缴费</code>
+          </article>
+
+          <article class="formula-card">
+            <strong>2. 退休待遇怎么估</strong>
+            <p>养老金部分按全国统一企业职工养老保险通用公式估算，只保留基础养老金和个人账户养老金两项。灵活就业场景下，页面默认不额外估过渡性养老金。</p>
+            <code>基础养老金 ≈ 退休时参考计发基数 × (1 + 平均缴费指数) ÷ 2 × 缴费年限 × 1%
+个人账户养老金 ≈ 退休时个人账户余额 ÷ 计发月数
+预计月养老金 ≈ 基础养老金 + 个人账户养老金</code>
+          </article>
+
+          <article class="formula-card">
+            <strong>3. 快照与边界</strong>
+            <p>本页不联网抓取，不接入官方系统；采用的是你当前能公开访问到的政府口径快照。页面已经把生效时间和来源挂出来，最终仍以参保地经办系统核定为准。</p>
+            <code>上海 / 北京 / 浙江 / 广东 / 深圳
+养老与医保可能采用不同生效时间
+广州医保当前卡片会明确提示“阶段性降费快照”</code>
+          </article>
+        </div>
+
+        <div class="muted-box" id="snapshotBox">
+          当前页面采用内置官方快照，不会自动随政策更新。你后续只要替换页面里的 CITY_CONFIG 数字与来源链接，再 push 到 GitHub，Vercel 会自动发布新版。
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const storageKey = "flex-pension-city-compare-v1";
+    const defaults = {
+      birthYm: "",
+      sex: "male",
+      femaleTrack: "55",
+      retirementYm: "",
+      contributionTier: "1",
+      customBase: "",
+      currentContributionMonths: "",
+      currentBalance: "",
+      avgContributionIndex: "1",
+      futureMode: "to-retirement",
+      fixedYears: "20",
+      bookRate: "2",
+      wageGrowthRate: "2.5",
+      divisor: "139",
+      sortMode: "monthly_total_asc"
+    };
+
+    const fieldIds = Object.keys(defaults);
+    let lastAutoRetirementYm = "";
+
+    const CITY_CONFIG = [
+      {
+        id: "shanghai",
+        cityName: "上海",
+        pensionEffectiveDate: "2025-07-01",
+        medicalEffectiveDate: "2026-03-02",
+        pensionBaseReference: 12434,
+        pensionBaseMin: 7460,
+        pensionBaseMax: 37302,
+        pensionRate: 0.20,
+        pensionPersonalRate: 0.08,
+        pensionCalcBase: 12434,
+        pensionCalcLabel: "2024 全口径城镇单位就业人员平均工资参考",
+        medicalRule: {
+          type: "selected_base_percentage",
+          rate: 0.10,
+          minBase: 7460,
+          maxBase: 37302,
+          referenceBase: 12434,
+          label: "职工医保",
+          description: "按本人缴费基数 × 10% 测算。"
+        },
+        notes: [
+          "养老与医保都允许在上海上年度全口径平均工资的 60% 至 300% 间自选基数。",
+          "上海公开页面直接给出了 20% 养老费率与 10% 医疗费率；退休待遇部分这里采用 12434 元/月作为当前参考计发口径。"
+        ],
+        sources: [
+          {
+            label: "上海 2025 社保基数上下限",
+            url: "https://rsj.sh.gov.cn/tJYH_test_17632/20250916/t0035_1435638.html"
+          },
+          {
+            label: "上海灵活就业养老费率补充通知",
+            url: "https://rsj.sh.gov.cn/tshbx_17729/20240221/t0035_1421365.html"
+          },
+          {
+            label: "上海灵活就业参保险种问答",
+            url: "https://rsj.sh.gov.cn/tmsztc_17502/20260304/t0035_1439082.html"
+          }
+        ]
+      },
+      {
+        id: "hangzhou",
+        cityName: "杭州",
+        pensionEffectiveDate: "2025-09-17",
+        medicalEffectiveDate: "2023-01-01",
+        pensionBaseReference: 101194 / 12,
+        pensionBaseMin: 4986,
+        pensionBaseMax: 25299,
+        pensionRate: 0.20,
+        pensionPersonalRate: 0.08,
+        pensionCalcBase: 101194 / 12,
+        pensionCalcLabel: "2024 浙江加权平均工资（月）",
+        medicalRule: {
+          type: "fixed_city_base_percentage",
+          rate: 0.095,
+          base: 4986,
+          label: "职工医保（含生育）",
+          description: "按杭州公开口径，灵活就业职工医保以省平工资 60% 为基数、按 9.5% 缴费。"
+        },
+        notes: [
+          "杭州养老缴费这里采用浙江省 2025 社会保险有关基数口径，即上限 25299 元、下限 4986 元。",
+          "杭州医保实行统一职工医保标准，灵活就业人员的月缴费不跟你选的养老档位一起浮动，而是按固定省平工资基数测算。"
+        ],
+        sources: [
+          {
+            label: "浙江 2025 社会保险有关基数通知",
+            url: "https://zhejiang.chinatax.gov.cn/art/2025/9/18/art_25180_84282.html"
+          },
+          {
+            label: "浙江灵活就业养老 20% 费率通知",
+            url: "https://rlsbt.zj.gov.cn/art/2021/12/1/art_1229506773_2377609.html"
+          },
+          {
+            label: "杭州医保 9.5% 统一通知 PDF",
+            url: "https://zfgb.hangzhou.gov.cn/upload/default/bigfile/2025/06/04/20250604_1950a76a0e78b3fe29092394c67fb48d.pdf"
+          }
+        ]
+      },
+      {
+        id: "beijing",
+        cityName: "北京",
+        pensionEffectiveDate: "2025-07-01",
+        medicalEffectiveDate: "2025-07-01",
+        pensionBaseReference: 35811 / 3,
+        pensionBaseMin: 7162,
+        pensionBaseMax: 35811,
+        pensionRate: 0.20,
+        pensionPersonalRate: 0.08,
+        pensionCalcBase: 12049,
+        pensionCalcLabel: "2025 养老金计算基数",
+        medicalRule: {
+          type: "fixed_monthly_amount",
+          amount: 584.92,
+          label: "职工医保",
+          description: "北京个人身份参保职工医保按固定月缴 584.92 元执行，不随养老档位变化。"
+        },
+        notes: [
+          "北京灵活就业养老保险可在 7162 元至 35811 元之间选择月缴费基数，养老个人全额负担 20%。",
+          "北京医保口径和多数城市不同，这里直接按官方通告披露的固定月缴额 584.92 元展示。"
+        ],
+        sources: [
+          {
+            label: "北京 2025 各项社保缴费基数上下限通告",
+            url: "https://rsj.beijing.gov.cn/xxgk/2024zcwj/202509/t20250918_4204880.html"
+          },
+          {
+            label: "北京 2025 养老金计算基数通告",
+            url: "https://rsj.beijing.gov.cn/xxgk/2024zcwj/202511/t20251107_4265291.html"
+          },
+          {
+            label: "北京通告解读问答",
+            url: "https://rsj.beijing.gov.cn/xxgk/2024zcjd/202509/t20250918_4204887.html"
+          }
+        ]
+      },
+      {
+        id: "guangzhou",
+        cityName: "广州",
+        pensionEffectiveDate: "2025-07-01",
+        medicalEffectiveDate: "2024-03-01 至 2025-12-31",
+        pensionBaseReference: 27549 / 3,
+        pensionBaseMin: 5510,
+        pensionBaseMax: 27549,
+        pensionRate: 0.20,
+        pensionPersonalRate: 0.08,
+        pensionCalcBase: 9493,
+        pensionCalcLabel: "2025 广东基本养老金计发基数",
+        medicalRule: {
+          type: "fixed_city_base_percentage",
+          rate: 0.065,
+          base: 5510,
+          label: "职工医保",
+          description: "按广州 2024 年公布的阶段性降费快照展示：灵活就业医保费率 6.5%，卡片显式标注该快照有效期。"
+        },
+        notes: [
+          "广州灵活就业养老保险缴费基数 2025 年 7 月起执行下限 5510 元、上限 27549 元，费率 20%。",
+          "广州医保这里保留的是截至目前检索到的最新公开降费快照，政策文件有效期到 2025-12-31；如果你要做 2026 年后的正式决策，需再核对广州医保最新通知。"
+        ],
+        caution: "广州医保部分按阶段性降费快照展示，适合做横向比较，不建议直接作为 2026 年后的最终申报依据。",
+        sources: [
+          {
+            label: "广东 2025 养老基数与计发基数通知",
+            url: "https://hrss.gd.gov.cn/zwgk/xxgkml/bmwj/qtwj/shbz/content/post_4789618.html"
+          },
+          {
+            label: "广州灵活就业养老问答",
+            url: "https://rsj.gz.gov.cn/ywzt/shbz/gzdt/content/post_10680064.html"
+          },
+          {
+            label: "广州职工医保阶段性降费通知",
+            url: "https://www.gz.gov.cn/zwgk/zdly/jsjf/fjyhzc/content/post_9517327.html"
+          }
+        ]
+      },
+      {
+        id: "shenzhen",
+        cityName: "深圳",
+        pensionEffectiveDate: "2025-07-01",
+        medicalEffectiveDate: "2026-01-01",
+        pensionBaseReference: 27549 / 3,
+        pensionBaseMin: 4775,
+        pensionBaseMax: 27549,
+        pensionRate: 0.20,
+        pensionPersonalRate: 0.08,
+        pensionCalcBase: 11293,
+        pensionCalcLabel: "2025 深圳基本养老金计发基数",
+        medicalRule: {
+          type: "selected_base_percentage",
+          rate: 0.08,
+          minBase: 6727,
+          maxBase: 33633,
+          referenceBase: 33633 / 3,
+          label: "职工医保一档",
+          description: "深圳灵活就业人员参加职工医保一档，按本人申报工资 × 8% 缴费。"
+        },
+        notes: [
+          "深圳个人身份参加企业职工养老保险费率为 20%，养老待遇计算规则与单位职工一致。",
+          "深圳医保与养老采用不同的上下限口径：养老按广东企业职工养老基数，医保按深圳医疗保障办法单独设定的职工医保一档上下限执行。"
+        ],
+        sources: [
+          {
+            label: "深圳个人身份养老 20% 问答",
+            url: "https://hrss.sz.gov.cn/szsi/gzfw/ywzsk/sbgx/grcbjf/content/post_11208619.html"
+          },
+          {
+            label: "深圳医疗保障办法",
+            url: "https://hsa.sz.gov.cn/gkmlpt/content/10/10826/post_10826882.html"
+          },
+          {
+            label: "深圳 2026 医保基数与费率提示",
+            url: "https://hsa.sz.gov.cn/gkmlpt/content/12/12567/post_12567884.html"
+          },
+          {
+            label: "深圳 2025 养老金计发基数问答",
+            url: "https://hrss.sz.gov.cn/zmhd/cjwt/cjwt/shbz/content/post_12493488.html"
+          }
+        ]
+      }
+    ];
+
+    function getInput(id) {
+      return document.getElementById(id);
+    }
+
+    function readString(id) {
+      return String(getInput(id).value || "").trim();
+    }
+
+    function readNumber(id) {
+      const value = Number(getInput(id).value);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function setFieldValue(id, value) {
+      getInput(id).value = value === null || value === undefined ? "" : String(value);
+    }
+
+    function formatCurrency(value, digits = 0) {
+      if (!Number.isFinite(value)) {
+        return "—";
+      }
+      return `${new Intl.NumberFormat("zh-CN", {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: digits
+      }).format(value)} 元`;
+    }
+
+    function formatPercent(value, digits = 2) {
+      if (!Number.isFinite(value)) {
+        return "—";
+      }
+      return `${new Intl.NumberFormat("zh-CN", {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: digits
+      }).format(value)}%`;
+    }
+
+    function formatNumber(value, digits = 2) {
+      if (!Number.isFinite(value)) {
+        return "—";
+      }
+      return new Intl.NumberFormat("zh-CN", {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: digits
+      }).format(value);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function parseYearMonth(raw) {
+      const normalized = String(raw || "").trim();
+      if (!/^\d{4}-\d{2}$/.test(normalized)) {
+        return null;
+      }
+      const year = Number(normalized.slice(0, 4));
+      const month = Number(normalized.slice(5, 7));
+      if (!Number.isFinite(year) || month < 1 || month > 12) {
+        return null;
+      }
+      return { year, month };
+    }
+
+    function formatYearMonth(raw) {
+      const parsed = parseYearMonth(raw);
+      if (!parsed) {
+        return "未填写";
+      }
+      return `${parsed.year} 年 ${parsed.month} 月`;
+    }
+
+    function addYearsToYearMonth(raw, years) {
+      const parsed = parseYearMonth(raw);
+      if (!parsed) {
+        return "";
+      }
+      return `${String(parsed.year + years).padStart(4, "0")}-${String(parsed.month).padStart(2, "0")}`;
+    }
+
+    function getRetirementAge() {
+      const sex = readString("sex");
+      if (sex === "male") {
+        return 63;
+      }
+      return Number(readString("femaleTrack") || "55");
+    }
+
+    function getRetirementProfileLabel() {
+      const sex = readString("sex");
+      if (sex === "male") {
+        return "男（按 63 岁口径）";
+      }
+      const age = getRetirementAge();
+      return age === 58 ? "女（按 58 岁口径）" : "女（按 55 岁口径）";
+    }
+
+    function buildSuggestedRetirementYm() {
+      return addYearsToYearMonth(readString("birthYm"), getRetirementAge());
+    }
+
+    function getReferenceFutureMonths() {
+      const parsed = parseYearMonth(readString("retirementYm"));
+      if (!parsed) {
+        return null;
+      }
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth() + 1;
+      return Math.max(0, (parsed.year - currentYear) * 12 + (parsed.month - currentMonth) + 1);
+    }
+
+    function getFutureMonths() {
+      const futureMode = readString("futureMode");
+      if (futureMode === "fixed-years") {
+        return Math.max(0, Math.round(readNumber("fixedYears") * 12));
+      }
+      const referenceFutureMonths = getReferenceFutureMonths();
+      return referenceFutureMonths === null ? null : referenceFutureMonths;
+    }
+
+    function computeMonthlyGrowthRate(annualRatePercent) {
+      return Math.pow(1 + annualRatePercent / 100, 1 / 12) - 1;
+    }
+
+    function resolvePensionBase(city, tierValue, customBase) {
+      const minBase = city.pensionBaseMin;
+      const maxBase = city.pensionBaseMax;
+      let rawBase = minBase;
+      let basisLabel = "最低档";
+
+      if (tierValue === "custom") {
+        rawBase = customBase;
+        basisLabel = "自定义基数";
+      } else if (tierValue !== "minimum") {
+        const ratio = Number(tierValue);
+        rawBase = city.pensionBaseReference * ratio;
+        basisLabel = `${formatPercent(ratio * 100, 0)} 档`;
+      }
+
+      const base = clamp(rawBase, minBase, maxBase);
+      return {
+        base,
+        rawBase,
+        basisLabel,
+        clamped: tierValue === "custom" && base !== rawBase
+      };
+    }
+
+    function resolveMedicalContribution(city, tierValue, customBase) {
+      const rule = city.medicalRule;
+      if (rule.type === "fixed_monthly_amount") {
+        return {
+          base: null,
+          monthly: rule.amount,
+          label: rule.label,
+          detail: rule.description,
+          fixed: true,
+          estimated: false
+        };
+      }
+
+      if (rule.type === "fixed_city_base_percentage") {
+        return {
+          base: rule.base,
+          monthly: rule.base * rule.rate,
+          label: rule.label,
+          detail: rule.description,
+          fixed: true,
+          estimated: false
+        };
+      }
+
+      if (rule.type === "selected_base_percentage") {
+        const minBase = rule.minBase;
+        const maxBase = rule.maxBase;
+        let rawBase = minBase;
+        if (tierValue === "custom") {
+          rawBase = customBase;
+        } else if (tierValue !== "minimum") {
+          rawBase = rule.referenceBase * Number(tierValue);
+        }
+        const base = clamp(rawBase, minBase, maxBase);
+        const detail = tierValue === "custom" && base !== rawBase
+          ? `已按医保上下限校正到 ${formatCurrency(base)}。${rule.description}`
+          : rule.description;
+        return {
+          base,
+          monthly: base * rule.rate,
+          label: rule.label,
+          detail,
+          fixed: false,
+          estimated: false
+        };
+      }
+
+      return {
+        base: null,
+        monthly: 0,
+        label: rule.label || "医保",
+        detail: rule.description || "该城市医保规则需按当地最新口径复核。",
+        fixed: false,
+        estimated: true
+      };
+    }
+
+    function computeProjectedAccountBalance(currentBalance, currentBase, annualGrowthRate, annualBookRate, futureMonths, personalRate) {
+      const monthlyBookRate = computeMonthlyGrowthRate(annualBookRate);
+      let balance = currentBalance;
+      let contributionTotal = 0;
+
+      for (let month = 0; month < futureMonths; month += 1) {
+        balance *= 1 + monthlyBookRate;
+        const growthFactor = Math.pow(1 + annualGrowthRate / 100, month / 12);
+        const contributionBase = currentBase * growthFactor;
+        const personalContribution = contributionBase * personalRate;
+        contributionTotal += personalContribution;
+        balance += personalContribution;
+      }
+
+      return {
+        projectedBalance: balance,
+        contributionTotal
+      };
+    }
+
+    function computeCityResult(city, inputs) {
+      const pensionBaseInfo = resolvePensionBase(city, inputs.contributionTier, inputs.customBase);
+      const medical = resolveMedicalContribution(city, inputs.contributionTier, inputs.customBase);
+      const pensionMonthly = pensionBaseInfo.base * city.pensionRate;
+      const monthlyTotal = pensionMonthly + medical.monthly;
+      const annualTotal = monthlyTotal * 12;
+
+      const result = {
+        city,
+        pensionBaseInfo,
+        medical,
+        pensionMonthly,
+        monthlyTotal,
+        annualTotal,
+        futureMonths: inputs.futureMonths,
+        pensionEstimateReady: false,
+        ratio: null,
+        retirementNote: "补完退休参数后显示养老金估算。"
+      };
+
+      if (inputs.futureMonths === null) {
+        return result;
+      }
+
+      const totalContributionYears = (inputs.currentContributionMonths + inputs.futureMonths) / 12;
+      const projectedCalcBase = city.pensionCalcBase * Math.pow(1 + inputs.wageGrowthRate / 100, inputs.futureMonths / 12);
+      const projectedAccount = computeProjectedAccountBalance(
+        inputs.currentBalance,
+        pensionBaseInfo.base,
+        inputs.wageGrowthRate,
+        inputs.bookRate,
+        inputs.futureMonths,
+        city.pensionPersonalRate
+      );
+      const basePension = projectedCalcBase * ((1 + inputs.avgContributionIndex) / 2) * totalContributionYears * 0.01;
+      const accountPension = projectedAccount.projectedBalance / inputs.divisor;
+      const estimatedMonthlyPension = basePension + accountPension;
+      const ratio = monthlyTotal > 0 ? estimatedMonthlyPension / monthlyTotal : null;
+
+      result.pensionEstimateReady = true;
+      result.totalContributionYears = totalContributionYears;
+      result.projectedCalcBase = projectedCalcBase;
+      result.projectedBalance = projectedAccount.projectedBalance;
+      result.futureAccountContribution = projectedAccount.contributionTotal;
+      result.basePension = basePension;
+      result.accountPension = accountPension;
+      result.estimatedMonthlyPension = estimatedMonthlyPension;
+      result.ratio = ratio;
+      result.retirementNote = `按 ${formatYearMonth(inputs.retirementYm)} 或等效缴费窗口测算，累计缴费约 ${formatNumber(totalContributionYears, 2)} 年。`;
+      return result;
+    }
+
+    function formatSourceLinks(sources) {
+      return sources.map((source) => `<li><a href="${source.url}" target="_blank" rel="noreferrer">${source.label}</a></li>`).join("");
+    }
+
+    function getWarningBadges(cityResult) {
+      const badges = [];
+      if (cityResult.city.id === "guangzhou") {
+        badges.push('<span class="badge warn">医保快照到 2025-12-31</span>');
+      }
+      if (cityResult.pensionBaseInfo.clamped) {
+        badges.push('<span class="badge warn">自定义基数已校正</span>');
+      }
+      if (cityResult.medical.fixed) {
+        badges.push('<span class="badge accent">医保非随档浮动</span>');
+      }
+      if (cityResult.pensionEstimateReady && cityResult.ratio >= 1) {
+        badges.push('<span class="badge good">月养老金高于当前月缴费</span>');
+      }
+      return badges.join("");
+    }
+
+    function buildCityCard(cityResult, featured) {
+      const featuredClass = featured ? " featured" : "";
+      const badges = getWarningBadges(cityResult);
+      const pensionEstimateValue = cityResult.pensionEstimateReady
+        ? formatCurrency(cityResult.estimatedMonthlyPension)
+        : "待补充";
+      const ratioValue = cityResult.pensionEstimateReady && cityResult.ratio !== null
+        ? `${formatNumber(cityResult.ratio, 2)} 倍`
+        : "待补充";
+      const medicalBaseText = cityResult.medical.base === null ? "固定口径" : formatCurrency(cityResult.medical.base);
+      const customClampNote = cityResult.pensionBaseInfo.clamped
+        ? `你输入的自定义基数为 ${formatCurrency(cityResult.pensionBaseInfo.rawBase)}，已按养老上下限校正到 ${formatCurrency(cityResult.pensionBaseInfo.base)}。`
+        : null;
+      const cityNotes = [
+        customClampNote,
+        cityResult.medical.detail,
+        cityResult.city.caution || null
+      ].filter(Boolean);
+      const retirementDetail = cityResult.pensionEstimateReady
+        ? `
+          <div class="metric-grid">
+            <div class="metric">
+              <strong>基础养老金</strong>
+              <div class="value">${formatCurrency(cityResult.basePension)}</div>
+              <div class="subnote">按统一公式估算</div>
+            </div>
+            <div class="metric">
+              <strong>个人账户养老金</strong>
+              <div class="value">${formatCurrency(cityResult.accountPension)}</div>
+              <div class="subnote">个人账户余额 ÷ 计发月数</div>
+            </div>
+            <div class="metric">
+              <strong>退休时个人账户</strong>
+              <div class="value">${formatCurrency(cityResult.projectedBalance)}</div>
+              <div class="subnote">其中未来新增 ${formatCurrency(cityResult.futureAccountContribution)}</div>
+            </div>
+            <div class="metric">
+              <strong>退休时参考计发口径</strong>
+              <div class="value">${formatCurrency(cityResult.projectedCalcBase)}</div>
+              <div class="subnote">${cityResult.city.pensionCalcLabel}</div>
+            </div>
+          </div>
+        `
+        : `
+          <div class="muted-box">${cityResult.retirementNote}</div>
+        `;
+
+      return `
+        <article class="city-card${featuredClass}">
+          <div class="city-header">
+            <div>
+              <h3>${cityResult.city.cityName}</h3>
+              <p>养老快照：${cityResult.city.pensionEffectiveDate}<br>医保快照：${cityResult.city.medicalEffectiveDate}</p>
+            </div>
+            <div class="badges">${badges}</div>
+          </div>
+
+          <div class="kpi-strip">
+            <span class="eyebrow">当前月缴费</span>
+            <div class="primary-value">${formatCurrency(cityResult.monthlyTotal)}</div>
+            <div class="city-note">养老 ${formatCurrency(cityResult.pensionMonthly)} + 医保 ${formatCurrency(cityResult.medical.monthly, cityResult.medical.monthly % 1 ? 2 : 0)}</div>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric">
+              <strong>养老缴费基数</strong>
+              <div class="value">${formatCurrency(cityResult.pensionBaseInfo.base)}</div>
+              <div class="subnote">${cityResult.pensionBaseInfo.basisLabel}</div>
+            </div>
+            <div class="metric">
+              <strong>医保计费口径</strong>
+              <div class="value">${medicalBaseText}</div>
+              <div class="subnote">${cityResult.medical.label}</div>
+            </div>
+            <div class="metric">
+              <strong>当前年缴费</strong>
+              <div class="value">${formatCurrency(cityResult.annualTotal)}</div>
+              <div class="subnote">按当前快照折算 12 个月</div>
+            </div>
+            <div class="metric">
+              <strong>预计月养老金</strong>
+              <div class="value">${pensionEstimateValue}</div>
+              <div class="subnote">${cityResult.city.pensionCalcLabel}</div>
+            </div>
+            <div class="metric">
+              <strong>养老 / 月缴回报比</strong>
+              <div class="value">${ratioValue}</div>
+              <div class="subnote">预计月养老金 ÷ 当前月缴费</div>
+            </div>
+            <div class="metric">
+              <strong>累计缴费年限</strong>
+              <div class="value">${cityResult.pensionEstimateReady ? `${formatNumber(cityResult.totalContributionYears, 2)} 年` : "待补充"}</div>
+              <div class="subnote">${cityResult.retirementNote}</div>
+            </div>
+          </div>
+
+          ${retirementDetail}
+
+          ${cityNotes.length ? `<ul class="city-note-list">${cityNotes.map((note) => `<li>${note}</li>`).join("")}</ul>` : ""}
+
+          <details>
+            <summary>查看来源与规则说明</summary>
+            <p>${cityResult.city.notes.join(" ")}</p>
+            <ul>${formatSourceLinks(cityResult.city.sources)}</ul>
+          </details>
+        </article>
+      `;
+    }
+
+    function getInputs() {
+      return {
+        birthYm: readString("birthYm"),
+        sex: readString("sex"),
+        femaleTrack: readString("femaleTrack"),
+        retirementYm: readString("retirementYm"),
+        contributionTier: readString("contributionTier"),
+        customBase: Math.max(0, readNumber("customBase")),
+        currentContributionMonths: Math.max(0, readNumber("currentContributionMonths")),
+        currentBalance: Math.max(0, readNumber("currentBalance")),
+        avgContributionIndex: Math.max(0.6, readNumber("avgContributionIndex")),
+        futureMode: readString("futureMode"),
+        fixedYears: Math.max(0, readNumber("fixedYears")),
+        futureMonths: getFutureMonths(),
+        bookRate: Math.max(0, readNumber("bookRate")),
+        wageGrowthRate: Math.max(0, readNumber("wageGrowthRate")),
+        divisor: Math.max(1, readNumber("divisor")),
+        sortMode: readString("sortMode")
+      };
+    }
+
+    function sortResults(results, sortMode) {
+      const items = [...results];
+      items.sort((left, right) => {
+        if (sortMode === "pension_desc") {
+          return (right.estimatedMonthlyPension || -1) - (left.estimatedMonthlyPension || -1);
+        }
+        if (sortMode === "ratio_desc") {
+          return (right.ratio || -1) - (left.ratio || -1);
+        }
+        return left.monthlyTotal - right.monthlyTotal;
+      });
+      return items;
+    }
+
+    function updateSummary(results) {
+      const byCost = [...results].sort((left, right) => left.monthlyTotal - right.monthlyTotal);
+      const readyPension = results.filter((item) => item.pensionEstimateReady);
+      const bestPension = readyPension.length
+        ? [...readyPension].sort((left, right) => right.estimatedMonthlyPension - left.estimatedMonthlyPension)[0]
+        : null;
+      const bestRatio = readyPension.length
+        ? [...readyPension].sort((left, right) => (right.ratio || -1) - (left.ratio || -1))[0]
+        : null;
+
+      const cheapest = byCost[0];
+      document.getElementById("cheapestCityValue").textContent = `${cheapest.city.cityName} ${formatCurrency(cheapest.monthlyTotal)}`;
+      document.getElementById("cheapestCityNote").textContent =
+        `养老 ${formatCurrency(cheapest.pensionMonthly)} + 医保 ${formatCurrency(cheapest.medical.monthly, cheapest.medical.monthly % 1 ? 2 : 0)}。`;
+
+      if (bestPension) {
+        document.getElementById("bestPensionCityValue").textContent =
+          `${bestPension.city.cityName} ${formatCurrency(bestPension.estimatedMonthlyPension)}`;
+        document.getElementById("bestPensionCityNote").textContent =
+          `基础 ${formatCurrency(bestPension.basePension)} + 个人账户 ${formatCurrency(bestPension.accountPension)}。`;
+      } else {
+        document.getElementById("bestPensionCityValue").textContent = "待补充";
+        document.getElementById("bestPensionCityNote").textContent = "请先补充预计退休年月或切到固定继续缴费年数。";
+      }
+
+      if (bestRatio) {
+        document.getElementById("bestRatioCityValue").textContent =
+          `${bestRatio.city.cityName} ${formatNumber(bestRatio.ratio, 2)} 倍`;
+        document.getElementById("bestRatioCityNote").textContent =
+          `预计月养老金 ${formatCurrency(bestRatio.estimatedMonthlyPension)}，当前月缴费 ${formatCurrency(bestRatio.monthlyTotal)}。`;
+      } else {
+        document.getElementById("bestRatioCityValue").textContent = "待补充";
+        document.getElementById("bestRatioCityNote").textContent = "回报比需要养老金估算结果才能计算。";
+      }
+    }
+
+    function updateRetirementHint() {
+      const suggested = buildSuggestedRetirementYm();
+      const retirementYm = readString("retirementYm");
+      const profileLabel = getRetirementProfileLabel();
+      const hint = document.getElementById("retirementHint");
+
+      if (!suggested) {
+        hint.textContent = "先填出生年月，再按性别 / 女性口径生成参考退休年月。";
+        return;
+      }
+
+      hint.textContent = `当前按 ${profileLabel} 推一版参考退休年月：${formatYearMonth(suggested)}。你也可以手动改成自己的计划退休时间。`;
+
+      if (!retirementYm || retirementYm === lastAutoRetirementYm) {
+        setFieldValue("retirementYm", suggested);
+        lastAutoRetirementYm = suggested;
+      }
+    }
+
+    function updateFieldVisibility() {
+      const contributionTier = readString("contributionTier");
+      const futureMode = readString("futureMode");
+      const sex = readString("sex");
+      document.getElementById("customBaseField").classList.toggle("hidden", contributionTier !== "custom");
+      document.getElementById("fixedYearsField").classList.toggle("hidden", futureMode !== "fixed-years");
+      document.getElementById("femaleTrackField").classList.toggle("hidden", sex !== "female");
+    }
+
+    function saveState() {
+      const state = {};
+      fieldIds.forEach((id) => {
+        state[id] = getInput(id).value;
+      });
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        updateFieldVisibility();
+        updateRetirementHint();
+        return;
+      }
+      try {
+        const state = JSON.parse(raw);
+        fieldIds.forEach((id) => {
+          if (state[id] !== undefined) {
+            setFieldValue(id, state[id]);
+          }
+        });
+      } catch (error) {
+        localStorage.removeItem(storageKey);
+      }
+      updateFieldVisibility();
+      updateRetirementHint();
+    }
+
+    function resetState() {
+      fieldIds.forEach((id) => {
+        setFieldValue(id, defaults[id]);
+      });
+      lastAutoRetirementYm = "";
+      localStorage.removeItem(storageKey);
+      updateFieldVisibility();
+      updateRetirementHint();
+      render();
+    }
+
+    function buildSnapshotText(results) {
+      const guangzhou = results.find((item) => item.city.id === "guangzhou");
+      const shared = "页面使用的是写死在前端里的官方快照：上海与北京采用 2025 年下半年口径，杭州采用浙江 2025 社会保险基数口径，深圳医保采用 2026 年 1 月起口径。";
+      if (!guangzhou) {
+        return shared;
+      }
+      return `${shared} 广州医保部分当前显示的是 ${guangzhou.city.medicalEffectiveDate} 的公开降费快照，已在卡片和来源说明里单独提示。`;
+    }
+
+    function render() {
+      updateFieldVisibility();
+      const inputs = getInputs();
+      const results = CITY_CONFIG.map((city) => computeCityResult(city, inputs));
+      const sorted = sortResults(results, inputs.sortMode);
+
+      updateSummary(results);
+      document.getElementById("compareDesc").textContent =
+        inputs.futureMonths === null
+          ? "当前先展示五城的缴费快照；补完预计退休年月或改成固定继续缴费年数后，养老金估算会一起出现在卡片里。"
+          : `当前按 ${inputs.futureMode === "fixed-years" ? `${formatNumber(inputs.fixedYears, 1)} 年` : formatYearMonth(inputs.retirementYm)} 的缴费窗口测算，排序视图会自动重排五城卡片。`;
+      document.getElementById("snapshotBox").textContent = buildSnapshotText(results);
+
+      const sortMode = readString("sortMode");
+      const featuredCityId = sortMode === "pension_desc"
+        ? sorted.find((item) => item.pensionEstimateReady)?.city.id
+        : sortMode === "ratio_desc"
+          ? sorted.find((item) => item.ratio !== null)?.city.id
+          : sorted[0].city.id;
+      document.getElementById("cityCards").innerHTML =
+        sorted.map((cityResult) => buildCityCard(cityResult, cityResult.city.id === featuredCityId)).join("");
+
+      saveState();
+      return { inputs, results: sorted };
+    }
+
+    function copySummary() {
+      const { inputs, results } = render();
+      const lines = [
+        "多城灵活就业养老金测算摘要",
+        `退休口径：${getRetirementProfileLabel()}`,
+        `预计退休年月：${inputs.retirementYm || "未填写"}`,
+        `缴费档位：${inputs.contributionTier === "custom" ? `自定义 ${formatCurrency(inputs.customBase)}` : inputs.contributionTier === "minimum" ? "最低档" : `${formatPercent(Number(inputs.contributionTier) * 100, 0)} 档`}`,
+        `已缴养老月数：${formatNumber(inputs.currentContributionMonths, 0)} 个月`,
+        `平均缴费指数：${formatNumber(inputs.avgContributionIndex, 2)}`,
+        ""
+      ];
+
+      results.forEach((item) => {
+        lines.push(
+          `${item.city.cityName}`,
+          `  当前月缴费：${formatCurrency(item.monthlyTotal)}（养老 ${formatCurrency(item.pensionMonthly)} / 医保 ${formatCurrency(item.medical.monthly, item.medical.monthly % 1 ? 2 : 0)}）`,
+          `  预计月养老金：${item.pensionEstimateReady ? formatCurrency(item.estimatedMonthlyPension) : "待补退休参数"}`,
+          `  回报比：${item.ratio !== null ? `${formatNumber(item.ratio, 2)} 倍` : "待补退休参数"}`
+        );
+      });
+
+      lines.push("", "提示：这是按通用公式和公开快照做的前端估算，最终以当地社保 / 医保经办系统为准。");
+
+      const summary = lines.join("\n");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(summary).then(() => {
+          window.alert("测算摘要已复制到剪贴板。");
+        }).catch(() => {
+          window.alert(summary);
+        });
+      } else {
+        window.alert(summary);
+      }
+    }
+
+    fieldIds.forEach((id) => {
+      getInput(id).addEventListener("input", () => {
+        if (id === "birthYm" || id === "sex" || id === "femaleTrack") {
+          updateRetirementHint();
+        }
+        render();
+      });
+      getInput(id).addEventListener("change", () => {
+        if (id === "birthYm" || id === "sex" || id === "femaleTrack") {
+          updateRetirementHint();
+        }
+        render();
+      });
+    });
+
+    getInput("retirementYm").addEventListener("input", () => {
+      lastAutoRetirementYm = readString("retirementYm");
+    });
+
+    document.getElementById("recalculate").addEventListener("click", render);
+    document.getElementById("applyRetirementHint").addEventListener("click", () => {
+      const suggested = buildSuggestedRetirementYm();
+      if (suggested) {
+        setFieldValue("retirementYm", suggested);
+        lastAutoRetirementYm = suggested;
+        render();
+      } else {
+        window.alert("请先填写出生年月，再按口径生成参考退休年月。");
+      }
+    });
+    document.getElementById("copySummary").addEventListener("click", copySummary);
+    document.getElementById("resetState").addEventListener("click", resetState);
+
+    loadState();
+    render();
+  </script>
+</body>
+</html>
