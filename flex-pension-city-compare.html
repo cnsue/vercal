@@ -189,6 +189,16 @@
       transform: translateY(-1px);
     }
 
+    .ym-picker {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr);
+      gap: 10px;
+    }
+
+    .ym-picker input[type="hidden"] {
+      display: none;
+    }
+
     .inline-row {
       display: flex;
       gap: 12px;
@@ -554,7 +564,11 @@
         <div class="controls-grid">
           <label class="field">
             <span>出生年月</span>
-            <input id="birthYm" type="month">
+            <div class="ym-picker">
+              <select id="birthYear"></select>
+              <select id="birthMonth"></select>
+            </div>
+            <input id="birthYm" type="hidden">
             <small>用于生成参考退休年月，仍可手动改写。</small>
           </label>
 
@@ -578,7 +592,11 @@
 
           <label class="field">
             <span>预计退休年月</span>
-            <input id="retirementYm" type="month">
+            <div class="ym-picker">
+              <select id="retirementYear"></select>
+              <select id="retirementMonth"></select>
+            </div>
+            <input id="retirementYm" type="hidden">
             <small id="retirementHint">先选出生年月与口径，页面会自动填一版参考值。</small>
           </label>
 
@@ -982,6 +1000,64 @@
 
     function setFieldValue(id, value) {
       getInput(id).value = value === null || value === undefined ? "" : String(value);
+    }
+
+    function buildYearOptions(selectId, startYear, endYear, placeholder) {
+      const select = getInput(selectId);
+      const options = [`<option value="">${placeholder}</option>`];
+      for (let year = endYear; year >= startYear; year -= 1) {
+        options.push(`<option value="${year}">${year} 年</option>`);
+      }
+      select.innerHTML = options.join("");
+    }
+
+    function buildMonthOptions(selectId, placeholder) {
+      const select = getInput(selectId);
+      const options = [`<option value="">${placeholder}</option>`];
+      for (let month = 1; month <= 12; month += 1) {
+        options.push(`<option value="${String(month).padStart(2, "0")}">${month} 月</option>`);
+      }
+      select.innerHTML = options.join("");
+    }
+
+    function composeYearMonth(year, month) {
+      if (!year || !month) {
+        return "";
+      }
+      return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}`;
+    }
+
+    function getYearMonthControlIds(hiddenFieldId) {
+      if (hiddenFieldId === "birthYm") {
+        return { hidden: "birthYm", year: "birthYear", month: "birthMonth" };
+      }
+      if (hiddenFieldId === "retirementYm") {
+        return { hidden: "retirementYm", year: "retirementYear", month: "retirementMonth" };
+      }
+      return { hidden: hiddenFieldId, year: `${hiddenFieldId}Year`, month: `${hiddenFieldId}Month` };
+    }
+
+    function syncHiddenYearMonth(hiddenFieldId) {
+      const ids = getYearMonthControlIds(hiddenFieldId);
+      const year = readString(ids.year);
+      const month = readString(ids.month);
+      setFieldValue(ids.hidden, composeYearMonth(year, month));
+    }
+
+    function syncYearMonthSelects(hiddenFieldId, raw) {
+      const ids = getYearMonthControlIds(hiddenFieldId);
+      const parsed = parseYearMonth(raw);
+      setFieldValue(ids.year, parsed ? parsed.year : "");
+      setFieldValue(ids.month, parsed ? String(parsed.month).padStart(2, "0") : "");
+      setFieldValue(ids.hidden, parsed ? composeYearMonth(parsed.year, parsed.month) : "");
+    }
+
+    function initializeYearMonthPickers() {
+      const currentYear = new Date().getFullYear();
+      buildYearOptions("birthYear", 1940, currentYear, "出生年份");
+      buildMonthOptions("birthMonth", "出生月份");
+      buildYearOptions("retirementYear", currentYear, currentYear + 40, "退休年份");
+      buildMonthOptions("retirementMonth", "退休月份");
     }
 
     function formatCurrency(value, digits = 0) {
@@ -1460,7 +1536,7 @@
       hint.textContent = `当前按 ${profileLabel} 推一版参考退休年月：${formatYearMonth(suggested)}。你也可以手动改成自己的计划退休时间。`;
 
       if (!retirementYm || retirementYm === lastAutoRetirementYm) {
-        setFieldValue("retirementYm", suggested);
+        syncYearMonthSelects("retirementYm", suggested);
         lastAutoRetirementYm = suggested;
       }
     }
@@ -1499,6 +1575,8 @@
       } catch (error) {
         localStorage.removeItem(storageKey);
       }
+      syncYearMonthSelects("birthYm", readString("birthYm"));
+      syncYearMonthSelects("retirementYm", readString("retirementYm"));
       updateFieldVisibility();
       updateRetirementHint();
     }
@@ -1507,6 +1585,8 @@
       fieldIds.forEach((id) => {
         setFieldValue(id, defaults[id]);
       });
+      syncYearMonthSelects("birthYm", "");
+      syncYearMonthSelects("retirementYm", "");
       lastAutoRetirementYm = "";
       localStorage.removeItem(storageKey);
       updateFieldVisibility();
@@ -1585,29 +1665,44 @@
     }
 
     fieldIds.forEach((id) => {
+      if (id === "birthYm" || id === "retirementYm") {
+        return;
+      }
       getInput(id).addEventListener("input", () => {
-        if (id === "birthYm" || id === "sex" || id === "femaleTrack") {
+        if (id === "sex" || id === "femaleTrack") {
           updateRetirementHint();
         }
         render();
       });
       getInput(id).addEventListener("change", () => {
-        if (id === "birthYm" || id === "sex" || id === "femaleTrack") {
+        if (id === "sex" || id === "femaleTrack") {
           updateRetirementHint();
         }
         render();
       });
     });
 
-    getInput("retirementYm").addEventListener("input", () => {
-      lastAutoRetirementYm = readString("retirementYm");
+    ["birthYm", "retirementYm"].forEach((fieldId) => {
+      const ids = getYearMonthControlIds(fieldId);
+      ["Year", "Month"].forEach((suffix) => {
+        const targetId = suffix === "Year" ? ids.year : ids.month;
+        getInput(targetId).addEventListener("change", () => {
+          syncHiddenYearMonth(fieldId);
+          if (fieldId === "birthYm") {
+            updateRetirementHint();
+          } else {
+            lastAutoRetirementYm = readString("retirementYm");
+          }
+          render();
+        });
+      });
     });
 
     document.getElementById("recalculate").addEventListener("click", render);
     document.getElementById("applyRetirementHint").addEventListener("click", () => {
       const suggested = buildSuggestedRetirementYm();
       if (suggested) {
-        setFieldValue("retirementYm", suggested);
+        syncYearMonthSelects("retirementYm", suggested);
         lastAutoRetirementYm = suggested;
         render();
       } else {
@@ -1617,6 +1712,7 @@
     document.getElementById("copySummary").addEventListener("click", copySummary);
     document.getElementById("resetState").addEventListener("click", resetState);
 
+    initializeYearMonthPickers();
     loadState();
     render();
   </script>
