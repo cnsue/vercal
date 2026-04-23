@@ -1,0 +1,190 @@
+import { useState } from 'react'
+import type { Snapshot, SnapshotItem, AssetPlatform, AssetClass } from '../types/models'
+import { PLATFORM_LABELS, CLASS_LABELS, PLATFORM_DEFAULT_CURRENCY, effectivePlatformLabel, effectiveClassLabel } from '../types/models'
+import { useAssetStore } from '../store/useAssetStore'
+import { formatCNY } from '../utils/formatters'
+import { v4 as uuidv4 } from '../utils/uuid'
+
+interface Props {
+  snapshot: Snapshot
+  onSave: (s: Snapshot) => void
+  onDelete?: () => void
+  onCancel: () => void
+}
+
+export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, onCancel }: Props) {
+  const [snap, setSnap] = useState<Snapshot>(structuredClone(initial))
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const { computeItemValueCNY, exchangeRate } = useAssetStore()
+
+  function updateItem(id: string, patch: Partial<SnapshotItem>) {
+    setSnap(s => ({
+      ...s,
+      items: s.items.map(item => item.id === id ? { ...item, ...patch } : item),
+    }))
+  }
+
+  function addItem() {
+    const newItem: SnapshotItem = {
+      id: uuidv4(), platform: 'other', customPlatformName: '',
+      accountType: '', assetClass: 'other', customAssetClassName: '',
+      assetLabel: '', amount: 0, currency: 'CNY', valueCNY: 0, note: '',
+    }
+    setSnap(s => ({ ...s, items: [...s.items, newItem] }))
+    setActiveId(newItem.id)
+  }
+
+  function removeItem(id: string) {
+    setSnap(s => ({ ...s, items: s.items.filter(i => i.id !== id) }))
+    setActiveId(null)
+  }
+
+  const totalCNY = snap.items.reduce((sum, item) => {
+    const repriced = { ...item, valueCNY: computeItemValueCNY(item) }
+    return sum + repriced.valueCNY
+  }, 0)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 0' }}>
+        <button onClick={onCancel} style={btnStyle('ghost')}>取消</button>
+        <div style={{ fontSize: 15, fontWeight: 700 }}>资产录入</div>
+        {onDelete ? (
+          <button onClick={onDelete} style={{ ...btnStyle('ghost'), color: '#c0392b' }}>删除</button>
+        ) : <div style={{ width: 40 }} />}
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+        {/* Date */}
+        <div style={sectionStyle}>
+          <label style={labelStyle}>快照日期</label>
+          <input type="date" value={snap.dateKey} onChange={e => setSnap(s => ({ ...s, dateKey: e.target.value, snapshotDate: new Date(e.target.value).toISOString() }))}
+            style={inputStyle} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--muted)' }}>
+            <span>USD/CNY</span>
+            <span>{exchangeRate ? exchangeRate.rate.toFixed(4) : '未获取'}</span>
+          </div>
+          <textarea placeholder="备注（转入、转出或估值口径）" value={snap.note}
+            onChange={e => setSnap(s => ({ ...s, note: e.target.value }))}
+            rows={2} style={{ ...inputStyle, resize: 'none' }} />
+        </div>
+
+        {/* Items */}
+        <div style={{ ...sectionStyle, marginTop: 12 }}>
+          <div style={labelStyle}>资产条目</div>
+          {snap.items.length === 0 && (
+            <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, padding: '12px 0' }}>点下方按钮添加资产条目</div>
+          )}
+          {snap.items.map(item => (
+            <div key={item.id}>
+              <button onClick={() => setActiveId(activeId === item.id ? null : item.id)}
+                style={{ width: '100%', textAlign: 'left', background: activeId === item.id ? '#e8f5ee' : '#f5f5f5', border: `1px solid ${activeId === item.id ? '#1e6845' : 'transparent'}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', marginBottom: 4 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{effectivePlatformLabel(item)}</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  {effectiveClassLabel(item)} · {item.amount > 0 ? `${item.amount} ${item.currency}` : '待录入'}
+                </div>
+              </button>
+              {activeId === item.id && (
+                <ItemEditor item={item} onChange={patch => updateItem(item.id, patch)}
+                  onRemove={() => removeItem(item.id)} valueCNY={computeItemValueCNY({ ...item, valueCNY: 0 })} />
+              )}
+            </div>
+          ))}
+          <button onClick={addItem} style={{ ...btnStyle('secondary'), width: '100%', marginTop: 8 }}>＋ 新增一条资产</button>
+        </div>
+      </div>
+
+      {/* Save bar */}
+      <div style={{ borderTop: '1px solid #eee', padding: 16, background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>当前合计</div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{formatCNY(totalCNY)}</div>
+          </div>
+          <button onClick={() => onSave({ ...snap, totalValueCNY: totalCNY })}
+            disabled={totalCNY <= 0}
+            style={{ ...btnStyle('primary'), opacity: totalCNY > 0 ? 1 : 0.4 }}>
+            保存快照
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ItemEditor({ item, onChange, onRemove, valueCNY }: {
+  item: SnapshotItem
+  onChange: (p: Partial<SnapshotItem>) => void
+  onRemove: () => void
+  valueCNY: number
+}) {
+  return (
+    <div style={{ background: '#f9f9f9', borderRadius: 10, padding: 12, marginBottom: 8, border: '1px solid #e0e0e0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>{effectivePlatformLabel(item)}</span>
+        <button onClick={onRemove} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13 }}>删除</button>
+      </div>
+
+      <div style={rowStyle}>
+        <span style={labelStyle}>平台</span>
+        <select value={item.platform} onChange={e => {
+          const p = e.target.value as AssetPlatform
+          onChange({ platform: p, currency: PLATFORM_DEFAULT_CURRENCY[p] })
+        }} style={selectStyle}>
+          {(Object.keys(PLATFORM_LABELS) as AssetPlatform[]).map(p => (
+            <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>
+          ))}
+        </select>
+      </div>
+      {item.platform === 'other' && (
+        <input placeholder="自定义平台名称" value={item.customPlatformName}
+          onChange={e => onChange({ customPlatformName: e.target.value })} style={{ ...inputStyle, marginBottom: 8 }} />
+      )}
+
+      <div style={rowStyle}>
+        <span style={labelStyle}>类别</span>
+        <select value={item.assetClass} onChange={e => onChange({ assetClass: e.target.value as AssetClass })} style={selectStyle}>
+          {(Object.keys(CLASS_LABELS) as AssetClass[]).map(c => (
+            <option key={c} value={c}>{CLASS_LABELS[c]}</option>
+          ))}
+        </select>
+      </div>
+      {item.assetClass === 'other' && (
+        <input placeholder="自定义类别名称" value={item.customAssetClassName}
+          onChange={e => onChange({ customAssetClassName: e.target.value })} style={{ ...inputStyle, marginBottom: 8 }} />
+      )}
+
+      <input placeholder="资产名称（如 BTC、招商银行存款）" value={item.assetLabel}
+        onChange={e => onChange({ assetLabel: e.target.value })} style={{ ...inputStyle, marginBottom: 8 }} />
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <input type="number" placeholder="金额" value={item.amount || ''}
+          onChange={e => onChange({ amount: parseFloat(e.target.value) || 0 })}
+          style={{ ...inputStyle, flex: 1 }} />
+        <select value={item.currency} onChange={e => onChange({ currency: e.target.value as 'CNY' | 'USD' })}
+          style={{ ...selectStyle, width: 72 }}>
+          <option value="CNY">CNY</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+
+      <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+        折算人民币：<strong>{formatCNY(valueCNY)}</strong>
+      </div>
+    </div>
+  )
+}
+
+const sectionStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8 }
+const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--muted)' }
+const rowStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' }
+const selectStyle: React.CSSProperties = { padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, background: '#fff' }
+
+function btnStyle(variant: 'primary' | 'secondary' | 'ghost'): React.CSSProperties {
+  const base: React.CSSProperties = { border: 'none', borderRadius: 20, padding: '10px 18px', cursor: 'pointer', fontWeight: 600, fontSize: 14 }
+  if (variant === 'primary') return { ...base, background: '#1a3a2a', color: '#fff' }
+  if (variant === 'secondary') return { ...base, background: '#f0f0f0', color: '#333' }
+  return { ...base, background: 'none', color: '#555' }
+}

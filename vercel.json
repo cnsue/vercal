@@ -1,4 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": true
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/((?!retirement-gap-calculator|pension-calc-v5|flex-pension-city-compare).*)",
+      "destination": "/index.html"
+    }
+  ]
 }
