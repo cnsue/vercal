@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
 import { PENSION_CITIES } from '../../data/pensionCities'
-import { computePensionProjection, getMinimumContributionMonths } from '../../utils/retirementCalc'
+import { computePensionProjection, getMinimumContributionMonths, monthsUntil } from '../../utils/retirementCalc'
 import { formatCNY } from '../../utils/formatters'
 import type { Gender } from '../../types/retirement'
 import { GENDER_LABELS } from '../../types/retirement'
@@ -12,7 +12,8 @@ interface Props {
 
 /**
  * 养老金信息独立设置页。
- * 用户在设置页点"养老金信息"进来，填完即时看到预估退休年月 & 月养老金。
+ * 用户在设置页点"养老金信息"进来，填完即时看到预估退休年月 & 月养老金，
+ * 底部粘性"保存并返回"按钮。
  */
 export default function PensionSettingsPage({ onBack }: Props) {
   const pension = useRetirementStore(s => s.plan.pension)
@@ -35,36 +36,67 @@ export default function PensionSettingsPage({ onBack }: Props) {
     return arr
   }, [thisYear])
 
-  /* ---- 计划停缴 input[type=month] 的当前值与上下界 ---- */
-  const now = new Date()
-  const nowYmPaddedMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const stopValue = `${pension.plannedStopYear}-${String(pension.plannedStopMonth).padStart(2, '0')}`
-  // 计划停缴最迟不能晚于退休月
-  const stopMax = projection.retirementYearMonth
-  function onStopChange(val: string) {
-    const [y, m] = val.split('-').map(n => parseInt(n, 10))
-    if (y && m) setPension({ plannedStopYear: y, plannedStopMonth: m })
-  }
-
-  /* ---- 弹性退休 input[type=month] ---- */
+  /* ---- 实际退休年月：Select，只展示合法区间（std ± 36 月） ---- */
   const std = projection.standardRetirement
   const stdIdx = pension.birthYear * 12 + (pension.birthMonth - 1) + std.totalMonths
-  const actualIdx = stdIdx + pension.retirementOffsetMonths
-  const actualY = Math.floor(actualIdx / 12)
-  const actualM = (actualIdx % 12) + 1
-  const actualValue = `${actualY}-${String(actualM).padStart(2, '0')}`
-  const minIdx = stdIdx - 36, maxIdx = stdIdx + 36
-  const minValue = `${Math.floor(minIdx / 12)}-${String((minIdx % 12) + 1).padStart(2, '0')}`
-  const maxValue = `${Math.floor(maxIdx / 12)}-${String((maxIdx % 12) + 1).padStart(2, '0')}`
-  const stdValue = `${Math.floor(stdIdx / 12)}-${String((stdIdx % 12) + 1).padStart(2, '0')}`
-  function onRetirementDateChange(val: string) {
-    const [y, m] = val.split('-').map(n => parseInt(n, 10))
-    if (!y || !m) return
-    const chosenIdx = y * 12 + (m - 1)
-    let offset = chosenIdx - stdIdx
-    offset = Math.max(-36, Math.min(36, offset))
-    setPension({ retirementOffsetMonths: offset })
+  const retirementOptions = useMemo(() => {
+    const arr: { value: number; label: string }[] = []
+    for (let offset = -36; offset <= 36; offset++) {
+      const idx = stdIdx + offset
+      const y = Math.floor(idx / 12)
+      const m = (idx % 12) + 1
+      const prefix = offset === 0 ? '标准' : formatOffset(offset)
+      arr.push({
+        value: offset,
+        label: `${y}-${String(m).padStart(2, '0')} · ${prefix}`,
+      })
+    }
+    return arr
+  }, [stdIdx])
+
+  /* ---- 计划停止缴费：固定预设选项 ---- */
+  const yearsToRetireMonths = Math.max(0, Math.round(projection.yearsToRetire * 12))
+  const stopPresets = useMemo(() => {
+    const presetYears = [0, 5, 10, 15, 20, 25, 30]
+    const items: { key: string; label: string; months: number }[] = []
+    items.push({ key: 'retirement', label: '直到退休', months: yearsToRetireMonths })
+    for (const yr of presetYears) {
+      const months = yr * 12
+      if (months > yearsToRetireMonths) break // 超过退休就不再列出
+      items.push({
+        key: String(yr),
+        label: yr === 0 ? '现在停缴' : `再缴 ${yr} 年`,
+        months,
+      })
+    }
+    return items
+  }, [yearsToRetireMonths])
+
+  // 当前选项：以月数吻合度匹配（允许 ±3 月误差），否则"自定义"
+  const currentStopMonths = monthsUntil(pension.plannedStopYear, pension.plannedStopMonth)
+  const currentStopKey = (() => {
+    // 与退休月差在 3 月内视为"直到退休"
+    if (Math.abs(currentStopMonths - yearsToRetireMonths) <= 3) return 'retirement'
+    for (const p of stopPresets) {
+      if (p.key === 'retirement') continue
+      if (Math.abs(p.months - currentStopMonths) <= 3) return p.key
+    }
+    return 'custom'
+  })()
+
+  function onStopPresetChange(v: string) {
+    if (v === 'custom') return
+    const preset = stopPresets.find(p => p.key === v)
+    if (!preset) return
+    const now = new Date()
+    const idx = now.getFullYear() * 12 + now.getMonth() + preset.months
+    setPension({
+      plannedStopYear: Math.floor(idx / 12),
+      plannedStopMonth: (idx % 12) + 1,
+    })
   }
+
+  const city = PENSION_CITIES.find(c => c.key === pension.cityKey)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -76,7 +108,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
         <div style={{ fontSize: 16, fontWeight: 800 }}>养老金信息</div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 32 }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
         {/* 推算结果 */}
         <Card>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>推算结果（实时）</div>
@@ -89,7 +121,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
             <Stat label="还剩" value={`${projection.yearsToRetire.toFixed(1)} 年`} />
           </div>
           <div style={{ marginTop: 12, padding: 10, background: '#f0f9f5', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)' }}>预计月养老金（按现参数）</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>预计月养老金（今日购买力）</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#166c3b', marginTop: 2 }}>
               {projection.valid ? formatCNY(projection.monthlyTotal) : '需录入缴费月数'}
             </div>
@@ -148,18 +180,16 @@ export default function PensionSettingsPage({ onBack }: Props) {
               </select>
             </Field>
           </Row>
-          <Field label="实际退休年月（在合法范围内自选）">
-            <input type="month"
-              value={actualValue}
-              min={minValue}
-              max={maxValue}
-              onChange={e => onRetirementDateChange(e.target.value)}
-              style={inputStyle} />
+          <Field label="实际退休年月">
+            <select value={pension.retirementOffsetMonths}
+              onChange={e => setPension({ retirementOffsetMonths: parseInt(e.target.value) })}
+              style={selectStyle}>
+              {retirementOptions.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
-              标准 <strong>{stdValue}</strong> · 合法区间 {minValue} ~ {maxValue}（2025 弹性退休政策 ±3 年）
-              {pension.retirementOffsetMonths !== 0 && (
-                <> · {formatOffset(pension.retirementOffsetMonths)}</>
-              )}
+              仅合法区间内可选（2025 弹性退休政策标准 ±3 年）
             </div>
           </Field>
         </Card>
@@ -192,26 +222,33 @@ export default function PensionSettingsPage({ onBack }: Props) {
             </div>
           </Field>
 
-          <Field label="计划停止缴费的年月">
-            <input type="month"
-              value={stopValue}
-              min={nowYmPaddedMonth}
-              max={stopMax}
-              onChange={e => onStopChange(e.target.value)}
-              style={inputStyle} />
+          <Field label="计划停止缴费">
+            <select value={currentStopKey}
+              onChange={e => onStopPresetChange(e.target.value)}
+              style={selectStyle}>
+              {stopPresets.map(p => (
+                <option key={p.key} value={p.key}>
+                  {p.label}{p.months > 0 && p.key !== 'retirement' ? ` · 约 ${p.months} 月` : ''}
+                </option>
+              ))}
+              {currentStopKey === 'custom' && (
+                <option value="custom">
+                  自定义：{pension.plannedStopYear}-{String(pension.plannedStopMonth).padStart(2, '0')}
+                </option>
+              )}
+            </select>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
               从今起还将缴费约 <strong>{projection.plannedFutureMonths}</strong> 月
               （{Math.floor(projection.plannedFutureMonths / 12)} 年 {projection.plannedFutureMonths % 12} 月）
-              · 最迟不晚于退休月 {stopMax}
             </div>
           </Field>
         </Card>
 
         {/* 缴费指数 */}
         <Card title="缴费指数">
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>
-            缴费指数 = 本人缴费工资 ÷ 当地社平工资。0.6 为最低档，1.0 为社平，3.0 为最高档。
-            加权平均指数将用于养老金公式。
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.6 }}>
+            缴费指数 = 本人缴费工资 ÷ 当地社平工资。0.6 最低、1.0 社平、3.0 最高。
+            全程指数按月数加权平均，实时更新。
           </div>
           <Field label="已缴费期间平均指数">
             <select value={pension.historicalIndex.toFixed(2)}
@@ -231,8 +268,18 @@ export default function PensionSettingsPage({ onBack }: Props) {
               ))}
             </select>
           </Field>
-          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
-            当前加权平均：<strong style={{ color: '#1a3a2a' }}>{projection.weightedIndex.toFixed(2)}</strong>
+          <div style={{
+            marginTop: 8, padding: 10, background: '#f7f7f7', borderRadius: 8,
+            fontSize: 12, color: '#333', lineHeight: 1.7,
+          }}>
+            <div style={{ color: 'var(--muted)', marginBottom: 4, fontSize: 11 }}>全程指数（加权平均）</div>
+            <div>
+              <strong>{pension.historicalIndex.toFixed(2)}</strong> × {pension.monthsContributed} 月 ＋{' '}
+              <strong>{pension.futureIndex.toFixed(2)}</strong> × {projection.plannedFutureMonths} 月
+            </div>
+            <div style={{ marginTop: 4 }}>
+              ÷ {totalMonths} 月 = <strong style={{ color: '#1a3a2a', fontSize: 15 }}>{projection.weightedIndex.toFixed(4)}</strong>
+            </div>
           </div>
         </Card>
 
@@ -244,11 +291,41 @@ export default function PensionSettingsPage({ onBack }: Props) {
               onChange={e => setPension({ personalAccountBalance: parseFloat(e.target.value) || 0 })}
               placeholder="可在社保 APP 中查看" style={inputStyle} />
           </Field>
+          {projection.valid && (
+            <div style={{
+              marginTop: 6, padding: 10, background: '#f7f7f7', borderRadius: 8,
+              fontSize: 11, color: 'var(--muted)', lineHeight: 1.6,
+            }}>
+              当前缴费基数 ≈ ¥{Math.round((city?.averageWage ?? 0) * pension.futureIndex).toLocaleString()}，
+              月划入 ≈ ¥{Math.round((city?.averageWage ?? 0) * pension.futureIndex * 0.08).toLocaleString()} (基数×8%)。
+              <br />
+              退休时余额按记账利率 2.62% 复利估算为{' '}
+              <strong style={{ color: '#1a3a2a' }}>¥{Math.round(projection.projectedPersonalBalance).toLocaleString()}</strong>。
+            </div>
+          )}
         </Card>
 
-        <div style={{ marginTop: 10, padding: 10, background: '#fff7ed', borderRadius: 8, fontSize: 11, color: '#8a4b1a', lineHeight: 1.6 }}>
-          MVP 简化公式：渐进式退休按 2025 政策粗略推算；未纳入过渡性养老金、地方性补贴、缴费基数上下限等。精确数额以当地人社局测算为准。
+        <div style={{ marginTop: 6, padding: 10, background: '#fff7ed', borderRadius: 8, fontSize: 11, color: '#8a4b1a', lineHeight: 1.6 }}>
+          与人社部"退休待遇测算器"默认一致：社平工资 0% 增长（按今日购买力）、记账利率 2.62%、未来缴费用 FV 年金公式。
+          未纳入过渡性养老金、地方性补贴、缴费基数上下限等，精确数额以人社局测算为准。
         </div>
+      </div>
+
+      {/* 底部粘性保存按钮 */}
+      <div style={{
+        borderTop: '1px solid #eee', padding: 12, background: '#fff',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <div style={{ flex: 1, fontSize: 11, color: 'var(--muted)' }}>
+          ✓ 改动已自动保存到本地
+        </div>
+        <button onClick={onBack}
+          style={{
+            background: '#1a3a2a', color: '#fff', border: 'none',
+            padding: '10px 22px', borderRadius: 20, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+          }}>
+          保存并返回
+        </button>
       </div>
     </div>
   )

@@ -23,8 +23,18 @@ export const PENSION_CITIES: PensionCity[] = [
   { key: 'chongqing', name: '重庆', averageWage: 7909  },
 ]
 
-/** 退休时社平工资年均增长率假设（用于推算未来退休年份的基础养老金） */
-export const SOCIAL_WAGE_GROWTH_RATE = 0.05
+/**
+ * 社平工资年均增长率假设。
+ * 人社部"退休待遇测算器"默认为 0%（结果按今日购买力表示），这里与之一致。
+ * 如需按名义金额估算，可上调（历史实际约 5% 名义 / 2% 实际增长）。
+ */
+export const SOCIAL_WAGE_GROWTH_RATE = 0
+
+/**
+ * 个人账户记账利率（年）。
+ * 人社部默认 2.62%（近 5 年公布值 2.62%-4.17%）。
+ */
+export const PERSONAL_ACCOUNT_RATE = 0.0262
 
 /** 个人账户计发月数（按退休年龄），依据 2005 年 38 号文 */
 export const PERSONAL_ACCOUNT_MONTHS: Record<number, number> = {
