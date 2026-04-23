@@ -9,10 +9,11 @@ import { formatCNY } from '../utils/formatters'
 import {
   computeDividendSummary, projectDividendSummary,
   computePensionProjection, computeCoverage,
-  computeGap, safeWithdrawMonthly,
+  computeGap, computeHoldingIncome, safeWithdrawMonthly,
 } from '../utils/retirementCalc'
 import { findPensionCity } from '../data/pensionCities'
-import type { DividendGrowthScenario } from '../types/retirement'
+import { findDividendStock } from '../data/dividendStocks'
+import type { DividendGrowthScenario, DividendHolding } from '../types/retirement'
 import { DIVIDEND_SCENARIO_LABELS } from '../types/retirement'
 
 export default function RetirementPage() {
@@ -68,6 +69,7 @@ export default function RetirementPage() {
         years={pension.yearsToRetire}
         multiplier={dividendMultiplier}
         hasHoldings={plan.holdings.length > 0}
+        holdings={plan.holdings}
       />
 
       {/* 收入构成 */}
@@ -172,11 +174,27 @@ export default function RetirementPage() {
   )
 }
 
-function ScenarioSelector({ years, multiplier, hasHoldings }: {
-  years: number; multiplier: number; hasHoldings: boolean
+function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
+  years: number; multiplier: number; hasHoldings: boolean; holdings: DividendHolding[]
 }) {
   const current = useRetirementStore(s => s.plan.dividendScenario)
   const setScenario = useRetirementStore(s => s.setDividendScenario)
+  const sourceRows = holdings.map(h => {
+    const ref = findDividendStock(h.stockCode)
+    const income = computeHoldingIncome(h)
+    return {
+      id: h.id,
+      name: h.stockName,
+      code: h.stockCode,
+      source: h.dividendPerShareOverride === undefined
+        ? (ref ? `内置表 ${ref.asOfYear} 年度` : '未收录，按持仓数据')
+        : '手动覆盖每股股息',
+      dividendPerShare: income.dividendPerShare,
+      netAnnual: income.netAnnual,
+      growth: ref?.growth?.[current] ?? 0,
+    }
+  })
+  const totalNetAnnual = sourceRows.reduce((sum, row) => sum + row.netAnnual, 0)
 
   return (
     <div style={{ background: '#fff', borderRadius: 16, padding: 14, marginBottom: 14 }}>
@@ -203,6 +221,45 @@ function ScenarioSelector({ years, multiplier, hasHoldings }: {
           <strong style={{ color: '#1a3a2a' }}>{multiplier.toFixed(2)}×</strong>
           （不同股票按其历史 CAGR 加权）
         </div>
+      )}
+      {hasHoldings && (
+        <details style={{
+          marginTop: 10, padding: 10, background: '#f7f7f7', borderRadius: 10,
+          fontSize: 11, color: 'var(--muted)', lineHeight: 1.6,
+        }}>
+          <summary style={{ cursor: 'pointer', color: '#1a3a2a', fontWeight: 700 }}>
+            加权数据来源与计算规则
+          </summary>
+          <div style={{ marginTop: 8 }}>
+            {sourceRows.map(row => {
+              const weight = totalNetAnnual > 0 ? row.netAnnual / totalNetAnnual : 0
+              return (
+                <div key={row.id} style={{
+                  padding: '7px 0', borderTop: '1px solid #e8e8e8',
+                  display: 'flex', justifyContent: 'space-between', gap: 10,
+                }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ color: '#333', fontWeight: 700 }}>
+                      {row.name} <span style={{ color: 'var(--muted)', fontWeight: 500 }}>{row.code}</span>
+                    </div>
+                    <div>
+                      {row.source} · 每股 ¥{row.dividendPerShare.toFixed(3)} · 权重 {(weight * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                  <div style={{ color: '#1a3a2a', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {(row.growth * 100).toFixed(2)}%/年
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <ul style={{ margin: '8px 0 0', paddingLeft: 16 }}>
+            <li>权重 = 单只当前税后年股息 ÷ 全部当前税后年股息。</li>
+            <li>退休后股息 = 当前税后年股息 × (1 + 当前场景增长率) ^ 距退休年数。</li>
+            <li>总倍率 = 全部退休后税后年股息合计 ÷ 当前税后年股息合计。</li>
+            <li>内置增长率基于近 5-10 年分红 CAGR 与行业周期粗估；未收录股票按 0% 处理。</li>
+          </ul>
+        </details>
       )}
     </div>
   )

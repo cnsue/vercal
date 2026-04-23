@@ -291,7 +291,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
           <Field label="在岗职工平均工资增长率（%/年）">
             <Stepper
               value={pension.socialWageGrowthRate * 100}
-              step={0.01}
+              step={1}
               min={-5}
               max={15}
               onChange={v => setPension({ socialWageGrowthRate: v / 100 })}
@@ -303,7 +303,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
           <Field label="个人账户记账利率（%/年）">
             <Stepper
               value={pension.personalAccountRate * 100}
-              step={0.01}
+              step={1}
               min={0}
               max={10}
               onChange={v => setPension({ personalAccountRate: v / 100 })}

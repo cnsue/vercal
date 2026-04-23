@@ -124,7 +124,7 @@ export default function App() {
       <div style={{
         background: 'rgba(255,255,255,0.95)',
         backdropFilter: 'blur(12px)', borderTop: '1px solid #eee',
-        display: 'flex', paddingBottom: 'env(safe-area-inset-bottom)',
+        display: 'flex', paddingBottom: 0,
         flexShrink: 0,
       }}>
         <TabButton label="资产" icon="💰" active={tab === 'asset'} badge={!recordedToday && sorted.length > 0} onClick={() => setTab('asset')} />
