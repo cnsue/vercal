@@ -15,7 +15,7 @@ interface Props {
 export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, onCancel }: Props) {
   const [snap, setSnap] = useState<Snapshot>(structuredClone(initial))
   const [activeId, setActiveId] = useState<string | null>(null)
-  const { computeItemValueCNY, exchangeRate } = useAssetStore()
+  const { computeItemValueCNY, exchangeRate, customPlatforms, customClasses } = useAssetStore()
 
   function updateItem(id: string, patch: Partial<SnapshotItem>) {
     setSnap(s => ({
@@ -87,7 +87,8 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
               </button>
               {activeId === item.id && (
                 <ItemEditor item={item} onChange={patch => updateItem(item.id, patch)}
-                  onRemove={() => removeItem(item.id)} valueCNY={computeItemValueCNY({ ...item, valueCNY: 0 })} />
+                  onRemove={() => removeItem(item.id)} valueCNY={computeItemValueCNY({ ...item, valueCNY: 0 })}
+                  customPlatforms={customPlatforms} customClasses={customClasses} />
               )}
             </div>
           ))}
@@ -113,12 +114,40 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
   )
 }
 
-function ItemEditor({ item, onChange, onRemove, valueCNY }: {
+function ItemEditor({ item, onChange, onRemove, valueCNY, customPlatforms, customClasses }: {
   item: SnapshotItem
   onChange: (p: Partial<SnapshotItem>) => void
   onRemove: () => void
   valueCNY: number
+  customPlatforms: string[]
+  customClasses: string[]
 }) {
+  // Virtual select value: '__custom__Name' for custom platforms, else AssetPlatform key
+  const platformSelectValue = item.platform === 'other' && item.customPlatformName
+    ? `__custom__${item.customPlatformName}`
+    : item.platform
+
+  const classSelectValue = item.assetClass === 'other' && item.customAssetClassName
+    ? `__custom__${item.customAssetClassName}`
+    : item.assetClass
+
+  function onPlatformChange(value: string) {
+    if (value.startsWith('__custom__')) {
+      onChange({ platform: 'other', customPlatformName: value.slice(10), currency: 'CNY' })
+    } else {
+      const p = value as AssetPlatform
+      onChange({ platform: p, customPlatformName: '', currency: PLATFORM_DEFAULT_CURRENCY[p] })
+    }
+  }
+
+  function onClassChange(value: string) {
+    if (value.startsWith('__custom__')) {
+      onChange({ assetClass: 'other', customAssetClassName: value.slice(10) })
+    } else {
+      onChange({ assetClass: value as AssetClass, customAssetClassName: '' })
+    }
+  }
+
   return (
     <div style={{ background: '#f9f9f9', borderRadius: 10, padding: 12, marginBottom: 8, border: '1px solid #e0e0e0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -128,29 +157,34 @@ function ItemEditor({ item, onChange, onRemove, valueCNY }: {
 
       <div style={rowStyle}>
         <span style={labelStyle}>平台</span>
-        <select value={item.platform} onChange={e => {
-          const p = e.target.value as AssetPlatform
-          onChange({ platform: p, currency: PLATFORM_DEFAULT_CURRENCY[p] })
-        }} style={selectStyle}>
-          {(Object.keys(PLATFORM_LABELS) as AssetPlatform[]).map(p => (
+        <select value={platformSelectValue} onChange={e => onPlatformChange(e.target.value)} style={selectStyle}>
+          {(Object.keys(PLATFORM_LABELS) as AssetPlatform[]).filter(p => p !== 'other').map(p => (
             <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>
           ))}
+          {customPlatforms.map(name => (
+            <option key={name} value={`__custom__${name}`}>{name}</option>
+          ))}
+          <option value="other">其他（自定义）</option>
         </select>
       </div>
-      {item.platform === 'other' && (
+      {item.platform === 'other' && !customPlatforms.includes(item.customPlatformName) && (
         <input placeholder="自定义平台名称" value={item.customPlatformName}
           onChange={e => onChange({ customPlatformName: e.target.value })} style={{ ...inputStyle, marginBottom: 8 }} />
       )}
 
       <div style={rowStyle}>
         <span style={labelStyle}>类别</span>
-        <select value={item.assetClass} onChange={e => onChange({ assetClass: e.target.value as AssetClass })} style={selectStyle}>
-          {(Object.keys(CLASS_LABELS) as AssetClass[]).map(c => (
+        <select value={classSelectValue} onChange={e => onClassChange(e.target.value)} style={selectStyle}>
+          {(Object.keys(CLASS_LABELS) as AssetClass[]).filter(c => c !== 'other').map(c => (
             <option key={c} value={c}>{CLASS_LABELS[c]}</option>
           ))}
+          {customClasses.map(name => (
+            <option key={name} value={`__custom__${name}`}>{name}</option>
+          ))}
+          <option value="other">其他（自定义）</option>
         </select>
       </div>
-      {item.assetClass === 'other' && (
+      {item.assetClass === 'other' && !customClasses.includes(item.customAssetClassName) && (
         <input placeholder="自定义类别名称" value={item.customAssetClassName}
           onChange={e => onChange({ customAssetClassName: e.target.value })} style={{ ...inputStyle, marginBottom: 8 }} />
       )}

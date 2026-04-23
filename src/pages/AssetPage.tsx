@@ -91,14 +91,20 @@ export default function AssetPage() {
         }}
       />
 
-      {/* Missing today banner */}
-      {!recordedToday && (
+      {/* Today entry — always visible once there's data */}
+      {sorted.length > 0 && (
         <div onClick={() => setEditingSnap(store.draftSnapshot(todayKey))}
-          style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 14, padding: '12px 16px', marginBottom: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 20 }}>🔔</span>
+          style={{
+            background: recordedToday ? '#f0f9f5' : '#fff7ed',
+            border: `1px solid ${recordedToday ? '#6ee7b7' : '#fed7aa'}`,
+            borderRadius: 14, padding: '12px 16px', marginBottom: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+          <span style={{ fontSize: 20 }}>{recordedToday ? '✏️' : '🔔'}</span>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>今日资产还未录入</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>点这里复制最近快照，改几个数字就能保存</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{recordedToday ? '更新今日资产' : '今日资产还未录入'}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+              {recordedToday ? '点这里修改今日的资产快照' : '点这里复制最近快照，改几个数字就能保存'}
+            </div>
           </div>
           <span style={{ marginLeft: 'auto', color: '#aaa' }}>›</span>
         </div>
@@ -110,8 +116,8 @@ export default function AssetPage() {
         <span style={{ fontWeight: 700 }}>{store.exchangeRate ? store.exchangeRate.rate.toFixed(4) : '未获取'}</span>
         <span style={{ color: 'var(--muted)', fontSize: 11, flex: 1 }}>{store.rateStatus}</span>
         <button onClick={() => store.refreshExchangeRate()} disabled={store.isFetchingRate}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e6845', fontSize: 13 }}>
-          {store.isFetchingRate ? '…' : '↻'}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e6845', fontSize: 16, lineHeight: 1 }}>
+          <span className={store.isFetchingRate ? 'spin' : ''}>↻</span>
         </button>
       </div>
 
