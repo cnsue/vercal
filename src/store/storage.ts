@@ -1,4 +1,6 @@
 import type { Snapshot, ExchangeRate } from '../types/models'
+import type { RetirementPlan } from '../types/retirement'
+import { DEFAULT_RETIREMENT_PLAN } from '../types/retirement'
 
 const K = {
   snapshots: 'asset-tracker:snapshots',
@@ -9,6 +11,7 @@ const K = {
   hiddenClasses: 'asset-tracker:hiddenClasses',
   exchangeRate: 'asset-tracker:exchangeRate',
   installBannerDismissed: 'asset-tracker:installBannerDismissed',
+  retirementPlan: 'asset-tracker:retirementPlan',
 } as const
 
 function get<T>(key: string, fallback: T): T {
@@ -52,6 +55,20 @@ export const StorageService = {
 
   isInstallBannerDismissed: (): boolean => get<boolean>(K.installBannerDismissed, false),
   dismissInstallBanner: (): void => set(K.installBannerDismissed, true),
+
+  getRetirementPlan: (): RetirementPlan => {
+    const stored = get<Partial<RetirementPlan> | null>(K.retirementPlan, null)
+    if (!stored) return DEFAULT_RETIREMENT_PLAN
+    return {
+      ...DEFAULT_RETIREMENT_PLAN,
+      ...stored,
+      decentStandard: { ...DEFAULT_RETIREMENT_PLAN.decentStandard, ...stored.decentStandard },
+      pension: { ...DEFAULT_RETIREMENT_PLAN.pension, ...stored.pension },
+      holdings: stored.holdings ?? [],
+      otherIncomes: stored.otherIncomes ?? [],
+    }
+  },
+  saveRetirementPlan: (p: RetirementPlan): void => set(K.retirementPlan, p),
 
   estimateSizeKB: (): number => {
     let total = 0

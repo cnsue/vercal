@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import AssetPage from './pages/AssetPage'
+import RetirementPage from './pages/RetirementPage'
 import ToolsPage from './pages/ToolsPage'
 import SettingsPage from './pages/SettingsPage'
 import SnapshotEditor from './components/SnapshotEditor'
@@ -9,10 +10,11 @@ import { StorageService } from './store/storage'
 import { formatDateKey, displayDate } from './utils/formatters'
 import type { Snapshot } from './types/models'
 
-type Tab = 'asset' | 'tools' | 'settings'
+type Tab = 'asset' | 'retirement' | 'tools' | 'settings'
 
 const TAB_TITLES: Record<Tab, string> = {
   asset: 'Coinsight',
+  retirement: '岁月',
   tools: '养老金工具',
   settings: '设置',
 }
@@ -97,6 +99,7 @@ export default function App() {
         ) : (
           <>
             {tab === 'asset' && <AssetPage onOpenEditor={setEditingSnap} />}
+            {tab === 'retirement' && <RetirementPage />}
             {tab === 'tools' && <ToolsPage />}
             {tab === 'settings' && <SettingsPage />}
           </>
@@ -111,6 +114,7 @@ export default function App() {
         flexShrink: 0,
       }}>
         <TabButton label="资产" icon="💰" active={tab === 'asset'} badge={!recordedToday && sorted.length > 0} onClick={() => setTab('asset')} />
+        <TabButton label="岁月" icon="📅" active={tab === 'retirement'} onClick={() => setTab('retirement')} />
         <TabButton label="工具" icon="📊" active={tab === 'tools'} onClick={() => setTab('tools')} />
         <TabButton label="设置" icon="⚙️" active={tab === 'settings'} onClick={() => setTab('settings')} />
       </div>

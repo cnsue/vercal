@@ -1,12 +1,19 @@
 import { useState, useMemo } from 'react'
 import { useAssetStore } from '../store/useAssetStore'
+import { useRetirementStore } from '../store/useRetirementStore'
 import HeroCard from '../components/HeroCard'
+import AnnualTargetCard from '../components/AnnualTargetCard'
+import CoverageHero from '../components/retirement/CoverageHero'
+import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import TrendChart from '../components/charts/TrendChart'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
 import { generateSlots } from '../utils/dateSlots'
 import { formatCNY, formatDateKey, displayDate } from '../utils/formatters'
 import { effectivePlatformLabel, effectiveClassLabel } from '../types/models'
 import type { ChartPeriod, Snapshot } from '../types/models'
+import {
+  computeDividendSummary, computePensionProjection, computeCoverage,
+} from '../utils/retirementCalc'
 
 const PERIODS: { key: ChartPeriod; label: string }[] = [
   { key: 'day', label: '日K' },
@@ -23,10 +30,18 @@ interface Props {
 
 export default function AssetPage({ onOpenEditor }: Props) {
   const store = useAssetStore()
+  const plan = useRetirementStore(s => s.plan)
   const [period, setPeriod] = useState<ChartPeriod>('day')
   const [distMode, setDistMode] = useState<DistMode>('platform')
   const [showTargetEditor, setShowTargetEditor] = useState(false)
   const [targetInput, setTargetInput] = useState('')
+  const [showDecentEditor, setShowDecentEditor] = useState(false)
+
+  const coverage = useMemo(() => {
+    const dividend = computeDividendSummary(plan.holdings)
+    const pension = computePensionProjection(plan.pension)
+    return computeCoverage(plan, dividend, pension)
+  }, [plan])
 
   const sorted = store.snapshots
   const latest = sorted[0] ?? null
@@ -60,12 +75,26 @@ export default function AssetPage({ onOpenEditor }: Props) {
         dailyChange={dailyChange}
         dailyChangePct={dailyChangePct}
         latestDateKey={latest?.dateKey ?? null}
-        annualTarget={store.annualTarget}
-        onEditTarget={() => {
-          setTargetInput(store.annualTarget > 0 ? String(store.annualTarget) : '')
-          setShowTargetEditor(true)
-        }}
       />
+
+      {/* 左右双卡片：年度目标 + 体面覆盖率 */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+        <AnnualTargetCard
+          totalValueCNY={latest?.totalValueCNY ?? 0}
+          annualTarget={store.annualTarget}
+          onEdit={() => {
+            setTargetInput(store.annualTarget > 0 ? String(store.annualTarget) : '')
+            setShowTargetEditor(true)
+          }}
+        />
+        <CoverageHero
+          ratio={coverage.ratio}
+          decentMonthly={coverage.decentMonthly}
+          monthlyIncome={coverage.monthlyIncome}
+          variant="compact"
+          onEdit={() => setShowDecentEditor(true)}
+        />
+      </div>
 
       {/* Today entry — always visible once there's data */}
       {sorted.length > 0 && (
@@ -157,6 +186,8 @@ export default function AssetPage({ onOpenEditor }: Props) {
           })
         )}
       </Section>
+
+      <DecentStandardEditor open={showDecentEditor} onClose={() => setShowDecentEditor(false)} />
 
       {/* Annual target modal */}
       {showTargetEditor && (

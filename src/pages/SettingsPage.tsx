@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAssetStore } from '../store/useAssetStore'
 import { PLATFORM_LABELS, CLASS_LABELS } from '../types/models'
+import PensionConfigCard from '../components/retirement/PensionConfigCard'
 
 export default function SettingsPage() {
   const store = useAssetStore()
@@ -19,6 +20,9 @@ export default function SettingsPage() {
 
   return (
     <div style={{ paddingTop: 12, paddingBottom: 80 }}>
+      <div style={{ marginBottom: 12 }}>
+        <PensionConfigCard />
+      </div>
       <Card title="平台管理">
         <SectionLabel>内置平台</SectionLabel>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>

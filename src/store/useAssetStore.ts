@@ -185,6 +185,10 @@ export const useAssetStore = create<AssetState>((set, get) => ({
 export async function bootstrapStore() {
   const store = useAssetStore.getState()
   store.loadAll()
+  // Retirement plan lives in a separate slice; hydrate it here so all pages
+  // can read it without racing with their own useEffect.
+  const { useRetirementStore } = await import('./useRetirementStore')
+  useRetirementStore.getState().load()
   const { exchangeRate } = useAssetStore.getState()
   if (!isFresh(exchangeRate)) {
     await store.refreshExchangeRate(true)
