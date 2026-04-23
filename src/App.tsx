@@ -8,6 +8,7 @@ import { bootstrapStore } from './store/useAssetStore'
 import { useAssetStore } from './store/useAssetStore'
 import { StorageService } from './store/storage'
 import { formatDateKey, displayDate } from './utils/formatters'
+import { usePwaUpdate } from './utils/pwaUpdate'
 import type { Snapshot } from './types/models'
 
 type Tab = 'asset' | 'retirement' | 'tools' | 'settings'
@@ -24,6 +25,7 @@ export default function App() {
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const [editingSnap, setEditingSnap] = useState<Snapshot | null>(null)
   const store = useAssetStore()
+  const { needRefresh, apply } = usePwaUpdate()
 
   useEffect(() => {
     bootstrapStore()
@@ -68,6 +70,18 @@ export default function App() {
             <button onClick={() => { StorageService.dismissInstallBanner(); setShowInstallBanner(false) }}
               style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
           </div>
+        )}
+        {needRefresh && (
+          <button onClick={apply}
+            style={{
+              width: '100%', background: '#d28c3b', color: '#fff',
+              padding: '10px 16px', fontSize: 13, border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+            }}>
+            <span style={{ fontSize: 16 }}>✨</span>
+            <span style={{ flex: 1, fontWeight: 600 }}>新版本可用</span>
+            <span style={{ fontSize: 12, opacity: 0.9 }}>点击刷新 ›</span>
+          </button>
         )}
         <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>{TAB_TITLES[tab]}</div>
