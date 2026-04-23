@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import AssetPage from './pages/AssetPage'
 import ToolsPage from './pages/ToolsPage'
 import SettingsPage from './pages/SettingsPage'
+import SnapshotEditor from './components/SnapshotEditor'
 import { bootstrapStore } from './store/useAssetStore'
 import { useAssetStore } from './store/useAssetStore'
 import { StorageService } from './store/storage'
-import { formatDateKey } from './utils/formatters'
+import { formatDateKey, displayDate } from './utils/formatters'
+import type { Snapshot } from './types/models'
 
 type Tab = 'asset' | 'tools' | 'settings'
 
@@ -18,6 +20,7 @@ const TAB_TITLES: Record<Tab, string> = {
 export default function App() {
   const [tab, setTab] = useState<Tab>('asset')
   const [showInstallBanner, setShowInstallBanner] = useState(false)
+  const [editingSnap, setEditingSnap] = useState<Snapshot | null>(null)
   const store = useAssetStore()
 
   useEffect(() => {
@@ -32,6 +35,21 @@ export default function App() {
   const sorted = store.snapshots
   const todayKey = formatDateKey(new Date())
   const recordedToday = sorted.some(s => s.dateKey === todayKey)
+
+  function handleSaveSnap(snap: Snapshot) {
+    store.saveSnapshot(snap)
+    setEditingSnap(null)
+  }
+
+  function handleDeleteSnap() {
+    if (!editingSnap) return
+    if (confirm(`删除 ${displayDate(editingSnap.dateKey)} 的资产记录？`)) {
+      store.deleteSnapshot(editingSnap.dateKey)
+      setEditingSnap(null)
+    }
+  }
+
+  const showPlusAction = tab === 'asset' && !editingSnap
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -49,16 +67,40 @@ export default function App() {
               style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
           </div>
         )}
-        <div style={{ padding: '12px 16px', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>
-          {TAB_TITLES[tab]}
+        <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>{TAB_TITLES[tab]}</div>
+          {showPlusAction && (
+            <button
+              onClick={() => setEditingSnap(store.draftSnapshot(todayKey))}
+              aria-label="新增资产快照"
+              style={{
+                width: 32, height: 32, borderRadius: '50%', border: 'none',
+                background: '#1a3a2a', color: '#fff', fontSize: 22, lineHeight: '28px',
+                cursor: 'pointer', padding: 0, fontWeight: 400,
+              }}
+            >+</button>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 0' }}>
-        {tab === 'asset' && <AssetPage />}
-        {tab === 'tools' && <ToolsPage />}
-        {tab === 'settings' && <SettingsPage />}
+      <div style={{ flex: 1, overflowY: 'auto', padding: editingSnap ? 0 : '12px 16px 0' }}>
+        {editingSnap ? (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <SnapshotEditor
+              snapshot={editingSnap}
+              onSave={handleSaveSnap}
+              onDelete={sorted.some(s => s.dateKey === editingSnap.dateKey) ? handleDeleteSnap : undefined}
+              onCancel={() => setEditingSnap(null)}
+            />
+          </div>
+        ) : (
+          <>
+            {tab === 'asset' && <AssetPage onOpenEditor={setEditingSnap} />}
+            {tab === 'tools' && <ToolsPage />}
+            {tab === 'settings' && <SettingsPage />}
+          </>
+        )}
       </div>
 
       {/* Bottom tab bar */}

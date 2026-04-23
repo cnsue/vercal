@@ -15,7 +15,7 @@ interface Props {
 export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, onCancel }: Props) {
   const [snap, setSnap] = useState<Snapshot>(structuredClone(initial))
   const [activeId, setActiveId] = useState<string | null>(null)
-  const { computeItemValueCNY, exchangeRate, customPlatforms, customClasses } = useAssetStore()
+  const { computeItemValueCNY, exchangeRate, customPlatforms, customClasses, hiddenPlatforms, hiddenClasses } = useAssetStore()
 
   function updateItem(id: string, patch: Partial<SnapshotItem>) {
     setSnap(s => ({
@@ -88,7 +88,8 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
               {activeId === item.id && (
                 <ItemEditor item={item} onChange={patch => updateItem(item.id, patch)}
                   onRemove={() => removeItem(item.id)} valueCNY={computeItemValueCNY({ ...item, valueCNY: 0 })}
-                  customPlatforms={customPlatforms} customClasses={customClasses} />
+                  customPlatforms={customPlatforms} customClasses={customClasses}
+                  hiddenPlatforms={hiddenPlatforms} hiddenClasses={hiddenClasses} />
               )}
             </div>
           ))}
@@ -114,13 +115,15 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
   )
 }
 
-function ItemEditor({ item, onChange, onRemove, valueCNY, customPlatforms, customClasses }: {
+function ItemEditor({ item, onChange, onRemove, valueCNY, customPlatforms, customClasses, hiddenPlatforms, hiddenClasses }: {
   item: SnapshotItem
   onChange: (p: Partial<SnapshotItem>) => void
   onRemove: () => void
   valueCNY: number
   customPlatforms: string[]
   customClasses: string[]
+  hiddenPlatforms: string[]
+  hiddenClasses: string[]
 }) {
   // Virtual select value: '__custom__Name' for custom platforms, else AssetPlatform key
   const platformSelectValue = item.platform === 'other' && item.customPlatformName
@@ -158,9 +161,11 @@ function ItemEditor({ item, onChange, onRemove, valueCNY, customPlatforms, custo
       <div style={rowStyle}>
         <span style={labelStyle}>平台</span>
         <select value={platformSelectValue} onChange={e => onPlatformChange(e.target.value)} style={selectStyle}>
-          {(Object.keys(PLATFORM_LABELS) as AssetPlatform[]).filter(p => p !== 'other').map(p => (
-            <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>
-          ))}
+          {(Object.keys(PLATFORM_LABELS) as AssetPlatform[])
+            .filter(p => p !== 'other' && (!hiddenPlatforms.includes(p) || p === item.platform))
+            .map(p => (
+              <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>
+            ))}
           {customPlatforms.map(name => (
             <option key={name} value={`__custom__${name}`}>{name}</option>
           ))}
@@ -175,9 +180,11 @@ function ItemEditor({ item, onChange, onRemove, valueCNY, customPlatforms, custo
       <div style={rowStyle}>
         <span style={labelStyle}>类别</span>
         <select value={classSelectValue} onChange={e => onClassChange(e.target.value)} style={selectStyle}>
-          {(Object.keys(CLASS_LABELS) as AssetClass[]).filter(c => c !== 'other').map(c => (
-            <option key={c} value={c}>{CLASS_LABELS[c]}</option>
-          ))}
+          {(Object.keys(CLASS_LABELS) as AssetClass[])
+            .filter(c => c !== 'other' && (!hiddenClasses.includes(c) || c === item.assetClass))
+            .map(c => (
+              <option key={c} value={c}>{CLASS_LABELS[c]}</option>
+            ))}
           {customClasses.map(name => (
             <option key={name} value={`__custom__${name}`}>{name}</option>
           ))}

@@ -18,10 +18,7 @@ const TOOLS = [
 
 export default function ToolsPage() {
   return (
-    <div style={{ paddingBottom: 80 }}>
-      <div style={{ padding: '20px 0 16px', fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>
-        养老金工具
-      </div>
+    <div style={{ paddingTop: 12, paddingBottom: 80 }}>
       {TOOLS.map(tool => (
         <a key={tool.href} href={tool.href}
           style={{ display: 'block', background: '#fff', border: '1px solid #eee', borderRadius: 16, padding: 18, marginBottom: 12, textDecoration: 'none', color: 'inherit' }}>

@@ -3,7 +3,6 @@ import { useAssetStore } from '../store/useAssetStore'
 import HeroCard from '../components/HeroCard'
 import TrendChart from '../components/charts/TrendChart'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
-import SnapshotEditor from '../components/SnapshotEditor'
 import { generateSlots } from '../utils/dateSlots'
 import { formatCNY, formatDateKey, displayDate } from '../utils/formatters'
 import { effectivePlatformLabel, effectiveClassLabel } from '../types/models'
@@ -18,9 +17,12 @@ const PERIODS: { key: ChartPeriod; label: string }[] = [
 
 type DistMode = 'platform' | 'class'
 
-export default function AssetPage() {
+interface Props {
+  onOpenEditor: (snap: Snapshot) => void
+}
+
+export default function AssetPage({ onOpenEditor }: Props) {
   const store = useAssetStore()
-  const [editingSnap, setEditingSnap] = useState<Snapshot | null>(null)
   const [period, setPeriod] = useState<ChartPeriod>('day')
   const [distMode, setDistMode] = useState<DistMode>('platform')
   const [showTargetEditor, setShowTargetEditor] = useState(false)
@@ -51,32 +53,6 @@ export default function AssetPage() {
       .map(([name, value]) => ({ name, value, weight: value / total * 100 }))
   }, [latest, distMode])
 
-  function handleSave(snap: Snapshot) {
-    store.saveSnapshot(snap)
-    setEditingSnap(null)
-  }
-
-  function handleDelete() {
-    if (!editingSnap) return
-    if (confirm(`删除 ${displayDate(editingSnap.dateKey)} 的资产记录？`)) {
-      store.deleteSnapshot(editingSnap.dateKey)
-      setEditingSnap(null)
-    }
-  }
-
-  if (editingSnap) {
-    return (
-      <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
-        <SnapshotEditor
-          snapshot={editingSnap}
-          onSave={handleSave}
-          onDelete={sorted.some(s => s.dateKey === editingSnap.dateKey) ? handleDelete : undefined}
-          onCancel={() => setEditingSnap(null)}
-        />
-      </div>
-    )
-  }
-
   return (
     <div style={{ padding: '0 0 80px' }}>
       <HeroCard
@@ -93,7 +69,7 @@ export default function AssetPage() {
 
       {/* Today entry — always visible once there's data */}
       {sorted.length > 0 && (
-        <div onClick={() => setEditingSnap(store.draftSnapshot(todayKey))}
+        <div onClick={() => onOpenEditor(store.draftSnapshot(todayKey))}
           style={{
             background: recordedToday ? '#f0f9f5' : '#fff7ed',
             border: `1px solid ${recordedToday ? '#6ee7b7' : '#fed7aa'}`,
@@ -164,7 +140,7 @@ export default function AssetPage() {
             const prev = sorted[i + 1]
             const change = prev ? snap.totalValueCNY - prev.totalValueCNY : 0
             return (
-              <button key={snap.id} onClick={() => setEditingSnap(snap)}
+              <button key={snap.id} onClick={() => onOpenEditor(snap)}
                 style={{ width: '100%', textAlign: 'left', background: '#fff', border: '1px solid #eee', borderRadius: 14, padding: '14px 16px', marginBottom: 8, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ fontWeight: 600, fontSize: 14 }}>{displayDate(snap.dateKey)}</span>

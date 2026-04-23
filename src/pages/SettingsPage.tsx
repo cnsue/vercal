@@ -18,20 +18,29 @@ export default function SettingsPage() {
   }
 
   return (
-    <div style={{ paddingBottom: 80 }}>
-      <div style={{ padding: '20px 0 16px', fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>
-        设置
-      </div>
-
+    <div style={{ paddingTop: 12, paddingBottom: 80 }}>
       <Card title="平台管理">
         <SectionLabel>内置平台</SectionLabel>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
           {(Object.keys(PLATFORM_LABELS) as (keyof typeof PLATFORM_LABELS)[])
-            .filter(k => k !== 'other')
+            .filter(k => k !== 'other' && !store.hiddenPlatforms.includes(k))
             .map(k => (
-              <span key={k} style={builtinTagStyle}>{PLATFORM_LABELS[k]}</span>
+              <TagPill key={k} label={PLATFORM_LABELS[k]} onDelete={() => store.hideBuiltinPlatform(k)} />
             ))}
         </div>
+        {store.hiddenPlatforms.length > 0 && (
+          <>
+            <SectionLabel>已隐藏内置平台</SectionLabel>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+              {store.hiddenPlatforms.map(k => (
+                <button key={k} onClick={() => store.restoreBuiltinPlatform(k)} style={hiddenTagStyle}>
+                  {PLATFORM_LABELS[k as keyof typeof PLATFORM_LABELS] ?? k}
+                  <span style={restoreHint}>恢复</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         {store.customPlatforms.length > 0 && (
           <>
             <SectionLabel>自定义平台</SectionLabel>
@@ -59,11 +68,24 @@ export default function SettingsPage() {
         <SectionLabel>内置类别</SectionLabel>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
           {(Object.keys(CLASS_LABELS) as (keyof typeof CLASS_LABELS)[])
-            .filter(k => k !== 'other')
+            .filter(k => k !== 'other' && !store.hiddenClasses.includes(k))
             .map(k => (
-              <span key={k} style={builtinTagStyle}>{CLASS_LABELS[k]}</span>
+              <TagPill key={k} label={CLASS_LABELS[k]} onDelete={() => store.hideBuiltinClass(k)} />
             ))}
         </div>
+        {store.hiddenClasses.length > 0 && (
+          <>
+            <SectionLabel>已隐藏内置类别</SectionLabel>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+              {store.hiddenClasses.map(k => (
+                <button key={k} onClick={() => store.restoreBuiltinClass(k)} style={hiddenTagStyle}>
+                  {CLASS_LABELS[k as keyof typeof CLASS_LABELS] ?? k}
+                  <span style={restoreHint}>恢复</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         {store.customClasses.length > 0 && (
           <>
             <SectionLabel>自定义类别</SectionLabel>
@@ -103,8 +125,32 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 6 }}>{children}</div>
 }
 
+function TagPill({ label, onDelete }: { label: string; onDelete: () => void }) {
+  return (
+    <span style={builtinTagStyle}>
+      {label}
+      <button onClick={onDelete} aria-label={`删除 ${label}`} style={tagDeleteBtn}>×</button>
+    </span>
+  )
+}
+
 const builtinTagStyle: React.CSSProperties = {
-  background: '#f0f0f0', borderRadius: 6, padding: '4px 10px', fontSize: 13, color: '#555',
+  display: 'inline-flex', alignItems: 'center', gap: 4,
+  background: '#f0f0f0', borderRadius: 6, padding: '4px 4px 4px 10px', fontSize: 13, color: '#555',
+}
+const tagDeleteBtn: React.CSSProperties = {
+  width: 18, height: 18, borderRadius: '50%', border: 'none',
+  background: 'transparent', color: '#999', cursor: 'pointer',
+  fontSize: 14, lineHeight: 1, padding: 0,
+}
+const hiddenTagStyle: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  background: 'transparent', border: '1px dashed #ccc', borderRadius: 6,
+  padding: '3px 10px', fontSize: 13, color: '#aaa', cursor: 'pointer',
+  textDecoration: 'line-through',
+}
+const restoreHint: React.CSSProperties = {
+  fontSize: 11, color: '#1e6845', fontWeight: 600, textDecoration: 'none',
 }
 const customRowStyle: React.CSSProperties = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center',

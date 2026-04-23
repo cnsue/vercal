@@ -5,6 +5,8 @@ const K = {
   annualTarget: 'asset-tracker:annualTarget',
   customPlatforms: 'asset-tracker:platforms',
   customClasses: 'asset-tracker:classes',
+  hiddenPlatforms: 'asset-tracker:hiddenPlatforms',
+  hiddenClasses: 'asset-tracker:hiddenClasses',
   exchangeRate: 'asset-tracker:exchangeRate',
   installBannerDismissed: 'asset-tracker:installBannerDismissed',
 } as const
@@ -38,6 +40,12 @@ export const StorageService = {
 
   getCustomClasses: (): string[] => get<string[]>(K.customClasses, []),
   saveCustomClasses: (v: string[]): void => set(K.customClasses, v),
+
+  getHiddenPlatforms: (): string[] => get<string[]>(K.hiddenPlatforms, []),
+  saveHiddenPlatforms: (v: string[]): void => set(K.hiddenPlatforms, v),
+
+  getHiddenClasses: (): string[] => get<string[]>(K.hiddenClasses, []),
+  saveHiddenClasses: (v: string[]): void => set(K.hiddenClasses, v),
 
   getExchangeRate: (): ExchangeRate | null => get<ExchangeRate | null>(K.exchangeRate, null),
   saveExchangeRate: (r: ExchangeRate): void => set(K.exchangeRate, r),

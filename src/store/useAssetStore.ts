@@ -10,6 +10,8 @@ interface AssetState {
   annualTarget: number
   customPlatforms: string[]
   customClasses: string[]
+  hiddenPlatforms: string[]
+  hiddenClasses: string[]
   exchangeRate: ExchangeRate | null
   isFetchingRate: boolean
   rateStatus: string
@@ -23,6 +25,10 @@ interface AssetState {
   removeCustomPlatform: (name: string) => void
   addCustomClass: (name: string) => void
   removeCustomClass: (name: string) => void
+  hideBuiltinPlatform: (key: string) => void
+  restoreBuiltinPlatform: (key: string) => void
+  hideBuiltinClass: (key: string) => void
+  restoreBuiltinClass: (key: string) => void
   refreshExchangeRate: (silent?: boolean) => Promise<void>
 
   // computed helpers (called inline, not reactive)
@@ -35,6 +41,8 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   annualTarget: 0,
   customPlatforms: [],
   customClasses: [],
+  hiddenPlatforms: [],
+  hiddenClasses: [],
   exchangeRate: null,
   isFetchingRate: false,
   rateStatus: '',
@@ -48,6 +56,8 @@ export const useAssetStore = create<AssetState>((set, get) => ({
       annualTarget: StorageService.getAnnualTarget(),
       customPlatforms: StorageService.getCustomPlatforms(),
       customClasses: StorageService.getCustomClasses(),
+      hiddenPlatforms: StorageService.getHiddenPlatforms(),
+      hiddenClasses: StorageService.getHiddenClasses(),
       exchangeRate: StorageService.getExchangeRate(),
     })
   },
@@ -102,6 +112,30 @@ export const useAssetStore = create<AssetState>((set, get) => ({
     const next = get().customClasses.filter(c => c !== name)
     StorageService.saveCustomClasses(next)
     set({ customClasses: next })
+  },
+
+  hideBuiltinPlatform(key) {
+    const next = [...new Set([...get().hiddenPlatforms, key])]
+    StorageService.saveHiddenPlatforms(next)
+    set({ hiddenPlatforms: next })
+  },
+
+  restoreBuiltinPlatform(key) {
+    const next = get().hiddenPlatforms.filter(k => k !== key)
+    StorageService.saveHiddenPlatforms(next)
+    set({ hiddenPlatforms: next })
+  },
+
+  hideBuiltinClass(key) {
+    const next = [...new Set([...get().hiddenClasses, key])]
+    StorageService.saveHiddenClasses(next)
+    set({ hiddenClasses: next })
+  },
+
+  restoreBuiltinClass(key) {
+    const next = get().hiddenClasses.filter(k => k !== key)
+    StorageService.saveHiddenClasses(next)
+    set({ hiddenClasses: next })
   },
 
   async refreshExchangeRate(silent = false) {
