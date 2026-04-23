@@ -168,7 +168,7 @@ export const useAssetStore = create<AssetState>((set, get) => ({
     if (existing) return structuredClone(existing)
     const latest = get().snapshots[0]
     const items: SnapshotItem[] = latest
-      ? latest.items.map(i => ({ ...i, id: uuidv4(), amount: 0, valueCNY: 0 }))
+      ? latest.items.map(i => ({ ...i, id: uuidv4() }))
       : []
     return {
       id: uuidv4(),
@@ -176,7 +176,7 @@ export const useAssetStore = create<AssetState>((set, get) => ({
       snapshotDate: new Date().toISOString(),
       items,
       note: '',
-      totalValueCNY: 0,
+      totalValueCNY: latest?.totalValueCNY ?? 0,
     }
   },
 }))
