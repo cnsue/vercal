@@ -1,5 +1,5 @@
 import type {
-  DividendHolding, PensionConfig, RetirementPlan, OtherIncome, Gender,
+  DividendHolding, PensionConfig, RetirementPlan, OtherIncome, Gender, DividendGrowthScenario,
 } from '../types/retirement'
 import { findDividendStock } from '../data/dividendStocks'
 import {
@@ -29,6 +29,20 @@ export function computeHoldingIncome(h: DividendHolding): HoldingIncome {
   return { holding: h, dividendPerShare: dps, grossAnnual, netAnnual, referenceMarketValue, yieldPct }
 }
 
+/** 按场景把该持仓的年股息前瞻推算到未来 N 年后（实际增长口径） */
+export function projectHoldingIncome(h: DividendHolding, scenario: DividendGrowthScenario, yearsForward: number): HoldingIncome {
+  const base = computeHoldingIncome(h)
+  const ref = findDividendStock(h.stockCode)
+  const growth = ref?.growth?.[scenario] ?? 0
+  const factor = Math.pow(1 + growth, Math.max(0, yearsForward))
+  return {
+    ...base,
+    dividendPerShare: base.dividendPerShare * factor,
+    grossAnnual: base.grossAnnual * factor,
+    netAnnual: base.netAnnual * factor,
+  }
+}
+
 export interface DividendSummary {
   grossAnnual: number
   netAnnual: number
@@ -39,6 +53,22 @@ export interface DividendSummary {
 
 export function computeDividendSummary(holdings: DividendHolding[]): DividendSummary {
   const perHolding = holdings.map(computeHoldingIncome)
+  const grossAnnual = perHolding.reduce((s, h) => s + h.grossAnnual, 0)
+  const netAnnual = perHolding.reduce((s, h) => s + h.netAnnual, 0)
+  const totalReferenceMarketValue = perHolding.reduce((s, h) => s + h.referenceMarketValue, 0)
+  return {
+    grossAnnual, netAnnual,
+    netMonthly: netAnnual / 12,
+    totalReferenceMarketValue,
+    perHolding,
+  }
+}
+
+/** 按场景 + 年限推算的股息汇总（所有持仓前瞻到 yearsForward 年后） */
+export function projectDividendSummary(
+  holdings: DividendHolding[], scenario: DividendGrowthScenario, yearsForward: number,
+): DividendSummary {
+  const perHolding = holdings.map(h => projectHoldingIncome(h, scenario, yearsForward))
   const grossAnnual = perHolding.reduce((s, h) => s + h.grossAnnual, 0)
   const netAnnual = perHolding.reduce((s, h) => s + h.netAnnual, 0)
   const totalReferenceMarketValue = perHolding.reduce((s, h) => s + h.referenceMarketValue, 0)
@@ -96,6 +126,7 @@ export interface PensionProjection {
   personalAccountPension: number      // 个人账户养老金（元/月）
   monthlyTotal: number                // 月养老金合计
   totalMonths: number                 // 总缴费月数
+  plannedFutureMonths: number         // 派生的计划继续缴费月数
   projectedPersonalBalance: number    // 退休时个人账户预计余额
   standardRetirement: StandardRetirementAge  // 标准退休年龄
   /** 实际退休年（标准 + 弹性） */
@@ -108,6 +139,14 @@ export interface PensionProjection {
   yearsToRetire: number
   /** 加权平均缴费指数 */
   weightedIndex: number
+}
+
+/** 从今起到指定 (year, month) 还剩多少月（向下取整，最少 0）。 */
+export function monthsUntil(year: number, month: number): number {
+  const now = new Date()
+  const nowIdx = now.getFullYear() * 12 + now.getMonth()
+  const targetIdx = year * 12 + (month - 1)
+  return Math.max(0, targetIdx - nowIdx)
 }
 
 export function computePensionProjection(cfg: PensionConfig): PensionProjection {
@@ -123,9 +162,15 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
   const now = new Date()
   const yearsToRetire = Math.max((retirementDateObj.getTime() - now.getTime()) / (365.25 * 24 * 3600 * 1000), 0)
 
-  const totalMonths = cfg.monthsContributed + cfg.plannedFutureMonths
+  // 计划停缴月数：以用户设定的 stopYear/Month 为准，且不能超过到退休为止
+  const plannedFutureMonths = Math.min(
+    monthsUntil(cfg.plannedStopYear, cfg.plannedStopMonth),
+    Math.max(0, Math.round(yearsToRetire * 12)),
+  )
+
+  const totalMonths = cfg.monthsContributed + plannedFutureMonths
   const weightedIndex = totalMonths > 0
-    ? (cfg.monthsContributed * cfg.historicalIndex + cfg.plannedFutureMonths * cfg.futureIndex) / totalMonths
+    ? (cfg.monthsContributed * cfg.historicalIndex + plannedFutureMonths * cfg.futureIndex) / totalMonths
     : cfg.historicalIndex
 
   if (!city || totalMonths <= 0) {
@@ -136,6 +181,7 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
       personalAccountPension: 0,
       monthlyTotal: 0,
       totalMonths,
+      plannedFutureMonths,
       projectedPersonalBalance: cfg.personalAccountBalance,
       standardRetirement: std,
       actualRetirementYears: actualYears,
@@ -157,7 +203,7 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
   const grownBalance = cfg.personalAccountBalance * Math.pow(1.03, yearsToRetire)
   const midWage = (city.averageWage + projectedSocialWage) / 2
   const futureMonthlyContribution = midWage * boundedIdx * 0.08
-  const projectedPersonalBalance = grownBalance + futureMonthlyContribution * cfg.plannedFutureMonths
+  const projectedPersonalBalance = grownBalance + futureMonthlyContribution * plannedFutureMonths
 
   // 个人账户计发月数按实际退休年龄（整岁）查表
   const payoutMonths = getPersonalAccountMonths(actualYears)
@@ -170,6 +216,7 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
     personalAccountPension,
     monthlyTotal: basicPension + personalAccountPension,
     totalMonths,
+    plannedFutureMonths,
     projectedPersonalBalance,
     standardRetirement: std,
     actualRetirementYears: actualYears,
@@ -199,10 +246,13 @@ export function computeCoverage(
   plan: RetirementPlan,
   dividend: DividendSummary,
   pension: PensionProjection,
+  projectedDividend?: DividendSummary,
 ): CoverageSummary {
   const otherMonthly = plan.otherIncomes.reduce((s, o) => s + o.monthlyAmount, 0)
-  const nowMonthly = dividend.netMonthly + otherMonthly
-  const retiredMonthly = nowMonthly + pension.monthlyTotal
+  const nowDividendMonthly = dividend.netMonthly
+  const retiredDividendMonthly = (projectedDividend ?? dividend).netMonthly
+  const nowMonthly = nowDividendMonthly + otherMonthly
+  const retiredMonthly = retiredDividendMonthly + pension.monthlyTotal + otherMonthly
   const decent = plan.decentStandard.monthlyAmount
   return {
     decentMonthly: decent,
@@ -211,7 +261,7 @@ export function computeCoverage(
     nowRatio: decent > 0 ? nowMonthly / decent : 0,
     retiredRatio: decent > 0 ? retiredMonthly / decent : 0,
     breakdown: {
-      dividend: dividend.netMonthly,
+      dividend: retiredDividendMonthly,
       pension: pension.monthlyTotal,
       other: otherMonthly,
     },

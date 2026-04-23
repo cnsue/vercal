@@ -3,7 +3,7 @@ import { useRetirementStore } from '../../store/useRetirementStore'
 import { PENSION_CITIES } from '../../data/pensionCities'
 import { computePensionProjection, getMinimumContributionMonths } from '../../utils/retirementCalc'
 import { formatCNY } from '../../utils/formatters'
-import type { Gender, PensionConfig } from '../../types/retirement'
+import type { Gender } from '../../types/retirement'
 import { GENDER_LABELS } from '../../types/retirement'
 
 interface Props {
@@ -20,27 +20,50 @@ export default function PensionSettingsPage({ onBack }: Props) {
 
   const projection = useMemo(() => computePensionProjection(pension), [pension])
 
-  // 年份选择范围：1940 - 当前年
   const thisYear = new Date().getFullYear()
-
-  const totalMonths = pension.monthsContributed + pension.plannedFutureMonths
+  const totalMonths = pension.monthsContributed + projection.plannedFutureMonths
   const retirementYear = parseInt(projection.retirementYearMonth.split('-')[0]) || thisYear
   const minMonths = getMinimumContributionMonths(retirementYear)
   const belowMinimum = totalMonths < minMonths
   const earlyRetire = pension.retirementOffsetMonths < 0
   const shortfallMonths = Math.max(minMonths - totalMonths, 0)
   const minYearsLabel = minMonths % 12 === 0 ? `${minMonths / 12}` : `${(minMonths / 12).toFixed(1)}`
+
   const birthYears = useMemo(() => {
     const arr: number[] = []
     for (let y = thisYear; y >= 1940; y--) arr.push(y)
     return arr
   }, [thisYear])
 
-  // 缴费月数转 年 + 月 选项
-  const yearsFromMonths = (m: number) => Math.floor(m / 12)
-  const monthsFromMonths = (m: number) => m % 12
-  const setMonths = (key: 'monthsContributed' | 'plannedFutureMonths', years: number, months: number) => {
-    setPension({ [key]: years * 12 + months } as Partial<PensionConfig>)
+  /* ---- 计划停缴 input[type=month] 的当前值与上下界 ---- */
+  const now = new Date()
+  const nowYmPaddedMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const stopValue = `${pension.plannedStopYear}-${String(pension.plannedStopMonth).padStart(2, '0')}`
+  // 计划停缴最迟不能晚于退休月
+  const stopMax = projection.retirementYearMonth
+  function onStopChange(val: string) {
+    const [y, m] = val.split('-').map(n => parseInt(n, 10))
+    if (y && m) setPension({ plannedStopYear: y, plannedStopMonth: m })
+  }
+
+  /* ---- 弹性退休 input[type=month] ---- */
+  const std = projection.standardRetirement
+  const stdIdx = pension.birthYear * 12 + (pension.birthMonth - 1) + std.totalMonths
+  const actualIdx = stdIdx + pension.retirementOffsetMonths
+  const actualY = Math.floor(actualIdx / 12)
+  const actualM = (actualIdx % 12) + 1
+  const actualValue = `${actualY}-${String(actualM).padStart(2, '0')}`
+  const minIdx = stdIdx - 36, maxIdx = stdIdx + 36
+  const minValue = `${Math.floor(minIdx / 12)}-${String((minIdx % 12) + 1).padStart(2, '0')}`
+  const maxValue = `${Math.floor(maxIdx / 12)}-${String((maxIdx % 12) + 1).padStart(2, '0')}`
+  const stdValue = `${Math.floor(stdIdx / 12)}-${String((stdIdx % 12) + 1).padStart(2, '0')}`
+  function onRetirementDateChange(val: string) {
+    const [y, m] = val.split('-').map(n => parseInt(n, 10))
+    if (!y || !m) return
+    const chosenIdx = y * 12 + (m - 1)
+    let offset = chosenIdx - stdIdx
+    offset = Math.max(-36, Math.min(36, offset))
+    setPension({ retirementOffsetMonths: offset })
   }
 
   return (
@@ -58,7 +81,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
         <Card>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>推算结果（实时）</div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <Stat label="标准退休" value={`${projection.standardRetirement.years} 岁 ${projection.standardRetirement.months} 月`} />
+            <Stat label="标准退休" value={`${std.years} 岁 ${std.months} 月`} />
             <Stat label="实际退休" value={`${projection.actualRetirementYears} 岁 ${projection.actualRetirementExtraMonths} 月`} />
           </div>
           <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
@@ -125,16 +148,18 @@ export default function PensionSettingsPage({ onBack }: Props) {
               </select>
             </Field>
           </Row>
-          <Field label="弹性退休偏移">
-            <select value={pension.retirementOffsetMonths}
-              onChange={e => setPension({ retirementOffsetMonths: parseInt(e.target.value) })}
-              style={selectStyle}>
-              {RETIREMENT_OFFSET_OPTIONS.map(m => (
-                <option key={m} value={m}>{formatOffset(m)}</option>
-              ))}
-            </select>
+          <Field label="实际退休年月（在合法范围内自选）">
+            <input type="month"
+              value={actualValue}
+              min={minValue}
+              max={maxValue}
+              onChange={e => onRetirementDateChange(e.target.value)}
+              style={inputStyle} />
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
-              2025 弹性退休政策允许在标准退休年龄 ±3 年内自选
+              标准 <strong>{stdValue}</strong> · 合法区间 {minValue} ~ {maxValue}（2025 弹性退休政策 ±3 年）
+              {pension.retirementOffsetMonths !== 0 && (
+                <> · {formatOffset(pension.retirementOffsetMonths)}</>
+              )}
             </div>
           </Field>
         </Card>
@@ -151,34 +176,34 @@ export default function PensionSettingsPage({ onBack }: Props) {
             </select>
           </Field>
 
-          <Field label={`已缴费时长：${yearsFromMonths(pension.monthsContributed)} 年 ${monthsFromMonths(pension.monthsContributed)} 月`}>
-            <Row>
-              <select value={yearsFromMonths(pension.monthsContributed)}
-                onChange={e => setMonths('monthsContributed', parseInt(e.target.value), monthsFromMonths(pension.monthsContributed))}
-                style={selectStyle}>
-                {Array.from({ length: 51 }, (_, i) => i).map(y => <option key={y} value={y}>{y} 年</option>)}
-              </select>
-              <select value={monthsFromMonths(pension.monthsContributed)}
-                onChange={e => setMonths('monthsContributed', yearsFromMonths(pension.monthsContributed), parseInt(e.target.value))}
-                style={selectStyle}>
-                {Array.from({ length: 12 }, (_, i) => i).map(m => <option key={m} value={m}>{m} 月</option>)}
-              </select>
-            </Row>
+          <Field label="已缴费月数">
+            <input type="number" inputMode="numeric"
+              min={0} max={600}
+              value={pension.monthsContributed || ''}
+              placeholder="输入月数，例如 180"
+              onChange={e => {
+                const n = parseInt(e.target.value, 10)
+                setPension({ monthsContributed: isNaN(n) ? 0 : Math.max(0, Math.min(n, 600)) })
+              }}
+              style={inputStyle} />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              即 <strong>{Math.floor(pension.monthsContributed / 12)}</strong> 年
+              <strong> {pension.monthsContributed % 12}</strong> 月
+            </div>
           </Field>
 
-          <Field label={`计划继续缴费：${yearsFromMonths(pension.plannedFutureMonths)} 年 ${monthsFromMonths(pension.plannedFutureMonths)} 月`}>
-            <Row>
-              <select value={yearsFromMonths(pension.plannedFutureMonths)}
-                onChange={e => setMonths('plannedFutureMonths', parseInt(e.target.value), monthsFromMonths(pension.plannedFutureMonths))}
-                style={selectStyle}>
-                {Array.from({ length: 51 }, (_, i) => i).map(y => <option key={y} value={y}>{y} 年</option>)}
-              </select>
-              <select value={monthsFromMonths(pension.plannedFutureMonths)}
-                onChange={e => setMonths('plannedFutureMonths', yearsFromMonths(pension.plannedFutureMonths), parseInt(e.target.value))}
-                style={selectStyle}>
-                {Array.from({ length: 12 }, (_, i) => i).map(m => <option key={m} value={m}>{m} 月</option>)}
-              </select>
-            </Row>
+          <Field label="计划停止缴费的年月">
+            <input type="month"
+              value={stopValue}
+              min={nowYmPaddedMonth}
+              max={stopMax}
+              onChange={e => onStopChange(e.target.value)}
+              style={inputStyle} />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              从今起还将缴费约 <strong>{projection.plannedFutureMonths}</strong> 月
+              （{Math.floor(projection.plannedFutureMonths / 12)} 年 {projection.plannedFutureMonths % 12} 月）
+              · 最迟不晚于退休月 {stopMax}
+            </div>
           </Field>
         </Card>
 
@@ -279,11 +304,6 @@ const inputStyle: React.CSSProperties = {
 const selectStyle: React.CSSProperties = {
   ...inputStyle, background: '#fff', flex: 1,
 }
-
-/** 弹性退休：每半年一档，上下限 ±3 年（2025 政策） */
-const RETIREMENT_OFFSET_OPTIONS: number[] = [
-  -36, -30, -24, -18, -12, -6, 0, 6, 12, 18, 24, 30, 36,
-]
 
 /** 缴费指数档位：常见档 60%/80%/100%/150%/200%/300% 再补中间几档 */
 const INDEX_OPTIONS: { value: number; label: string }[] = [

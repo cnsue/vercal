@@ -32,8 +32,10 @@ export interface PensionConfig {
   birthMonth: number
   /** 已缴费总月数 */
   monthsContributed: number
-  /** 计划继续缴费月数（今起到退休止） */
-  plannedFutureMonths: number
+  /** 计划停止缴费的年份（用户选定）；系统据此派生 plannedFutureMonths */
+  plannedStopYear: number
+  /** 计划停止缴费的月份 1-12 */
+  plannedStopMonth: number
   /** 已缴费期间的平均缴费指数 0.6 - 3.0 */
   historicalIndex: number
   /** 未来期望的平均缴费指数 0.6 - 3.0 */
@@ -42,6 +44,15 @@ export interface PensionConfig {
   retirementOffsetMonths: number
   /** 个人账户累计储存额（元） */
   personalAccountBalance: number
+}
+
+/** 股息增长预期场景 */
+export type DividendGrowthScenario = 'pessimistic' | 'neutral' | 'optimistic'
+
+export const DIVIDEND_SCENARIO_LABELS: Record<DividendGrowthScenario, string> = {
+  pessimistic: '悲观',
+  neutral: '中立',
+  optimistic: '乐观',
 }
 
 /** "体面标准" —— 月度目标开支；未来可扩展为"体面指数"拆衣食住行 */
@@ -71,6 +82,7 @@ export interface RetirementPlan {
   holdings: DividendHolding[]
   pension: PensionConfig
   otherIncomes: OtherIncome[]
+  dividendScenario: DividendGrowthScenario
 }
 
 export const DEFAULT_PENSION: PensionConfig = {
@@ -79,7 +91,8 @@ export const DEFAULT_PENSION: PensionConfig = {
   birthYear: 1990,
   birthMonth: 1,
   monthsContributed: 0,
-  plannedFutureMonths: 0,
+  plannedStopYear: new Date().getFullYear(),
+  plannedStopMonth: new Date().getMonth() + 1,
   historicalIndex: 1.0,
   futureIndex: 1.0,
   retirementOffsetMonths: 0,
@@ -91,4 +104,5 @@ export const DEFAULT_RETIREMENT_PLAN: RetirementPlan = {
   holdings: [],
   pension: DEFAULT_PENSION,
   otherIncomes: [],
+  dividendScenario: 'neutral',
 }

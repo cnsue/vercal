@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { StorageService } from './storage'
 import type {
   RetirementPlan, DividendHolding, PensionConfig,
-  DecentStandard, OtherIncome,
+  DecentStandard, OtherIncome, DividendGrowthScenario,
 } from '../types/retirement'
 import { DEFAULT_RETIREMENT_PLAN } from '../types/retirement'
 import { v4 as uuidv4 } from '../utils/uuid'
@@ -20,6 +20,7 @@ interface RetirementState {
   addOtherIncome: (o: Omit<OtherIncome, 'id'>) => void
   updateOtherIncome: (id: string, patch: Partial<OtherIncome>) => void
   removeOtherIncome: (id: string) => void
+  setDividendScenario: (s: DividendGrowthScenario) => void
 }
 
 function persist(plan: RetirementPlan): RetirementPlan {
@@ -84,5 +85,9 @@ export const useRetirementStore = create<RetirementState>((set, get) => ({
   removeOtherIncome(id) {
     const plan = get().plan
     set({ plan: persist({ ...plan, otherIncomes: plan.otherIncomes.filter(o => o.id !== id) }) })
+  },
+
+  setDividendScenario(s) {
+    set({ plan: persist({ ...get().plan, dividendScenario: s }) })
   },
 }))

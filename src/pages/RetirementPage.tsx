@@ -7,10 +7,13 @@ import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
 import { formatCNY } from '../utils/formatters'
 import {
-  computeDividendSummary, computePensionProjection, computeCoverage,
+  computeDividendSummary, projectDividendSummary,
+  computePensionProjection, computeCoverage,
   computeGap, safeWithdrawMonthly,
 } from '../utils/retirementCalc'
 import { findPensionCity } from '../data/pensionCities'
+import type { DividendGrowthScenario } from '../types/retirement'
+import { DIVIDEND_SCENARIO_LABELS } from '../types/retirement'
 
 export default function RetirementPage() {
   const plan = useRetirementStore(s => s.plan)
@@ -22,9 +25,20 @@ export default function RetirementPage() {
 
   const dividend = useMemo(() => computeDividendSummary(plan.holdings), [plan.holdings])
   const pension = useMemo(() => computePensionProjection(plan.pension), [plan.pension])
-  const coverage = useMemo(() => computeCoverage(plan, dividend, pension), [plan, dividend, pension])
+  const projectedDividend = useMemo(
+    () => projectDividendSummary(plan.holdings, plan.dividendScenario, pension.yearsToRetire),
+    [plan.holdings, plan.dividendScenario, pension.yearsToRetire],
+  )
+  const coverage = useMemo(
+    () => computeCoverage(plan, dividend, pension, projectedDividend),
+    [plan, dividend, pension, projectedDividend],
+  )
   const gap = useMemo(() => computeGap(coverage), [coverage])
   const safeMonthly = safeWithdrawMonthly(totalAssets)
+
+  const dividendMultiplier = dividend.netAnnual > 0
+    ? projectedDividend.netAnnual / dividend.netAnnual
+    : 1
 
   const incomeItems: BreakdownItem[] = useMemo(() => {
     const items = [
@@ -37,7 +51,7 @@ export default function RetirementPage() {
   }, [coverage])
 
   const city = findPensionCity(plan.pension.cityKey)
-  const pensionConfigured = plan.pension.monthsContributed + plan.pension.plannedFutureMonths > 0
+  const pensionConfigured = pension.totalMonths > 0
 
   return (
     <div style={{ padding: '0 0 80px' }}>
@@ -48,6 +62,12 @@ export default function RetirementPage() {
         nowMonthly={coverage.nowMonthly}
         retiredMonthly={coverage.retiredMonthly}
         onEdit={() => setShowDecentEditor(true)}
+      />
+
+      <ScenarioSelector
+        years={pension.yearsToRetire}
+        multiplier={dividendMultiplier}
+        hasHoldings={plan.holdings.length > 0}
       />
 
       {/* 收入构成 */}
@@ -148,6 +168,42 @@ export default function RetirementPage() {
 
       <DecentStandardEditor open={showDecentEditor} onClose={() => setShowDecentEditor(false)} />
       <OtherIncomeEditor open={showOtherEditor} onClose={() => setShowOtherEditor(false)} />
+    </div>
+  )
+}
+
+function ScenarioSelector({ years, multiplier, hasHoldings }: {
+  years: number; multiplier: number; hasHoldings: boolean
+}) {
+  const current = useRetirementStore(s => s.plan.dividendScenario)
+  const setScenario = useRetirementStore(s => s.setDividendScenario)
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 16, padding: 14, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>📈 股息增长预期</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)' }}>影响「退休后」口径</div>
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {(Object.keys(DIVIDEND_SCENARIO_LABELS) as DividendGrowthScenario[]).map(k => (
+          <button key={k} onClick={() => setScenario(k)}
+            style={{
+              flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+              fontWeight: 600, fontSize: 13,
+              background: current === k ? '#1a3a2a' : '#f0f0f0',
+              color: current === k ? '#fff' : '#555',
+            }}>
+            {DIVIDEND_SCENARIO_LABELS[k]}
+          </button>
+        ))}
+      </div>
+      {hasHoldings && years > 0.1 && (
+        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+          按此场景，持仓在 <strong>{years.toFixed(1)}</strong> 年后股息合计约增长至今之{' '}
+          <strong style={{ color: '#1a3a2a' }}>{multiplier.toFixed(2)}×</strong>
+          （不同股票按其历史 CAGR 加权）
+        </div>
+      )}
     </div>
   )
 }
