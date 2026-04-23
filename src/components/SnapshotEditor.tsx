@@ -97,7 +97,7 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
         <button onClick={onCancel} style={btnStyle('ghost')}>取消</button>
         <div style={{ fontSize: 15, fontWeight: 700 }}>资产录入</div>
         {onDelete ? (
-          <button onClick={onDelete} style={{ ...btnStyle('ghost'), color: '#c0392b' }}>删除</button>
+          <button onClick={onDelete} style={{ ...btnStyle('ghost'), color: 'var(--danger)' }}>删除</button>
         ) : <div style={{ width: 40 }} />}
       </div>
 
@@ -125,7 +125,7 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
           {snap.items.map(item => (
             <div key={item.id}>
               <button onClick={() => setActiveId(activeId === item.id ? null : item.id)}
-                style={{ width: '100%', textAlign: 'left', background: activeId === item.id ? '#e8f5ee' : '#f5f5f5', border: `1px solid ${activeId === item.id ? '#1e6845' : 'transparent'}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', marginBottom: 4 }}>
+                style={{ width: '100%', textAlign: 'left', background: activeId === item.id ? 'var(--surface-active)' : 'var(--surface-muted)', border: `1px solid ${activeId === item.id ? 'var(--primary-strong)' : 'transparent'}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', marginBottom: 4, color: 'var(--text)' }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{effectivePlatformLabel(item)}</div>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                   {effectiveClassLabel(item)} · {item.amount > 0 ? `${item.amount} ${item.currency}` : '待录入'}
@@ -154,7 +154,7 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
       </div>
 
       {/* Save bar */}
-      <div style={{ borderTop: '1px solid #eee', padding: 16, background: '#fff' }}>
+      <div style={{ borderTop: '1px solid var(--border)', padding: 16, background: 'var(--surface)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>当前合计</div>
@@ -208,10 +208,10 @@ function ItemEditor({ item, onChange, onRemove, valueCNY, customPlatforms, custo
   }
 
   return (
-    <div style={{ background: '#f9f9f9', borderRadius: 10, padding: 12, marginBottom: 8, border: '1px solid #e0e0e0' }}>
+    <div style={{ background: 'var(--surface-muted)', borderRadius: 10, padding: 12, marginBottom: 8, border: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
         <span style={{ fontWeight: 600, fontSize: 14 }}>{effectivePlatformLabel(item)}</span>
-        <button onClick={onRemove} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13 }}>删除</button>
+        <button onClick={onRemove} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }}>删除</button>
       </div>
 
       <div style={rowStyle}>
@@ -276,12 +276,12 @@ function ItemEditor({ item, onChange, onRemove, valueCNY, customPlatforms, custo
 const sectionStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8 }
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--muted)' }
 const rowStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }
-const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' }
-const selectStyle: React.CSSProperties = { padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, background: '#fff' }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, boxSizing: 'border-box' }
+const selectStyle: React.CSSProperties = { padding: '8px 10px', borderRadius: 8, border: '1px solid var(--input-border)', fontSize: 14, background: 'var(--input-bg)', color: 'var(--text)' }
 
 function btnStyle(variant: 'primary' | 'secondary' | 'ghost'): React.CSSProperties {
   const base: React.CSSProperties = { border: 'none', borderRadius: 20, padding: '10px 18px', cursor: 'pointer', fontWeight: 600, fontSize: 14 }
-  if (variant === 'primary') return { ...base, background: '#1a3a2a', color: '#fff' }
-  if (variant === 'secondary') return { ...base, background: '#f0f0f0', color: '#333' }
-  return { ...base, background: 'none', color: '#555' }
+  if (variant === 'primary') return { ...base, background: 'var(--primary)', color: '#fff' }
+  if (variant === 'secondary') return { ...base, background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)' }
+  return { ...base, background: 'none', color: 'var(--text-soft)' }
 }

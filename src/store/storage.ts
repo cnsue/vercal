@@ -1,6 +1,7 @@
 import type { Snapshot, ExchangeRate } from '../types/models'
 import type { RetirementPlan, PensionConfig } from '../types/retirement'
 import { DEFAULT_RETIREMENT_PLAN, DEFAULT_PENSION } from '../types/retirement'
+import type { ThemePreference } from '../types/theme'
 
 const K = {
   snapshots: 'asset-tracker:snapshots',
@@ -12,6 +13,7 @@ const K = {
   exchangeRate: 'asset-tracker:exchangeRate',
   installBannerDismissed: 'asset-tracker:installBannerDismissed',
   retirementPlan: 'asset-tracker:retirementPlan',
+  themePreference: 'asset-tracker:themePreference',
 } as const
 
 function get<T>(key: string, fallback: T): T {
@@ -142,6 +144,12 @@ export const StorageService = {
     }
   },
   saveRetirementPlan: (p: RetirementPlan): void => set(K.retirementPlan, p),
+
+  getThemePreference: (): ThemePreference => {
+    const value = get<ThemePreference>(K.themePreference, 'system')
+    return value === 'light' || value === 'dark' || value === 'system' ? value : 'system'
+  },
+  saveThemePreference: (v: ThemePreference): void => set(K.themePreference, v),
 
   estimateSizeKB: (): number => {
     let total = 0

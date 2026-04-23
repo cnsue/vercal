@@ -28,7 +28,7 @@ export default function AssetClassSettingsPage({ onBack }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px 14px' }}>
         <button onClick={onBack} aria-label="返回"
-          style={{ background: 'none', border: 'none', color: '#1a3a2a', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '4px 8px' }}>
+          style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '4px 8px' }}>
           ‹
         </button>
         <div style={{ fontSize: 16, fontWeight: 800 }}>资产类别管理</div>
@@ -131,7 +131,7 @@ export default function AssetClassSettingsPage({ onBack }: Props) {
 
 function Card({ title, children, style }: { title: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: 16, border: '1px solid #eee', ...style }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, border: '1px solid var(--border)', ...style }}>
       <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{title}</div>
       {children}
     </div>
@@ -153,33 +153,33 @@ function TagPill({ label, onDelete }: { label: string; onDelete: () => void }) {
 
 const builtinTagStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4,
-  background: '#f0f0f0', borderRadius: 6, padding: '4px 4px 4px 10px', fontSize: 13, color: '#555',
+  background: 'var(--button-secondary-bg)', borderRadius: 6, padding: '4px 4px 4px 10px', fontSize: 13, color: 'var(--button-secondary-text)',
 }
 const tagDeleteBtn: React.CSSProperties = {
   width: 18, height: 18, borderRadius: '50%', border: 'none',
-  background: 'transparent', color: '#999', cursor: 'pointer',
+  background: 'transparent', color: 'var(--muted)', cursor: 'pointer',
   fontSize: 14, lineHeight: 1, padding: 0,
 }
 const hiddenTagStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
-  background: 'transparent', border: '1px dashed #ccc', borderRadius: 6,
-  padding: '3px 10px', fontSize: 13, color: '#aaa', cursor: 'pointer',
+  background: 'transparent', border: '1px dashed var(--border-dashed)', borderRadius: 6,
+  padding: '3px 10px', fontSize: 13, color: 'var(--chevron)', cursor: 'pointer',
   textDecoration: 'line-through',
 }
 const restoreHint: React.CSSProperties = {
-  fontSize: 11, color: '#1e6845', fontWeight: 600, textDecoration: 'none',
+  fontSize: 11, color: 'var(--primary-strong)', fontWeight: 600, textDecoration: 'none',
 }
 const customRowStyle: React.CSSProperties = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  background: '#f5f5f5', borderRadius: 8, padding: '8px 12px', marginBottom: 6,
+  background: 'var(--surface-muted)', borderRadius: 8, padding: '8px 12px', marginBottom: 6,
 }
 const deleteBtn: React.CSSProperties = {
-  background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13, padding: '0 4px',
+  background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, padding: '0 4px',
 }
 const inputStyle: React.CSSProperties = {
-  flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14,
+  flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14,
 }
 const addBtnStyle: React.CSSProperties = {
-  padding: '10px 16px', borderRadius: 8, border: 'none', background: '#1a3a2a', color: '#fff',
+  padding: '10px 16px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff',
   cursor: 'pointer', fontWeight: 600, fontSize: 14,
 }

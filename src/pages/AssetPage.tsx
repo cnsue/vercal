@@ -100,8 +100,8 @@ export default function AssetPage({ onOpenEditor }: Props) {
       {sorted.length > 0 && (
         <div onClick={() => onOpenEditor(store.draftSnapshot(todayKey))}
           style={{
-            background: recordedToday ? '#f0f9f5' : '#fff7ed',
-            border: `1px solid ${recordedToday ? '#6ee7b7' : '#fed7aa'}`,
+            background: recordedToday ? 'var(--success-bg)' : 'var(--warning-bg)',
+            border: `1px solid ${recordedToday ? 'var(--success-border)' : 'var(--warning-border)'}`,
             borderRadius: 14, padding: '12px 16px', marginBottom: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
           }}>
           <span style={{ fontSize: 20 }}>{recordedToday ? '✏️' : '🔔'}</span>
@@ -111,7 +111,7 @@ export default function AssetPage({ onOpenEditor }: Props) {
               {recordedToday ? '点这里修改今日的资产快照' : '点这里复制最近快照，改几个数字就能保存'}
             </div>
           </div>
-          <span style={{ marginLeft: 'auto', color: '#aaa' }}>›</span>
+          <span style={{ marginLeft: 'auto', color: 'var(--chevron)' }}>›</span>
         </div>
       )}
 
@@ -121,7 +121,7 @@ export default function AssetPage({ onOpenEditor }: Props) {
         <span style={{ fontWeight: 700 }}>{store.exchangeRate ? store.exchangeRate.rate.toFixed(4) : '未获取'}</span>
         <span style={{ color: 'var(--muted)', fontSize: 11, flex: 1 }}>{store.rateStatus}</span>
         <button onClick={() => store.refreshExchangeRate()} disabled={store.isFetchingRate}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e6845', fontSize: 16, lineHeight: 1 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-strong)', fontSize: 16, lineHeight: 1 }}>
           <span className={store.isFetchingRate ? 'spin' : ''}>↻</span>
         </button>
       </div>
@@ -132,8 +132,8 @@ export default function AssetPage({ onOpenEditor }: Props) {
           {PERIODS.map(p => (
             <button key={p.key} onClick={() => setPeriod(p.key)}
               style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
-                background: period === p.key ? '#1a3a2a' : '#f0f0f0',
-                color: period === p.key ? '#fff' : '#555' }}>
+                background: period === p.key ? 'var(--primary)' : 'var(--button-secondary-bg)',
+                color: period === p.key ? '#fff' : 'var(--button-secondary-text)' }}>
               {p.label}
             </button>
           ))}
@@ -148,8 +148,8 @@ export default function AssetPage({ onOpenEditor }: Props) {
             {(['platform', 'class'] as DistMode[]).map(m => (
               <button key={m} onClick={() => setDistMode(m)}
                 style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
-                  background: distMode === m ? '#1a3a2a' : '#f0f0f0',
-                  color: distMode === m ? '#fff' : '#555' }}>
+                  background: distMode === m ? 'var(--primary)' : 'var(--button-secondary-bg)',
+                  color: distMode === m ? '#fff' : 'var(--button-secondary-text)' }}>
                 {m === 'platform' ? '按平台' : '按类别'}
               </button>
             ))}
@@ -170,14 +170,14 @@ export default function AssetPage({ onOpenEditor }: Props) {
             const change = prev ? snap.totalValueCNY - prev.totalValueCNY : 0
             return (
               <button key={snap.id} onClick={() => onOpenEditor(snap)}
-                style={{ width: '100%', textAlign: 'left', background: '#fff', border: '1px solid #eee', borderRadius: 14, padding: '14px 16px', marginBottom: 8, cursor: 'pointer' }}>
+                style={{ width: '100%', textAlign: 'left', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px', marginBottom: 8, cursor: 'pointer', color: 'var(--text)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ fontWeight: 600, fontSize: 14 }}>{displayDate(snap.dateKey)}</span>
                   <span style={{ fontSize: 12, color: 'var(--muted)' }}>{snap.items.length} 条记录</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 15, fontWeight: 700 }}>{formatCNY(snap.totalValueCNY)}</span>
-                  {prev && <span style={{ fontSize: 13, color: change >= 0 ? '#1e6845' : '#c0392b' }}>
+                  {prev && <span style={{ fontSize: 13, color: change >= 0 ? 'var(--primary-strong)' : 'var(--danger)' }}>
                     {change >= 0 ? '+' : ''}{formatCNY(change)}
                   </span>}
                 </div>
@@ -191,19 +191,19 @@ export default function AssetPage({ onOpenEditor }: Props) {
 
       {/* Annual target modal */}
       {showTargetEditor && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: 24, width: '100%' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 24, width: '100%' }}>
             <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>设置年度目标</div>
             <input type="number" placeholder="目标金额（元），例如 1000000"
               value={targetInput} onChange={e => setTargetInput(e.target.value)}
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #ddd', fontSize: 16, boxSizing: 'border-box', marginBottom: 12 }} />
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 16, boxSizing: 'border-box', marginBottom: 12 }} />
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setShowTargetEditor(false)}
-                style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: '#f0f0f0', cursor: 'pointer', fontWeight: 600 }}>取消</button>
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)', cursor: 'pointer', fontWeight: 600 }}>取消</button>
               <button onClick={() => { store.setAnnualTarget(0); setShowTargetEditor(false) }}
-                style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: '#fee', color: '#c0392b', cursor: 'pointer', fontWeight: 600 }}>清除</button>
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: 'var(--danger-bg)', color: 'var(--danger)', cursor: 'pointer', fontWeight: 600 }}>清除</button>
               <button onClick={() => { store.setAnnualTarget(parseFloat(targetInput) || 0); setShowTargetEditor(false) }}
-                style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: '#1a3a2a', color: '#fff', cursor: 'pointer', fontWeight: 700 }}>保存</button>
+                style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontWeight: 700 }}>保存</button>
             </div>
           </div>
         </div>
@@ -214,7 +214,7 @@ export default function AssetPage({ onOpenEditor }: Props) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 14 }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 14 }}>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>{title}</div>
       {children}
     </div>

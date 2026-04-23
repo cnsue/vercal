@@ -108,7 +108,7 @@ export default function RetirementPage() {
             <StatRow label="退休时社平工资" value={`${formatCNY(pension.projectedSocialWage)}/月`} />
             <StatRow label="预计退休时个人账户" value={formatCNY(pension.projectedPersonalBalance)} />
             <StatRow label="个人账户计发月数" value={pension.personalAccountPayoutMonths.toFixed(1)} />
-            <div style={{ marginTop: 10, padding: 10, background: '#fff7ed', borderRadius: 8, fontSize: 11, color: '#8a4b1a' }}>
+            <div style={{ marginTop: 10, padding: 10, background: 'var(--warning-bg)', borderRadius: 8, fontSize: 11, color: 'var(--warning-text)' }}>
               MVP 简化公式：未考虑过渡性养老金、地方性补贴、缴费基数上下限等。精确数额以各地人社局测算为准。
             </div>
           </div>
@@ -119,16 +119,16 @@ export default function RetirementPage() {
       {coverage.decentMonthly > 0 && (
         <Section title="缺口分析与建议">
           {gap.gapMonthly <= 0 ? (
-            <div style={{ padding: 12, background: '#f0f9f5', border: '1px solid #c8e8d7', borderRadius: 10, fontSize: 13, color: '#166c3b', fontWeight: 600 }}>
+            <div style={{ padding: 12, background: 'var(--success-bg)', border: '1px solid var(--success-border)', borderRadius: 10, fontSize: 13, color: 'var(--success-text)', fontWeight: 600 }}>
               当前预估被动收入已覆盖体面标准。可以考虑把多出的现金流用于再投入或调高体面标准。
             </div>
           ) : (
             <div>
               <StatRow label="月缺口" value={formatCNY(gap.gapMonthly)} accent />
               <StatRow label="年缺口" value={formatCNY(gap.gapAnnual)} />
-              <div style={{ marginTop: 10, padding: 12, background: '#fff7ed', borderRadius: 10, fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ marginTop: 10, padding: 12, background: 'var(--warning-bg)', borderRadius: 10, fontSize: 13, lineHeight: 1.6 }}>
                 若按 <strong>{(gap.referenceYield * 100).toFixed(0)}%</strong> 参考股息率估算，还需增加约
-                <strong style={{ color: '#c0392b' }}> {formatCNY(gap.extraPrincipalAtReferenceYield)} </strong>
+                <strong style={{ color: 'var(--danger)' }}> {formatCNY(gap.extraPrincipalAtReferenceYield)} </strong>
                 高股息本金，才能把月现金流拉平到体面标准。
               </div>
               <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
@@ -162,8 +162,8 @@ export default function RetirementPage() {
           ))
         )}
         <button onClick={() => setShowOtherEditor(true)} style={{
-          width: '100%', marginTop: 8, padding: 10, borderRadius: 10, border: '1px dashed #ccc',
-          background: '#fafafa', color: '#555', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          width: '100%', marginTop: 8, padding: 10, borderRadius: 10, border: '1px dashed var(--border-dashed)',
+          background: 'var(--surface-subtle)', color: 'var(--text-soft)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
         }}>
           ＋ 添加一条被动收入
         </button>
@@ -198,7 +198,7 @@ function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
   const totalNetAnnual = sourceRows.reduce((sum, row) => sum + row.netAnnual, 0)
 
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: 14, marginBottom: 14 }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 14, marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 700 }}>📈 股息增长预期</div>
         <div style={{ fontSize: 11, color: 'var(--muted)' }}>影响「退休后」口径</div>
@@ -209,8 +209,8 @@ function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
             style={{
               flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
               fontWeight: 600, fontSize: 13,
-              background: current === k ? '#1a3a2a' : '#f0f0f0',
-              color: current === k ? '#fff' : '#555',
+              background: current === k ? 'var(--primary)' : 'var(--button-secondary-bg)',
+              color: current === k ? '#fff' : 'var(--button-secondary-text)',
             }}>
             {DIVIDEND_SCENARIO_LABELS[k]}
           </button>
@@ -219,16 +219,16 @@ function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
       {hasHoldings && years > 0.1 && (
         <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
           按此场景，持仓在 <strong>{years.toFixed(1)}</strong> 年后股息合计约增长至今之{' '}
-          <strong style={{ color: '#1a3a2a' }}>{multiplier.toFixed(2)}×</strong>
+          <strong style={{ color: 'var(--primary)' }}>{multiplier.toFixed(2)}×</strong>
           （不同股票按其历史 CAGR 加权）
         </div>
       )}
       {hasHoldings && (
         <details style={{
-          marginTop: 10, padding: 10, background: '#f7f7f7', borderRadius: 10,
+          marginTop: 10, padding: 10, background: 'var(--surface-muted)', borderRadius: 10,
           fontSize: 11, color: 'var(--muted)', lineHeight: 1.6,
         }}>
-          <summary style={{ cursor: 'pointer', color: '#1a3a2a', fontWeight: 700 }}>
+          <summary style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: 700 }}>
             加权数据来源与计算规则
           </summary>
           <div style={{ marginTop: 8 }}>
@@ -236,18 +236,18 @@ function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
               const weight = totalNetAnnual > 0 ? row.netAnnual / totalNetAnnual : 0
               return (
                 <div key={row.id} style={{
-                  padding: '7px 0', borderTop: '1px solid #e8e8e8',
+                  padding: '7px 0', borderTop: '1px solid var(--border)',
                   display: 'flex', justifyContent: 'space-between', gap: 10,
                 }}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ color: '#333', fontWeight: 700 }}>
+                    <div style={{ color: 'var(--button-secondary-text)', fontWeight: 700 }}>
                       {row.name} <span style={{ color: 'var(--muted)', fontWeight: 500 }}>{row.code}</span>
                     </div>
                     <div>
                       {row.source} · 每股 ¥{row.dividendPerShare.toFixed(3)} · 权重 {(weight * 100).toFixed(1)}%
                     </div>
                   </div>
-                  <div style={{ color: '#1a3a2a', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  <div style={{ color: 'var(--primary)', fontWeight: 700, whiteSpace: 'nowrap' }}>
                     {(row.growth * 100).toFixed(2)}%/年
                   </div>
                 </div>
@@ -268,7 +268,7 @@ function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 14 }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 14 }}>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>{title}</div>
       {children}
     </div>
@@ -279,7 +279,7 @@ function StatRow({ label, value, accent }: { label: string; value: string; accen
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13 }}>
       <span style={{ color: 'var(--muted)' }}>{label}</span>
-      <span style={{ fontWeight: accent ? 800 : 600, color: accent ? '#1a3a2a' : '#222', fontSize: accent ? 15 : 13 }}>{value}</span>
+      <span style={{ fontWeight: accent ? 800 : 600, color: accent ? 'var(--primary)' : 'var(--text-strong)', fontSize: accent ? 15 : 13 }}>{value}</span>
     </div>
   )
 }
@@ -287,13 +287,13 @@ function StatRow({ label, value, accent }: { label: string; value: string; accen
 function OtherIncomeRow({ id, name, monthly }: { id: string; name: string; monthly: number }) {
   const removeOtherIncome = useRetirementStore(s => s.removeOtherIncome)
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 10, background: '#f7f7f7', borderRadius: 8, marginBottom: 6 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 10, background: 'var(--surface-muted)', borderRadius: 8, marginBottom: 6 }}>
       <div>
         <div style={{ fontSize: 14, fontWeight: 600 }}>{name}</div>
         <div style={{ fontSize: 12, color: 'var(--muted)' }}>{formatCNY(monthly)}/月</div>
       </div>
       <button onClick={() => removeOtherIncome(id)}
-        style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 13 }}>
+        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13 }}>
         删除
       </button>
     </div>
@@ -316,8 +316,8 @@ function OtherIncomeEditor({ open, onClose }: { open: boolean; onClose: () => vo
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-      <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: 24, width: '100%', maxWidth: 480, margin: '0 auto' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: '20px 20px 0 0', padding: 24, width: '100%', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16 }}>添加被动收入</div>
         <input placeholder="名称，例如：房租 / 年金" value={name} onChange={e => setName(e.target.value)}
           style={inputStyle} />
@@ -325,8 +325,8 @@ function OtherIncomeEditor({ open, onClose }: { open: boolean; onClose: () => vo
         <input type="number" placeholder="月金额（元）" value={amount} onChange={e => setAmount(e.target.value)}
           style={inputStyle} />
         <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: '#f0f0f0', cursor: 'pointer', fontWeight: 600 }}>取消</button>
-          <button onClick={save} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: '#1a3a2a', color: '#fff', cursor: 'pointer', fontWeight: 700 }}>保存</button>
+          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)', cursor: 'pointer', fontWeight: 600 }}>取消</button>
+          <button onClick={save} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: 'var(--primary)', color: '#fff', cursor: 'pointer', fontWeight: 700 }}>保存</button>
         </div>
       </div>
     </div>
@@ -335,5 +335,5 @@ function OtherIncomeEditor({ open, onClose }: { open: boolean; onClose: () => vo
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '12px 14px', borderRadius: 10,
-  border: '1px solid #ddd', fontSize: 16, boxSizing: 'border-box', fontFamily: 'inherit',
+  border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 16, boxSizing: 'border-box', fontFamily: 'inherit',
 }

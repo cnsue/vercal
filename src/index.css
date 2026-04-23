@@ -3,11 +3,95 @@
 }
 
 :root {
+  color-scheme: light;
   --muted: #888;
   --bg: #f5f5f5;
   --tab-bg: rgba(255,255,255,0.95);
+  --surface: #fff;
+  --surface-muted: #f7f7f7;
+  --surface-subtle: #fafafa;
+  --surface-active: #e8f5ee;
+  --text: #1a1a1a;
+  --text-strong: #222;
+  --text-soft: #555;
+  --border: #eee;
+  --border-strong: #ddd;
+  --border-dashed: #ccc;
+  --primary: #1a3a2a;
+  --primary-strong: #1e6845;
+  --primary-soft: #f0f9f5;
+  --primary-border: #c8e8d7;
+  --primary-text: #166c3b;
+  --danger: #c0392b;
+  --danger-bg: #fee;
+  --warning-bg: #fff7ed;
+  --warning-text: #8a4b1a;
+  --warning-text-strong: #a86a2d;
+  --warning-border: #fed7aa;
+  --warning-border-strong: #f3c78a;
+  --success-bg: #f0f9f5;
+  --success-text: #166c3b;
+  --success-border: #6ee7b7;
+  --input-bg: #fff;
+  --input-border: #ddd;
+  --button-secondary-bg: #f0f0f0;
+  --button-secondary-text: #333;
+  --chevron: #aaa;
+  --overlay: rgba(0,0,0,0.5);
+  --chart-empty: rgba(0,0,0,0.08);
+  --chart-line: rgba(255,255,255,0.85);
+  --chart-dot: #fff;
+  --chart-label: rgba(0,0,0,0.45);
+  --progress-bg: #eee;
+  --badge-warning: #e67e22;
+  --accent: #d28c3b;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --muted: #9ca3af;
+  --bg: #0f1411;
+  --tab-bg: rgba(17, 24, 20, 0.96);
+  --surface: #171d19;
+  --surface-muted: #202721;
+  --surface-subtle: #151b17;
+  --surface-active: #193226;
+  --text: #e7ece8;
+  --text-strong: #f4f7f5;
+  --text-soft: #c5ccc7;
+  --border: #283129;
+  --border-strong: #3a443d;
+  --border-dashed: #4b554d;
+  --primary: #2f7d57;
+  --primary-strong: #6bd59a;
+  --primary-soft: #13261b;
+  --primary-border: #28593d;
+  --primary-text: #8ee2ae;
+  --danger: #ff8a7d;
+  --danger-bg: #351818;
+  --warning-bg: #2a2114;
+  --warning-text: #f0b66f;
+  --warning-text-strong: #f3c78a;
+  --warning-border: #5b3b1d;
+  --warning-border-strong: #70491f;
+  --success-bg: #13261b;
+  --success-text: #8ee2ae;
+  --success-border: #28593d;
+  --input-bg: #111713;
+  --input-border: #3a443d;
+  --button-secondary-bg: #252c27;
+  --button-secondary-text: #d7ddd9;
+  --chevron: #7f8a83;
+  --overlay: rgba(0,0,0,0.62);
+  --chart-empty: rgba(255,255,255,0.1);
+  --chart-line: rgba(220,255,235,0.8);
+  --chart-dot: #f4f7f5;
+  --chart-label: rgba(231,236,232,0.62);
+  --progress-bg: #2a322c;
+  --badge-warning: #f0a64a;
+  --accent: #b97630;
 }
 
 /* 用 html/body/#root 链式 100% 铺满视口，规避 iOS 的 dvh/svh 首帧测量 bug */
@@ -19,13 +103,23 @@ html, body, #root {
 
 body {
   background: var(--tab-bg);
-  color: #1a1a1a;
+  color: var(--text);
   /* 禁用双击缩放等原生手势 */
   touch-action: manipulation;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+input, select, textarea {
+  background: var(--input-bg);
+  color: var(--text);
+  border-color: var(--input-border);
 }
 
 /* iOS 聚焦字号 < 16px 的 input 会强制页面放大，用 !important 覆盖组件内联 fontSize: 14 */

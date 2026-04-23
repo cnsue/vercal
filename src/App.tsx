@@ -10,6 +10,7 @@ import { StorageService } from './store/storage'
 import { formatDateKey, displayDate } from './utils/formatters'
 import { usePwaUpdate } from './utils/pwaUpdate'
 import type { Snapshot } from './types/models'
+import type { ThemePreference } from './types/theme'
 
 type Tab = 'asset' | 'retirement' | 'tools' | 'settings'
 
@@ -24,6 +25,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('asset')
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const [editingSnap, setEditingSnap] = useState<Snapshot | null>(null)
+  const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => StorageService.getThemePreference())
   const store = useAssetStore()
   const { needRefresh, apply } = usePwaUpdate()
 
@@ -35,6 +37,26 @@ export default function App() {
       setShowInstallBanner(true)
     }
   }, [])
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const applyTheme = () => {
+      const resolved = themePreference === 'system'
+        ? (media.matches ? 'dark' : 'light')
+        : themePreference
+      document.documentElement.dataset.theme = resolved
+      window.dispatchEvent(new Event('coinsight-theme-change'))
+    }
+    applyTheme()
+    if (themePreference !== 'system') return
+    media.addEventListener('change', applyTheme)
+    return () => media.removeEventListener('change', applyTheme)
+  }, [themePreference])
+
+  function setThemePreference(next: ThemePreference) {
+    StorageService.saveThemePreference(next)
+    setThemePreferenceState(next)
+  }
 
   const sorted = store.snapshots
   const todayKey = formatDateKey(new Date())
@@ -60,12 +82,12 @@ export default function App() {
       {/* Top nav bar — provides safe-area-inset-top buffer + title */}
       <div style={{
         paddingTop: 'env(safe-area-inset-top)',
-        background: '#fff',
-        borderBottom: '1px solid #eee',
+        background: 'var(--surface)',
+        borderBottom: '1px solid var(--border)',
         flexShrink: 0,
       }}>
         {showInstallBanner && (
-          <div style={{ background: '#1a3a2a', color: '#fff', padding: '10px 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ background: 'var(--primary)', color: '#fff', padding: '10px 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ flex: 1 }}>在 Safari 中点击「分享」→「添加到主屏幕」，以 App 方式使用</span>
             <button onClick={() => { StorageService.dismissInstallBanner(); setShowInstallBanner(false) }}
               style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
@@ -74,7 +96,7 @@ export default function App() {
         {needRefresh && (
           <button onClick={apply}
             style={{
-              width: '100%', background: '#d28c3b', color: '#fff',
+              width: '100%', background: 'var(--accent)', color: '#fff',
               padding: '10px 16px', fontSize: 13, border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
             }}>
@@ -91,7 +113,7 @@ export default function App() {
               aria-label="新增资产快照"
               style={{
                 width: 32, height: 32, borderRadius: '50%', border: 'none',
-                background: '#1a3a2a', color: '#fff', fontSize: 22, lineHeight: '28px',
+                background: 'var(--primary)', color: '#fff', fontSize: 22, lineHeight: '28px',
                 cursor: 'pointer', padding: 0, fontWeight: 400,
               }}
             >+</button>
@@ -115,7 +137,7 @@ export default function App() {
             {tab === 'asset' && <AssetPage onOpenEditor={setEditingSnap} />}
             {tab === 'retirement' && <RetirementPage />}
             {tab === 'tools' && <ToolsPage />}
-            {tab === 'settings' && <SettingsPage />}
+            {tab === 'settings' && <SettingsPage themePreference={themePreference} onThemePreferenceChange={setThemePreference} />}
           </>
         )}
       </div>
@@ -123,7 +145,7 @@ export default function App() {
       {/* Bottom tab bar (flex column 末位自然吸底，不需要 sticky) */}
       <div style={{
         background: 'var(--tab-bg)',
-        backdropFilter: 'blur(12px)', borderTop: '1px solid #eee',
+        backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)',
         display: 'flex', paddingBottom: 0,
         flexShrink: 0,
       }}>
@@ -143,11 +165,11 @@ function TabButton({ label, icon, active, badge, onClick }: {
     <button onClick={onClick} style={{
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
       gap: 2, padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer',
-      color: active ? '#1a3a2a' : '#aaa', position: 'relative',
+      color: active ? 'var(--primary)' : 'var(--chevron)', position: 'relative',
     }}>
       <span style={{ fontSize: 22, position: 'relative' }}>
         {icon}
-        {badge && <span style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, background: '#e67e22', borderRadius: '50%' }} />}
+        {badge && <span style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, background: 'var(--badge-warning)', borderRadius: '50%' }} />}
       </span>
       <span style={{ fontSize: 10, fontWeight: active ? 700 : 400 }}>{label}</span>
     </button>

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChartSlot } from '../../types/models'
 
 interface Props {
@@ -11,7 +11,11 @@ const BAR_GAP = 4
 const CHART_H = 140
 const LABEL_H = 34
 const DOT_R = 3
-const GREEN = '#1e6845'
+
+function cssVar(name: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return value || fallback
+}
 
 function showLabel(i: number, total: number, period: string): boolean {
   if (period === 'day') return i % 5 === 0 || i === total - 1
@@ -21,8 +25,15 @@ function showLabel(i: number, total: number, period: string): boolean {
 export default function TrendChart({ slots, period }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [themeTick, setThemeTick] = useState(0)
 
   const totalW = slots.length * (BAR_W + BAR_GAP) - BAR_GAP
+
+  useEffect(() => {
+    const onThemeChange = () => setThemeTick(v => v + 1)
+    window.addEventListener('coinsight-theme-change', onThemeChange)
+    return () => window.removeEventListener('coinsight-theme-change', onThemeChange)
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -39,18 +50,23 @@ export default function TrendChart({ slots, period }: Props) {
     ctx.clearRect(0, 0, totalW, CHART_H + LABEL_H)
 
     const maxVal = Math.max(...slots.map(s => s.totalValueCNY), 1)
+    const green = cssVar('--primary-strong', '#1e6845')
+    const empty = cssVar('--chart-empty', 'rgba(0,0,0,0.08)')
+    const line = cssVar('--chart-line', 'rgba(255,255,255,0.85)')
+    const dot = cssVar('--chart-dot', '#fff')
+    const label = cssVar('--chart-label', 'rgba(0,0,0,0.45)')
 
     // Bars
     slots.forEach((slot, i) => {
       const x = i * (BAR_W + BAR_GAP)
       if (slot.snapshot && slot.totalValueCNY > 0) {
         const h = Math.max(8, CHART_H * (slot.totalValueCNY / maxVal))
-        ctx.fillStyle = GREEN
+        ctx.fillStyle = green
         ctx.beginPath()
         ctx.roundRect(x, CHART_H - h, BAR_W, h, 4)
         ctx.fill()
       } else {
-        ctx.fillStyle = 'rgba(0,0,0,0.08)'
+        ctx.fillStyle = empty
         ctx.beginPath()
         ctx.roundRect(x, CHART_H - 4, BAR_W, 4, 2)
         ctx.fill()
@@ -71,7 +87,7 @@ export default function TrendChart({ slots, period }: Props) {
       ctx.beginPath()
       ctx.moveTo(points[0].x, points[0].y)
       points.slice(1).forEach(p => ctx.lineTo(p.x, p.y))
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)'
+      ctx.strokeStyle = line
       ctx.lineWidth = 1.5
       ctx.lineJoin = 'round'
       ctx.lineCap = 'round'
@@ -80,13 +96,13 @@ export default function TrendChart({ slots, period }: Props) {
       points.forEach(p => {
         ctx.beginPath()
         ctx.arc(p.x, p.y, DOT_R, 0, Math.PI * 2)
-        ctx.fillStyle = '#fff'
+        ctx.fillStyle = dot
         ctx.fill()
       })
     }
 
     // Date labels
-    ctx.fillStyle = 'rgba(0,0,0,0.45)'
+    ctx.fillStyle = label
     ctx.font = `${10 * dpr / dpr}px -apple-system, sans-serif`
     ctx.textAlign = 'center'
     slots.forEach((slot, i) => {
@@ -94,7 +110,7 @@ export default function TrendChart({ slots, period }: Props) {
       const x = i * (BAR_W + BAR_GAP) + BAR_W / 2
       ctx.fillText(slot.label, x, CHART_H + 14)
     })
-  }, [slots, totalW, period])
+  }, [slots, totalW, period, themeTick])
 
   // Scroll to end on mount / period change
   useEffect(() => {
@@ -124,7 +140,7 @@ export default function TrendChart({ slots, period }: Props) {
       {dataSlots.length > 1 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13, color: 'var(--muted)' }}>
           <span>区间变化</span>
-          <span style={{ color: change >= 0 ? '#1e6845' : '#c0392b', fontWeight: 600 }}>
+          <span style={{ color: change >= 0 ? 'var(--primary-strong)' : 'var(--danger)', fontWeight: 600 }}>
             {change >= 0 ? '+' : ''}{change.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </span>
         </div>

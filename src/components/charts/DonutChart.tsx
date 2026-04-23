@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatCNY } from '../../utils/formatters'
 
 export interface BreakdownItem {
@@ -12,6 +12,11 @@ const COLORS = [
   '#c0392b', '#16a085', '#d35400', '#2c3e50', '#f39c12',
 ]
 
+function cssVar(name: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return value || fallback
+}
+
 interface Props {
   items: BreakdownItem[]
   title: string
@@ -19,8 +24,15 @@ interface Props {
 
 export default function DonutChart({ items, title }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [themeTick, setThemeTick] = useState(0)
   const SIZE = 160
   const STROKE = 26
+
+  useEffect(() => {
+    const onThemeChange = () => setThemeTick(v => v + 1)
+    window.addEventListener('coinsight-theme-change', onThemeChange)
+    return () => window.removeEventListener('coinsight-theme-change', onThemeChange)
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -52,14 +64,14 @@ export default function DonutChart({ items, title }: Props) {
     })
 
     // Center text
-    ctx.fillStyle = '#888'
+    ctx.fillStyle = cssVar('--muted', '#888')
     ctx.font = `11px -apple-system, sans-serif`
     ctx.textAlign = 'center'
     ctx.fillText('合计', cx, cy - 6)
-    ctx.fillStyle = '#222'
+    ctx.fillStyle = cssVar('--text-strong', '#222')
     ctx.font = `bold 12px -apple-system, sans-serif`
     ctx.fillText(formatCNY(total), cx, cy + 10)
-  }, [items])
+  }, [items, themeTick])
 
   if (items.length === 0) return null
 
@@ -87,7 +99,7 @@ export default function DonutChart({ items, title }: Props) {
               <span>{item.name}</span>
               <span style={{ color: 'var(--muted)' }}>{formatCNY(item.value)} · {item.weight.toFixed(1)}%</span>
             </div>
-            <div style={{ height: 4, background: '#eee', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: 4, background: 'var(--progress-bg)', borderRadius: 2, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${item.weight}%`, background: COLORS[i % COLORS.length], borderRadius: 2 }} />
             </div>
           </div>

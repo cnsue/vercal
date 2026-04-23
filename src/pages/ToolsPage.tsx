@@ -21,10 +21,10 @@ export default function ToolsPage() {
     <div style={{ paddingTop: 12, paddingBottom: 16 }}>
       {TOOLS.map(tool => (
         <a key={tool.href} href={tool.href}
-          style={{ display: 'block', background: '#fff', border: '1px solid #eee', borderRadius: 16, padding: 18, marginBottom: 12, textDecoration: 'none', color: 'inherit' }}>
+          style={{ display: 'block', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 18, marginBottom: 12, textDecoration: 'none', color: 'inherit' }}>
           <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{tool.title}</div>
           <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{tool.desc}</div>
-          <div style={{ marginTop: 12, color: '#1e6845', fontWeight: 600, fontSize: 13 }}>打开 ›</div>
+          <div style={{ marginTop: 12, color: 'var(--primary-strong)', fontWeight: 600, fontSize: 13 }}>打开 ›</div>
         </a>
       ))}
     </div>

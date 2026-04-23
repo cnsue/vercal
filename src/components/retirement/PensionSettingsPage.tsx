@@ -116,7 +116,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px 14px' }}>
         <button onClick={onBack} aria-label="返回"
-          style={{ background: 'none', border: 'none', color: '#1a3a2a', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '4px 8px' }}>
+          style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '4px 8px' }}>
           ‹
         </button>
         <div style={{ fontSize: 16, fontWeight: 800 }}>养老金信息</div>
@@ -134,9 +134,9 @@ export default function PensionSettingsPage({ onBack }: Props) {
             <Stat label="退休年月" value={projection.retirementYearMonth} />
             <Stat label="还剩" value={`${projection.yearsToRetire.toFixed(1)} 年`} />
           </div>
-          <div style={{ marginTop: 12, padding: 10, background: '#f0f9f5', borderRadius: 8 }}>
+          <div style={{ marginTop: 12, padding: 10, background: 'var(--primary-soft)', borderRadius: 8 }}>
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>预计月养老金（今日购买力）</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#166c3b', marginTop: 2 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary-text)', marginTop: 2 }}>
               {projection.valid ? formatCNY(projection.monthlyTotal) : '需录入缴费月数'}
             </div>
             {projection.valid && (
@@ -149,18 +149,18 @@ export default function PensionSettingsPage({ onBack }: Props) {
 
           {belowMinimum && (
             <div style={{
-              marginTop: 10, padding: 10, background: '#fee8d6', borderRadius: 8,
-              fontSize: 12, color: '#8a4b1a', lineHeight: 1.6,
-              border: '1px solid #f3c78a',
+              marginTop: 10, padding: 10, background: 'var(--warning-bg)', borderRadius: 8,
+              fontSize: 12, color: 'var(--warning-text)', lineHeight: 1.6,
+              border: '1px solid var(--warning-border-strong)',
             }}>
               ⚠️ {earlyRetire
                 ? `弹性提前退休要求累计缴费至少 ${minYearsLabel} 年（${minMonths} 月）`
                 : `累计缴费不足 ${minYearsLabel} 年，将无法正常领取基本养老金`}
-              <div style={{ marginTop: 4, color: '#a86a2d' }}>
+              <div style={{ marginTop: 4, color: 'var(--warning-text-strong)' }}>
                 当前已缴 + 计划继续合计 <strong>{totalMonths}</strong> 月（{Math.floor(totalMonths / 12)} 年 {totalMonths % 12} 月），
                 还差 <strong>{shortfallMonths}</strong> 月（{Math.floor(shortfallMonths / 12)} 年 {shortfallMonths % 12} 月）
               </div>
-              <div style={{ marginTop: 6, fontSize: 11, color: '#a86a2d' }}>
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--warning-text-strong)' }}>
                 依据 2024 年 9 月《国务院渐进式延迟退休办法》附件二：
                 {retirementYear < 2030
                   ? `${retirementYear} 年退休适用 15 年门槛；2030 起每年 +6 月，2039 达 20 年`
@@ -296,9 +296,9 @@ export default function PensionSettingsPage({ onBack }: Props) {
               {INDEX_OPTIONS.map(v => (
                 <button key={v.value} type="button" onClick={() => setPension({ historicalIndex: v.value })}
                   style={{
-                    padding: '4px 8px', borderRadius: 8, border: '1px solid #e5e5e5',
-                    background: Math.abs(pension.historicalIndex - v.value) < 0.0001 ? '#1a3a2a' : '#fff',
-                    color: Math.abs(pension.historicalIndex - v.value) < 0.0001 ? '#fff' : '#666',
+                    padding: '4px 8px', borderRadius: 8, border: '1px solid var(--border)',
+                    background: Math.abs(pension.historicalIndex - v.value) < 0.0001 ? 'var(--primary)' : 'var(--surface)',
+                    color: Math.abs(pension.historicalIndex - v.value) < 0.0001 ? '#fff' : 'var(--text-soft)',
                     fontSize: 11, cursor: 'pointer',
                   }}>
                   {v.value.toFixed(2)}
@@ -316,8 +316,8 @@ export default function PensionSettingsPage({ onBack }: Props) {
             </select>
           </Field>
           <div style={{
-            marginTop: 8, padding: 10, background: '#f7f7f7', borderRadius: 8,
-            fontSize: 12, color: '#333', lineHeight: 1.7,
+            marginTop: 8, padding: 10, background: 'var(--surface-muted)', borderRadius: 8,
+            fontSize: 12, color: 'var(--button-secondary-text)', lineHeight: 1.7,
           }}>
             <div style={{ color: 'var(--muted)', marginBottom: 4, fontSize: 11 }}>全程指数（加权平均）</div>
             <div>
@@ -325,7 +325,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
               <strong>{pension.futureIndex.toFixed(2)}</strong> × {projection.plannedFutureMonths} 月
             </div>
             <div style={{ marginTop: 4 }}>
-              ÷ {totalMonths} 月 = <strong style={{ color: '#1a3a2a', fontSize: 15 }}>{projection.weightedIndex.toFixed(4)}</strong>
+              ÷ {totalMonths} 月 = <strong style={{ color: 'var(--primary)', fontSize: 15 }}>{projection.weightedIndex.toFixed(4)}</strong>
             </div>
           </div>
         </Card>
@@ -371,19 +371,19 @@ export default function PensionSettingsPage({ onBack }: Props) {
           </Field>
           {projection.valid && (
             <div style={{
-              marginTop: 6, padding: 10, background: '#f7f7f7', borderRadius: 8,
+              marginTop: 6, padding: 10, background: 'var(--surface-muted)', borderRadius: 8,
               fontSize: 11, color: 'var(--muted)', lineHeight: 1.6,
             }}>
               当前缴费基数 ≈ ¥{Math.round(baseAverageWage * pension.futureIndex).toLocaleString()}，
               月划入 ≈ ¥{Math.round(baseAverageWage * pension.futureIndex * 0.08).toLocaleString()} (基数×8%)。
               <br />
               退休时余额按记账利率 {(pension.personalAccountRate * 100).toFixed(2)}% 复利估算为{' '}
-              <strong style={{ color: '#1a3a2a' }}>¥{Math.round(projection.projectedPersonalBalance).toLocaleString()}</strong>。
+              <strong style={{ color: 'var(--primary)' }}>¥{Math.round(projection.projectedPersonalBalance).toLocaleString()}</strong>。
             </div>
           )}
         </Card>
 
-        <div style={{ marginTop: 6, padding: 10, background: '#fff7ed', borderRadius: 8, fontSize: 11, color: '#8a4b1a', lineHeight: 1.6 }}>
+        <div style={{ marginTop: 6, padding: 10, background: 'var(--warning-bg)', borderRadius: 8, fontSize: 11, color: 'var(--warning-text)', lineHeight: 1.6 }}>
           公式与人社部"退休待遇测算器"一致：基础养老金用全程加权指数；个人账户按记账利率复利 + 未来缴费 FV 年金。
           未纳入过渡性养老金、地方性补贴、缴费基数上下限等，精确数额以人社局测算为准。
         </div>
@@ -391,7 +391,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
 
       {/* 底部粘性保存按钮 */}
       <div style={{
-        borderTop: '1px solid #eee', padding: 12, background: '#fff',
+        borderTop: '1px solid var(--border)', padding: 12, background: 'var(--surface)',
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
         <div style={{ flex: 1, fontSize: 11, color: 'var(--muted)' }}>
@@ -399,7 +399,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
         </div>
         <button onClick={onBack}
           style={{
-            background: '#1a3a2a', color: '#fff', border: 'none',
+            background: 'var(--primary)', color: '#fff', border: 'none',
             padding: '10px 22px', borderRadius: 20, fontWeight: 700, fontSize: 14, cursor: 'pointer',
           }}>
           保存并返回
@@ -423,7 +423,7 @@ function formatOffset(months: number): string {
 
 function Card({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, border: '1px solid #eee' }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 12, border: '1px solid var(--border)' }}>
       {title && <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{title}</div>}
       {children}
     </div>
@@ -486,8 +486,8 @@ function Stepper({ value, step, min, max, onChange }: {
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'stretch',
-      border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden',
-      background: '#fff',
+      border: '1px solid var(--input-border)', borderRadius: 8, overflow: 'hidden',
+      background: 'var(--input-bg)',
     }}>
       <button type="button"
         onClick={() => adjust(value - step)}
@@ -505,7 +505,7 @@ function Stepper({ value, step, min, max, onChange }: {
         }}
         style={{
           width: 96, padding: '10px 14px', textAlign: 'center',
-          fontSize: 15, fontWeight: 700, borderLeft: '1px solid #eee', borderRight: '1px solid #eee',
+          fontSize: 15, fontWeight: 700, borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)',
           borderTop: 'none', borderBottom: 'none', borderRadius: 0,
           outline: 'none', fontFamily: 'inherit',
         }} />
@@ -522,16 +522,16 @@ function formatStepperValue(value: number): string {
 }
 
 const stepBtnStyle: React.CSSProperties = {
-  width: 40, padding: 0, background: '#fff', border: 'none',
-  color: '#1a3a2a', fontSize: 18, fontWeight: 700, cursor: 'pointer',
+  width: 40, padding: 0, background: 'var(--input-bg)', border: 'none',
+  color: 'var(--primary)', fontSize: 18, fontWeight: 700, cursor: 'pointer',
 }
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 12px', borderRadius: 8,
-  border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit',
+  border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit',
 }
 const selectStyle: React.CSSProperties = {
-  ...inputStyle, background: '#fff', flex: 1,
+  ...inputStyle, background: 'var(--input-bg)', flex: 1,
 }
 
 /** 缴费指数档位：常见档 60%/80%/100%/150%/200%/300% 再补中间几档 */
