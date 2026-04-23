@@ -44,12 +44,13 @@ function computeAxisMax(maxValue: number): number {
 }
 
 export default function TrendChart({ slots, period }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const axisCanvasRef = useRef<HTMLCanvasElement>(null)
+  const plotCanvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [themeTick, setThemeTick] = useState(0)
 
   const plotW = slots.length * (BAR_W + BAR_GAP) - BAR_GAP
-  const totalW = AXIS_W + plotW + RIGHT_PAD
+  const totalW = plotW + RIGHT_PAD
   const totalH = TOP_PAD + PLOT_H + LABEL_H
 
   useEffect(() => {
@@ -59,18 +60,27 @@ export default function TrendChart({ slots, period }: Props) {
   }, [])
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const axisCanvas = axisCanvasRef.current
+    const plotCanvas = plotCanvasRef.current
+    if (!axisCanvas || !plotCanvas) return
+    const axisCtx = axisCanvas.getContext('2d')
+    const plotCtx = plotCanvas.getContext('2d')
+    if (!axisCtx || !plotCtx) return
 
     const dpr = window.devicePixelRatio || 1
-    canvas.width = totalW * dpr
-    canvas.height = totalH * dpr
-    canvas.style.width = `${totalW}px`
-    canvas.style.height = `${totalH}px`
-    ctx.scale(dpr, dpr)
-    ctx.clearRect(0, 0, totalW, totalH)
+    axisCanvas.width = AXIS_W * dpr
+    axisCanvas.height = totalH * dpr
+    axisCanvas.style.width = `${AXIS_W}px`
+    axisCanvas.style.height = `${totalH}px`
+    plotCanvas.width = totalW * dpr
+    plotCanvas.height = totalH * dpr
+    plotCanvas.style.width = `${totalW}px`
+    plotCanvas.style.height = `${totalH}px`
+
+    axisCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    plotCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    axisCtx.clearRect(0, 0, AXIS_W, totalH)
+    plotCtx.clearRect(0, 0, totalW, totalH)
 
     const maxVal = Math.max(...slots.map(s => s.totalValueCNY), 1)
     const axisMax = computeAxisMax(maxVal)
@@ -80,49 +90,47 @@ export default function TrendChart({ slots, period }: Props) {
     const dot = cssVar('--chart-dot', '#fff')
     const label = cssVar('--chart-label', 'rgba(0,0,0,0.45)')
     const grid = cssVar('--border-strong', '#ddd')
-    const plotLeft = AXIS_W
-    const plotRight = plotLeft + plotW
     const plotTop = TOP_PAD
     const plotBottom = plotTop + PLOT_H
 
     // Grid + Y axis
-    ctx.font = '10px -apple-system, sans-serif'
-    ctx.textAlign = 'right'
-    ctx.textBaseline = 'middle'
+    axisCtx.font = '10px -apple-system, sans-serif'
+    axisCtx.textAlign = 'right'
+    axisCtx.textBaseline = 'middle'
     for (let step = 0; step <= GRID_STEPS; step += 1) {
       const ratio = step / GRID_STEPS
       const y = plotBottom - ratio * PLOT_H
-      ctx.beginPath()
-      ctx.setLineDash(step === 0 ? [] : [3, 3])
-      ctx.moveTo(plotLeft, y)
-      ctx.lineTo(plotRight, y)
-      ctx.strokeStyle = grid
-      ctx.lineWidth = 1
-      ctx.stroke()
-      ctx.fillStyle = label
-      ctx.fillText(formatAxisValue(axisMax * ratio), plotLeft - 8, y)
+      plotCtx.beginPath()
+      plotCtx.setLineDash(step === 0 ? [] : [3, 3])
+      plotCtx.moveTo(0, y)
+      plotCtx.lineTo(plotW, y)
+      plotCtx.strokeStyle = grid
+      plotCtx.lineWidth = 1
+      plotCtx.stroke()
+      axisCtx.fillStyle = label
+      axisCtx.fillText(formatAxisValue(axisMax * ratio), AXIS_W - 8, y)
     }
-    ctx.setLineDash([])
-    ctx.beginPath()
-    ctx.moveTo(plotLeft, plotTop)
-    ctx.lineTo(plotLeft, plotBottom)
-    ctx.strokeStyle = grid
-    ctx.stroke()
+    plotCtx.setLineDash([])
+    axisCtx.beginPath()
+    axisCtx.moveTo(AXIS_W - 1, plotTop)
+    axisCtx.lineTo(AXIS_W - 1, plotBottom)
+    axisCtx.strokeStyle = grid
+    axisCtx.stroke()
 
     // Bars
     slots.forEach((slot, i) => {
-      const x = plotLeft + i * (BAR_W + BAR_GAP)
+      const x = i * (BAR_W + BAR_GAP)
       if (slot.snapshot && slot.totalValueCNY > 0) {
         const h = Math.max(8, PLOT_H * (slot.totalValueCNY / axisMax))
-        ctx.fillStyle = green
-        ctx.beginPath()
-        ctx.roundRect(x, plotBottom - h, BAR_W, h, 4)
-        ctx.fill()
+        plotCtx.fillStyle = green
+        plotCtx.beginPath()
+        plotCtx.roundRect(x, plotBottom - h, BAR_W, h, 4)
+        plotCtx.fill()
       } else {
-        ctx.fillStyle = empty
-        ctx.beginPath()
-        ctx.roundRect(x, plotBottom - 4, BAR_W, 4, 2)
-        ctx.fill()
+        plotCtx.fillStyle = empty
+        plotCtx.beginPath()
+        plotCtx.roundRect(x, plotBottom - 4, BAR_W, 4, 2)
+        plotCtx.fill()
       }
     })
 
@@ -130,7 +138,7 @@ export default function TrendChart({ slots, period }: Props) {
     const points = slots
       .map((slot, i) => {
         if (!slot.snapshot || slot.totalValueCNY <= 0) return null
-        const x = plotLeft + i * (BAR_W + BAR_GAP) + BAR_W / 2
+        const x = i * (BAR_W + BAR_GAP) + BAR_W / 2
         const h = Math.max(8, PLOT_H * (slot.totalValueCNY / axisMax))
         const barTop = plotBottom - h
         const y = Math.min(plotBottom - DOT_R - 1, Math.max(plotTop + DOT_R + 1, barTop + h / 2))
@@ -139,31 +147,31 @@ export default function TrendChart({ slots, period }: Props) {
       .filter(Boolean) as { x: number; y: number }[]
 
     if (points.length > 1) {
-      ctx.beginPath()
-      ctx.moveTo(points[0].x, points[0].y)
-      points.slice(1).forEach(p => ctx.lineTo(p.x, p.y))
-      ctx.strokeStyle = line
-      ctx.lineWidth = 1.5
-      ctx.lineJoin = 'round'
-      ctx.lineCap = 'round'
-      ctx.stroke()
+      plotCtx.beginPath()
+      plotCtx.moveTo(points[0].x, points[0].y)
+      points.slice(1).forEach(p => plotCtx.lineTo(p.x, p.y))
+      plotCtx.strokeStyle = line
+      plotCtx.lineWidth = 1.5
+      plotCtx.lineJoin = 'round'
+      plotCtx.lineCap = 'round'
+      plotCtx.stroke()
     }
     points.forEach(p => {
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, DOT_R, 0, Math.PI * 2)
-      ctx.fillStyle = dot
-      ctx.fill()
+      plotCtx.beginPath()
+      plotCtx.arc(p.x, p.y, DOT_R, 0, Math.PI * 2)
+      plotCtx.fillStyle = dot
+      plotCtx.fill()
     })
 
     // Date labels
-    ctx.fillStyle = label
-    ctx.font = '10px -apple-system, sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'top'
+    plotCtx.fillStyle = label
+    plotCtx.font = '10px -apple-system, sans-serif'
+    plotCtx.textAlign = 'center'
+    plotCtx.textBaseline = 'top'
     slots.forEach((slot, i) => {
       if (!showLabel(i, slots.length, period)) return
-      const x = plotLeft + i * (BAR_W + BAR_GAP) + BAR_W / 2
-      ctx.fillText(slot.label, x, plotBottom + 10)
+      const x = i * (BAR_W + BAR_GAP) + BAR_W / 2
+      plotCtx.fillText(slot.label, x, plotBottom + 10)
     })
   }, [slots, plotW, totalH, totalW, period, themeTick])
 
@@ -189,8 +197,11 @@ export default function TrendChart({ slots, period }: Props) {
 
   return (
     <div>
-      <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        <canvas ref={canvasRef} style={{ display: 'block' }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+        <canvas ref={axisCanvasRef} style={{ display: 'block', flex: '0 0 auto', background: 'var(--surface)' }} />
+        <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', flex: 1 }}>
+          <canvas ref={plotCanvasRef} style={{ display: 'block' }} />
+        </div>
       </div>
       {dataSlots.length > 1 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13, color: 'var(--muted)' }}>

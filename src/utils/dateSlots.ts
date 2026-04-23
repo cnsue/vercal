@@ -13,6 +13,14 @@ function addDays(date: Date, n: number): Date {
   return d
 }
 
+function addMonths(date: Date, n: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + n, 1)
+}
+
+function monthDiff(from: Date, to: Date): number {
+  return (to.getFullYear() - from.getFullYear()) * 12 + to.getMonth() - from.getMonth()
+}
+
 function startOfWeek(date: Date): Date {
   const d = new Date(date)
   const dow = d.getDay() // 0=Sun
@@ -26,33 +34,36 @@ function startOfMonth(date: Date): Date {
 }
 
 export function generateSlots(snapshots: Snapshot[], period: 'day' | 'week' | 'month' | 'year'): ChartSlot[] {
+  if (snapshots.length === 0) return []
   switch (period) {
-    case 'day': return dailySlots(snapshots, 30, 3)
-    case 'week': return weeklySlots(snapshots, 13)
-    case 'month': return monthlySlots(snapshots, 12)
+    case 'day': return dailySlots(snapshots, 3)
+    case 'week': return weeklySlots(snapshots)
+    case 'month': return monthlySlots(snapshots)
     case 'year': return yearlySlots(snapshots)
   }
 }
 
-function dailySlots(snapshots: Snapshot[], count: number, futureDays: number): ChartSlot[] {
+function dailySlots(snapshots: Snapshot[], futureDays: number): ChartSlot[] {
+  const sorted = [...snapshots].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+  const firstDay = startOfDay(new Date(sorted[0].snapshotDate))
   const today = startOfDay(new Date())
   const byKey = new Map(snapshots.map(s => [s.dateKey, s]))
-  const total = count + futureDays
+  const total = Math.max(1, Math.round((today.getTime() - firstDay.getTime()) / 86_400_000) + 1 + futureDays)
   return Array.from({ length: total }, (_, i) => {
-    const date = addDays(today, -(count - 1) + i)
+    const date = addDays(firstDay, i)
     const key = formatDateKey(date)
     const snap = byKey.get(key) ?? null
     return { id: `d${i}`, label: compactDate(key), totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
   })
 }
 
-function weeklySlots(snapshots: Snapshot[], count: number): ChartSlot[] {
+function weeklySlots(snapshots: Snapshot[]): ChartSlot[] {
   const sorted = [...snapshots].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
-  const today = startOfDay(new Date())
+  const firstWeek = startOfWeek(new Date(sorted[0].snapshotDate))
+  const currentWeek = startOfWeek(new Date())
+  const count = Math.max(1, Math.round((currentWeek.getTime() - firstWeek.getTime()) / (7 * 86_400_000)) + 1)
   return Array.from({ length: count }, (_, i) => {
-    const weekOffset = count - 1 - i
-    const anchor = addDays(today, -weekOffset * 7)
-    const wStart = startOfWeek(anchor)
+    const wStart = addDays(firstWeek, i * 7)
     const wEnd = addDays(wStart, 6)
     const snap = sorted.filter(s => {
       const d = startOfDay(new Date(s.snapshotDate))
@@ -63,12 +74,13 @@ function weeklySlots(snapshots: Snapshot[], count: number): ChartSlot[] {
   })
 }
 
-function monthlySlots(snapshots: Snapshot[], count: number): ChartSlot[] {
+function monthlySlots(snapshots: Snapshot[]): ChartSlot[] {
   const sorted = [...snapshots].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
-  const today = new Date()
+  const firstMonth = startOfMonth(new Date(sorted[0].snapshotDate))
+  const currentMonth = startOfMonth(new Date())
+  const count = Math.max(1, monthDiff(firstMonth, currentMonth) + 1)
   return Array.from({ length: count }, (_, i) => {
-    const monthOffset = count - 1 - i
-    const anchor = new Date(today.getFullYear(), today.getMonth() - monthOffset, 1)
+    const anchor = addMonths(firstMonth, i)
     const mStart = startOfMonth(anchor)
     const mEnd = new Date(mStart.getFullYear(), mStart.getMonth() + 1, 0)
     const snap = sorted.filter(s => {
@@ -81,10 +93,9 @@ function monthlySlots(snapshots: Snapshot[], count: number): ChartSlot[] {
 }
 
 function yearlySlots(snapshots: Snapshot[]): ChartSlot[] {
-  if (snapshots.length === 0) return []
   const sorted = [...snapshots].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
   const firstYear = new Date(sorted[0].snapshotDate).getFullYear()
-  const lastYear = new Date(sorted[sorted.length - 1].snapshotDate).getFullYear()
+  const lastYear = Math.max(new Date().getFullYear(), new Date(sorted[sorted.length - 1].snapshotDate).getFullYear())
   return Array.from({ length: lastYear - firstYear + 1 }, (_, i) => {
     const year = firstYear + i
     const snap = sorted.filter(s => new Date(s.snapshotDate).getFullYear() === year).at(-1) ?? null
