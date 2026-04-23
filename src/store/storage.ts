@@ -54,6 +54,9 @@ function migratePension(stored: unknown): PensionConfig {
       ...DEFAULT_PENSION,
       ...s,
       monthsContributed: clampNonNegativeInt(s.monthsContributed, 600),
+      // 缺失的两个可选参数回退到默认
+      socialWageGrowthRate: typeof s.socialWageGrowthRate === 'number' ? s.socialWageGrowthRate : DEFAULT_PENSION.socialWageGrowthRate,
+      personalAccountRate: typeof s.personalAccountRate === 'number' ? s.personalAccountRate : DEFAULT_PENSION.personalAccountRate,
     } as PensionConfig
   }
 
@@ -88,6 +91,8 @@ function migratePension(stored: unknown): PensionConfig {
     futureIndex: idx,
     retirementOffsetMonths: (retirementAge - 60) * 12,
     personalAccountBalance: typeof s.personalAccountBalance === 'number' ? s.personalAccountBalance : 0,
+    socialWageGrowthRate: DEFAULT_PENSION.socialWageGrowthRate,
+    personalAccountRate: DEFAULT_PENSION.personalAccountRate,
   }
 }
 

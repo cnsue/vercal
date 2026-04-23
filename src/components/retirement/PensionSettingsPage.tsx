@@ -283,6 +283,37 @@ export default function PensionSettingsPage({ onBack }: Props) {
           </div>
         </Card>
 
+        {/* 可选参数 */}
+        <Card title="可选参数">
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.6 }}>
+            默认与人社部"退休待遇测算器"一致。调整后推算结果立即更新。
+          </div>
+          <Field label="在岗职工平均工资增长率（%/年）">
+            <input type="number" inputMode="decimal" step="0.01"
+              value={(pension.socialWageGrowthRate * 100).toFixed(2)}
+              onChange={e => {
+                const v = parseFloat(e.target.value)
+                setPension({ socialWageGrowthRate: isFinite(v) ? v / 100 : 0 })
+              }}
+              style={inputStyle} />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              0% = 按今日购买力；历史名义增速约 5%、实际增速约 2%。
+            </div>
+          </Field>
+          <Field label="个人账户记账利率（%/年）">
+            <input type="number" inputMode="decimal" step="0.01"
+              value={(pension.personalAccountRate * 100).toFixed(2)}
+              onChange={e => {
+                const v = parseFloat(e.target.value)
+                setPension({ personalAccountRate: isFinite(v) ? v / 100 : 0 })
+              }}
+              style={inputStyle} />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              人社部公布：近五年 2.62% - 4.17%（2024 年为 2.62%）。
+            </div>
+          </Field>
+        </Card>
+
         {/* 个人账户 */}
         <Card title="个人账户">
           <Field label="个人账户累计余额（元）">
@@ -299,14 +330,14 @@ export default function PensionSettingsPage({ onBack }: Props) {
               当前缴费基数 ≈ ¥{Math.round((city?.averageWage ?? 0) * pension.futureIndex).toLocaleString()}，
               月划入 ≈ ¥{Math.round((city?.averageWage ?? 0) * pension.futureIndex * 0.08).toLocaleString()} (基数×8%)。
               <br />
-              退休时余额按记账利率 2.62% 复利估算为{' '}
+              退休时余额按记账利率 {(pension.personalAccountRate * 100).toFixed(2)}% 复利估算为{' '}
               <strong style={{ color: '#1a3a2a' }}>¥{Math.round(projection.projectedPersonalBalance).toLocaleString()}</strong>。
             </div>
           )}
         </Card>
 
         <div style={{ marginTop: 6, padding: 10, background: '#fff7ed', borderRadius: 8, fontSize: 11, color: '#8a4b1a', lineHeight: 1.6 }}>
-          与人社部"退休待遇测算器"默认一致：社平工资 0% 增长（按今日购买力）、记账利率 2.62%、未来缴费用 FV 年金公式。
+          公式与人社部"退休待遇测算器"一致：基础养老金用全程加权指数；个人账户按记账利率复利 + 未来缴费 FV 年金。
           未纳入过渡性养老金、地方性补贴、缴费基数上下限等，精确数额以人社局测算为准。
         </div>
       </div>

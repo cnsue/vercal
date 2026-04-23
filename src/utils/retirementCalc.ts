@@ -4,7 +4,6 @@ import type {
 import { findDividendStock } from '../data/dividendStocks'
 import {
   findPensionCity, getPersonalAccountMonths,
-  SOCIAL_WAGE_GROWTH_RATE, PERSONAL_ACCOUNT_RATE,
 } from '../data/pensionCities'
 
 /* -------- 股息收入 -------- */
@@ -206,21 +205,23 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
   }
 
   const boundedIdx = Math.max(0.6, Math.min(weightedIndex, 3.0))
-  const projectedSocialWage = city.averageWage * Math.pow(1 + SOCIAL_WAGE_GROWTH_RATE, yearsToRetire)
+  const socialGrowth = Number.isFinite(cfg.socialWageGrowthRate) ? cfg.socialWageGrowthRate : 0
+  const accountRate = Number.isFinite(cfg.personalAccountRate) ? cfg.personalAccountRate : 0.0262
+  const projectedSocialWage = city.averageWage * Math.pow(1 + socialGrowth, yearsToRetire)
 
   // 基础养老金 = 退休时社平 × (1 + 加权指数) / 2 × (总月数/12) × 1%
   const totalYearsCredit = totalMonths / 12
   const basicPension = projectedSocialWage * (1 + boundedIdx) / 2 * totalYearsCredit * 0.01
 
   // 个人账户：
-  //   - 现有余额按记账利率（2.62%/年）复利到退休
-  //   - 未来每月缴入 = 缴费基数 × 8%，缴费基数 = 当期社平 × 未来期望指数（0% 增长时恒等于当前社平）
+  //   - 现有余额按记账利率（年）复利到退休
+  //   - 未来每月缴入 = 缴费基数 × 8%，缴费基数 = 当期社平 × 未来期望指数
   //   - 未来缴入按 FV 年金公式复利累加
-  const grownBalance = cfg.personalAccountBalance * Math.pow(1 + PERSONAL_ACCOUNT_RATE, yearsToRetire)
+  const grownBalance = cfg.personalAccountBalance * Math.pow(1 + accountRate, yearsToRetire)
   const avgWage = (city.averageWage + projectedSocialWage) / 2
   const boundedFutureIdx = Math.max(0.6, Math.min(cfg.futureIndex, 3.0))
   const futureMonthlyContribution = avgWage * boundedFutureIdx * 0.08
-  const futureFV = fvMonthlyAnnuity(futureMonthlyContribution, PERSONAL_ACCOUNT_RATE, plannedFutureMonths)
+  const futureFV = fvMonthlyAnnuity(futureMonthlyContribution, accountRate, plannedFutureMonths)
   const projectedPersonalBalance = grownBalance + futureFV
 
   // 个人账户计发月数按实际退休年龄（整岁）查表

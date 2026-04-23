@@ -44,6 +44,10 @@ export interface PensionConfig {
   retirementOffsetMonths: number
   /** 个人账户累计储存额（元） */
   personalAccountBalance: number
+  /** 在岗职工平均工资年增长率（小数，如 0.05 = 5%）。人社部默认 0（按今日购买力）。 */
+  socialWageGrowthRate: number
+  /** 个人账户记账利率（小数，如 0.0262 = 2.62%）。人社部默认 2.62%。 */
+  personalAccountRate: number
 }
 
 /** 股息增长预期场景 */
@@ -97,6 +101,8 @@ export const DEFAULT_PENSION: PensionConfig = {
   futureIndex: 1.0,
   retirementOffsetMonths: 0,
   personalAccountBalance: 0,
+  socialWageGrowthRate: 0,
+  personalAccountRate: 0.0262,
 }
 
 export const DEFAULT_RETIREMENT_PLAN: RetirementPlan = {
