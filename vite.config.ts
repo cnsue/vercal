@@ -7,10 +7,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/*.png'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'favicon-96x96.png', 'apple-touch-icon.png'],
       manifest: {
-        name: '资产追踪',
-        short_name: '资产',
+        name: 'Coinsight',
+        short_name: 'Coinsight',
         description: '每日资产快照记录与趋势分析',
         theme_color: '#1a3a2a',
         background_color: '#f5f5f0',
@@ -19,8 +19,9 @@ export default defineConfig({
         scope: '/',
         lang: 'zh-CN',
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          { src: '/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
         ]
       },
       workbox: {

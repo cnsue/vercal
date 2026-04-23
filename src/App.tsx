@@ -10,7 +10,7 @@ import { formatDateKey } from './utils/formatters'
 type Tab = 'asset' | 'tools' | 'settings'
 
 const TAB_TITLES: Record<Tab, string> = {
-  asset: '资产追踪',
+  asset: 'Coinsight',
   tools: '养老金工具',
   settings: '设置',
 }
