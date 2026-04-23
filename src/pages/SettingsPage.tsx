@@ -112,6 +112,13 @@ export default function SettingsPage() {
           <button onClick={addClass} style={addBtnStyle}>添加</button>
         </div>
       </Card>
+
+      <div style={{
+        marginTop: 16, textAlign: 'center',
+        fontSize: 11, color: 'var(--muted)', lineHeight: 1.6,
+      }}>
+        Coinsight v{__APP_VERSION__} · 构建 {__BUILD_TIME__} · {__BUILD_COMMIT__}
+      </div>
     </div>
   )
 }

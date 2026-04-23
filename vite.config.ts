@@ -1,8 +1,28 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { execSync } from 'node:child_process'
+import pkg from './package.json' with { type: 'json' }
+
+function safeCommit(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
+const APP_VERSION = pkg.version
+const BUILD_TIME = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+const BUILD_COMMIT = safeCommit()
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
+    __BUILD_COMMIT__: JSON.stringify(BUILD_COMMIT),
+  },
   plugins: [
     react(),
     VitePWA({
@@ -25,6 +45,10 @@ export default defineConfig({
         ]
       },
       workbox: {
+        navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
         runtimeCaching: [
           {
