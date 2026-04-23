@@ -5,6 +5,7 @@
 :root {
   --muted: #888;
   --bg: #f5f5f5;
+  --tab-bg: rgba(255,255,255,0.95);
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -17,7 +18,7 @@ html, body, #root {
 }
 
 body {
-  background: var(--bg);
+  background: var(--tab-bg);
   color: #1a1a1a;
   /* 禁用双击缩放等原生手势 */
   touch-action: manipulation;

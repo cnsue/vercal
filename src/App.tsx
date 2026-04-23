@@ -56,7 +56,7 @@ export default function App() {
   const showPlusAction = tab === 'asset' && !editingSnap
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ maxWidth: 480, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', background: 'var(--tab-bg)' }}>
       {/* Top nav bar — provides safe-area-inset-top buffer + title */}
       <div style={{
         paddingTop: 'env(safe-area-inset-top)',
@@ -100,7 +100,7 @@ export default function App() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: editingSnap ? 0 : '12px 16px 0' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: editingSnap ? 0 : '12px 16px 0', background: 'var(--bg)' }}>
         {editingSnap ? (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <SnapshotEditor
@@ -122,7 +122,7 @@ export default function App() {
 
       {/* Bottom tab bar (flex column 末位自然吸底，不需要 sticky) */}
       <div style={{
-        background: 'rgba(255,255,255,0.95)',
+        background: 'var(--tab-bg)',
         backdropFilter: 'blur(12px)', borderTop: '1px solid #eee',
         display: 'flex', paddingBottom: 0,
         flexShrink: 0,
