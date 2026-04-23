@@ -27,18 +27,19 @@ function startOfMonth(date: Date): Date {
 
 export function generateSlots(snapshots: Snapshot[], period: 'day' | 'week' | 'month' | 'year'): ChartSlot[] {
   switch (period) {
-    case 'day': return dailySlots(snapshots, 30)
+    case 'day': return dailySlots(snapshots, 30, 3)
     case 'week': return weeklySlots(snapshots, 13)
     case 'month': return monthlySlots(snapshots, 12)
     case 'year': return yearlySlots(snapshots)
   }
 }
 
-function dailySlots(snapshots: Snapshot[], count: number): ChartSlot[] {
+function dailySlots(snapshots: Snapshot[], count: number, futureDays: number): ChartSlot[] {
   const today = startOfDay(new Date())
   const byKey = new Map(snapshots.map(s => [s.dateKey, s]))
-  return Array.from({ length: count }, (_, i) => {
-    const date = addDays(today, -(count - 1 - i))
+  const total = count + futureDays
+  return Array.from({ length: total }, (_, i) => {
+    const date = addDays(today, -(count - 1) + i)
     const key = formatDateKey(date)
     const snap = byKey.get(key) ?? null
     return { id: `d${i}`, label: compactDate(key), totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
