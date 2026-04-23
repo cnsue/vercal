@@ -54,7 +54,7 @@ export default function RetirementPage() {
   const pensionConfigured = pension.totalMonths > 0
 
   return (
-    <div style={{ padding: '0 0 80px' }}>
+    <div style={{ padding: '0 0 16px' }}>
       <CoverageHero
         decentMonthly={coverage.decentMonthly}
         nowRatio={coverage.nowRatio}

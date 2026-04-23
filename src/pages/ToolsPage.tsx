@@ -18,7 +18,7 @@ const TOOLS = [
 
 export default function ToolsPage() {
   return (
-    <div style={{ paddingTop: 12, paddingBottom: 80 }}>
+    <div style={{ paddingTop: 12, paddingBottom: 16 }}>
       {TOOLS.map(tool => (
         <a key={tool.href} href={tool.href}
           style={{ display: 'block', background: '#fff', border: '1px solid #eee', borderRadius: 16, padding: 18, marginBottom: 12, textDecoration: 'none', color: 'inherit' }}>

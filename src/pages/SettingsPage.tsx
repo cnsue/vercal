@@ -15,7 +15,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div style={{ paddingTop: 12, paddingBottom: 80 }}>
+    <div style={{ paddingTop: 12, paddingBottom: 16 }}>
       <EntryRow
         icon="🏛️"
         title="养老金信息"

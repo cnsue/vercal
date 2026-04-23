@@ -69,7 +69,7 @@ export default function AssetPage({ onOpenEditor }: Props) {
   }, [latest, distMode])
 
   return (
-    <div style={{ padding: '0 0 80px' }}>
+    <div style={{ padding: '0 0 16px' }}>
       <HeroCard
         totalValueCNY={latest?.totalValueCNY ?? 0}
         dailyChange={dailyChange}
