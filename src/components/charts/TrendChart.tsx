@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ChartSlot } from '../../types/models'
 
 interface Props {
@@ -15,10 +15,27 @@ const LABEL_H = 34
 const RIGHT_PAD = BAR_W * 2 + BAR_GAP * 4
 const DOT_R = 3
 const GRID_STEPS = 4
+const MIN_ZOOM = 0.55
+const MAX_ZOOM = 2.4
 
 function cssVar(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
   return value || fallback
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+function touchDistance(touches: TouchList): number {
+  const a = touches[0]
+  const b = touches[1]
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+}
+
+function touchCenterX(touches: TouchList, element: HTMLElement): number {
+  const rect = element.getBoundingClientRect()
+  return (touches[0].clientX + touches[1].clientX) / 2 - rect.left
 }
 
 function showLabel(i: number, total: number, period: string): boolean {
@@ -47,10 +64,18 @@ export default function TrendChart({ slots, period }: Props) {
   const axisCanvasRef = useRef<HTMLCanvasElement>(null)
   const plotCanvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const pinchRef = useRef<{ distance: number; zoom: number; focusX: number; centerX: number } | null>(null)
+  const pendingFocusRef = useRef<{ zoom: number; focusX: number; centerX: number } | null>(null)
+  const zoomRef = useRef(1)
   const [themeTick, setThemeTick] = useState(0)
+  const [zoom, setZoom] = useState(1)
+  zoomRef.current = zoom
 
-  const plotW = slots.length * (BAR_W + BAR_GAP) - BAR_GAP
-  const totalW = plotW + RIGHT_PAD
+  const barW = Math.round(BAR_W * zoom)
+  const barGap = Math.max(2, Math.round(BAR_GAP * zoom))
+  const rightPad = Math.round(RIGHT_PAD * zoom)
+  const plotW = Math.max(0, slots.length * (barW + barGap) - barGap)
+  const totalW = plotW + rightPad
   const totalH = TOP_PAD + PLOT_H + LABEL_H
 
   useEffect(() => {
@@ -58,6 +83,77 @@ export default function TrendChart({ slots, period }: Props) {
     window.addEventListener('coinsight-theme-change', onThemeChange)
     return () => window.removeEventListener('coinsight-theme-change', onThemeChange)
   }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const beginPinch = (touches: TouchList) => {
+      const centerX = touchCenterX(touches, el)
+      pinchRef.current = {
+        distance: touchDistance(touches),
+        zoom: zoomRef.current,
+        focusX: el.scrollLeft + centerX,
+        centerX,
+      }
+    }
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 2) beginPinch(event.touches)
+    }
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 2 || !pinchRef.current) return
+      event.preventDefault()
+      const nextZoom = clamp(
+        pinchRef.current.zoom * (touchDistance(event.touches) / pinchRef.current.distance),
+        MIN_ZOOM,
+        MAX_ZOOM,
+      )
+      pendingFocusRef.current = {
+        zoom: pinchRef.current.zoom,
+        focusX: pinchRef.current.focusX,
+        centerX: touchCenterX(event.touches, el),
+      }
+      setZoom(nextZoom)
+    }
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length < 2) pinchRef.current = null
+    }
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      const rect = el.getBoundingClientRect()
+      const centerX = event.clientX - rect.left
+      pendingFocusRef.current = {
+        zoom: zoomRef.current,
+        focusX: el.scrollLeft + centerX,
+        centerX,
+      }
+      setZoom(current => clamp(current * Math.exp(-event.deltaY * 0.01), MIN_ZOOM, MAX_ZOOM))
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd)
+    el.addEventListener('touchcancel', onTouchEnd)
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+      el.removeEventListener('wheel', onWheel)
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    const pending = pendingFocusRef.current
+    if (!el || !pending) return
+    const scaledFocusX = pending.focusX * (zoom / pending.zoom)
+    el.scrollLeft = Math.max(0, scaledFocusX - pending.centerX)
+    pendingFocusRef.current = null
+  }, [zoom, totalW])
 
   useEffect(() => {
     const axisCanvas = axisCanvasRef.current
@@ -119,17 +215,17 @@ export default function TrendChart({ slots, period }: Props) {
 
     // Bars
     slots.forEach((slot, i) => {
-      const x = i * (BAR_W + BAR_GAP)
+      const x = i * (barW + barGap)
       if (slot.snapshot && slot.totalValueCNY > 0) {
         const h = Math.max(8, PLOT_H * (slot.totalValueCNY / axisMax))
         plotCtx.fillStyle = green
         plotCtx.beginPath()
-        plotCtx.roundRect(x, plotBottom - h, BAR_W, h, 4)
+        plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
         plotCtx.fill()
       } else {
         plotCtx.fillStyle = empty
         plotCtx.beginPath()
-        plotCtx.roundRect(x, plotBottom - 4, BAR_W, 4, 2)
+        plotCtx.roundRect(x, plotBottom - 4, barW, 4, 2)
         plotCtx.fill()
       }
     })
@@ -138,7 +234,7 @@ export default function TrendChart({ slots, period }: Props) {
     const points = slots
       .map((slot, i) => {
         if (!slot.snapshot || slot.totalValueCNY <= 0) return null
-        const x = i * (BAR_W + BAR_GAP) + BAR_W / 2
+        const x = i * (barW + barGap) + barW / 2
         const h = Math.max(8, PLOT_H * (slot.totalValueCNY / axisMax))
         const barTop = plotBottom - h
         const y = Math.min(plotBottom - DOT_R - 1, Math.max(plotTop + DOT_R + 1, barTop + h / 2))
@@ -170,10 +266,10 @@ export default function TrendChart({ slots, period }: Props) {
     plotCtx.textBaseline = 'top'
     slots.forEach((slot, i) => {
       if (!showLabel(i, slots.length, period)) return
-      const x = i * (BAR_W + BAR_GAP) + BAR_W / 2
+      const x = i * (barW + barGap) + barW / 2
       plotCtx.fillText(slot.label, x, plotBottom + 10)
     })
-  }, [slots, plotW, totalH, totalW, period, themeTick])
+  }, [slots, plotW, totalH, totalW, period, themeTick, barW, barGap])
 
   // Scroll to end on mount / period change
   useEffect(() => {
@@ -199,7 +295,7 @@ export default function TrendChart({ slots, period }: Props) {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
         <canvas ref={axisCanvasRef} style={{ display: 'block', flex: '0 0 auto', background: 'var(--surface)' }} />
-        <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', flex: 1 }}>
+        <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', flex: 1, touchAction: 'pan-x' }}>
           <canvas ref={plotCanvasRef} style={{ display: 'block' }} />
         </div>
       </div>
