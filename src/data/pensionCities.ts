@@ -1,12 +1,12 @@
 /**
- * 内置 10 个主要城市的上年度全口径城镇单位就业人员月平均工资（元）。
+ * 内置 10 个主要城市/地区的养老保险待遇计发基数或全口径加权平均工资（元/月）。
  * 用于企业职工基本养老金 MVP 简化公式的基础养老金计算。
- * 数据为近似 2023 年公布数据（2024 年退休使用），精确以各地人社局公告为准。
+ * 数据为近似 2024 年公布数据（2025 年退休/缴费基数使用），精确以各地人社局公告为准。
  */
 export interface PensionCity {
   key: string
   name: string
-  /** 上年度全口径城镇单位就业人员月平均工资（元/月） */
+  /** 上年度全口径城镇单位就业人员月平均工资或待遇计发基数（元/月） */
   averageWage: number
 }
 
@@ -15,7 +15,7 @@ export const PENSION_CITIES: PensionCity[] = [
   { key: 'shanghai',  name: '上海', averageWage: 12183 },
   { key: 'shenzhen',  name: '深圳', averageWage: 12964 },
   { key: 'guangzhou', name: '广州', averageWage: 11484 },
-  { key: 'hangzhou',  name: '杭州', averageWage: 10985 },
+  { key: 'hangzhou',  name: '杭州', averageWage: 8433  },
   { key: 'nanjing',   name: '南京', averageWage: 9901  },
   { key: 'chengdu',   name: '成都', averageWage: 8823  },
   { key: 'wuhan',     name: '武汉', averageWage: 8579  },
@@ -50,6 +50,11 @@ export function findPensionCity(key: string): PensionCity | undefined {
   return PENSION_CITIES.find(c => c.key === key)
 }
 
-export function getPersonalAccountMonths(retirementAge: number): number {
-  return PERSONAL_ACCOUNT_MONTHS[retirementAge] ?? 139
+export function getPersonalAccountMonths(retirementAge: number, extraMonths = 0): number {
+  const age = Math.max(40, Math.min(70, retirementAge))
+  const base = PERSONAL_ACCOUNT_MONTHS[age] ?? 139
+  const months = Math.max(0, Math.min(11, extraMonths))
+  if (months === 0) return base
+  const next = PERSONAL_ACCOUNT_MONTHS[Math.min(age + 1, 70)] ?? base
+  return Math.round((base - ((base - next) / 12) * months) * 10) / 10
 }

@@ -24,6 +24,8 @@ export const GENDER_LABELS: Record<Gender, string> = {
 export interface PensionConfig {
   /** 缴费城市 key，见 pensionCities.ts */
   cityKey: string
+  /** 手动覆盖社平工资/养老金计发基数（元/月）。未设置时使用城市内置值。 */
+  averageWageOverride?: number
   /** 性别与身份 */
   gender: Gender
   /** 出生年份 */

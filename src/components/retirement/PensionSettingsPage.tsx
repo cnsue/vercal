@@ -1,7 +1,10 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
 import { PENSION_CITIES } from '../../data/pensionCities'
-import { computePensionProjection, getMinimumContributionMonths, monthsUntil } from '../../utils/retirementCalc'
+import {
+  computePensionProjection, contributionMonthsUntil,
+  getMinimumContributionMonths,
+} from '../../utils/retirementCalc'
 import { formatCNY } from '../../utils/formatters'
 import type { Gender } from '../../types/retirement'
 import { GENDER_LABELS } from '../../types/retirement'
@@ -55,14 +58,15 @@ export default function PensionSettingsPage({ onBack }: Props) {
   }, [stdIdx])
 
   /* ---- 计划停止缴费：固定预设选项 ---- */
-  const yearsToRetireMonths = Math.max(0, Math.round(projection.yearsToRetire * 12))
+  const [retirementYearOpt, retirementMonthOpt] = projection.retirementYearMonth.split('-').map(v => parseInt(v, 10))
+  const retirementContributionMonths = contributionMonthsUntil(retirementYearOpt, retirementMonthOpt)
   const stopPresets = useMemo(() => {
     const presetYears = [0, 5, 10, 15, 20, 25, 30]
     const items: { key: string; label: string; months: number }[] = []
-    items.push({ key: 'retirement', label: '直到退休', months: yearsToRetireMonths })
+    items.push({ key: 'retirement', label: '直到退休', months: retirementContributionMonths })
     for (const yr of presetYears) {
       const months = yr * 12
-      if (months > yearsToRetireMonths) break // 超过退休就不再列出
+      if (months > retirementContributionMonths) break // 超过退休就不再列出
       items.push({
         key: String(yr),
         label: yr === 0 ? '现在停缴' : `再缴 ${yr} 年`,
@@ -70,13 +74,13 @@ export default function PensionSettingsPage({ onBack }: Props) {
       })
     }
     return items
-  }, [yearsToRetireMonths])
+  }, [retirementContributionMonths])
 
   // 当前选项：以月数吻合度匹配（允许 ±3 月误差），否则"自定义"
-  const currentStopMonths = monthsUntil(pension.plannedStopYear, pension.plannedStopMonth)
+  const currentStopMonths = contributionMonthsUntil(pension.plannedStopYear, pension.plannedStopMonth)
   const currentStopKey = (() => {
     // 与退休月差在 3 月内视为"直到退休"
-    if (Math.abs(currentStopMonths - yearsToRetireMonths) <= 3) return 'retirement'
+    if (Math.abs(currentStopMonths - retirementContributionMonths) <= 3) return 'retirement'
     for (const p of stopPresets) {
       if (p.key === 'retirement') continue
       if (Math.abs(p.months - currentStopMonths) <= 3) return p.key
@@ -88,8 +92,15 @@ export default function PensionSettingsPage({ onBack }: Props) {
     if (v === 'custom') return
     const preset = stopPresets.find(p => p.key === v)
     if (!preset) return
+    if (preset.key === 'retirement') {
+      setPension({
+        plannedStopYear: retirementYearOpt,
+        plannedStopMonth: retirementMonthOpt,
+      })
+      return
+    }
     const now = new Date()
-    const idx = now.getFullYear() * 12 + now.getMonth() + preset.months
+    const idx = now.getFullYear() * 12 + now.getMonth() + Math.max(preset.months - 1, 0)
     setPension({
       plannedStopYear: Math.floor(idx / 12),
       plannedStopMonth: (idx % 12) + 1,
@@ -97,6 +108,9 @@ export default function PensionSettingsPage({ onBack }: Props) {
   }
 
   const city = PENSION_CITIES.find(c => c.key === pension.cityKey)
+  const baseAverageWage = pension.averageWageOverride && pension.averageWageOverride > 0
+    ? pension.averageWageOverride
+    : city?.averageWage ?? 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -128,6 +142,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
             {projection.valid && (
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
                 基础 {formatCNY(projection.basicPension)} + 个人账户 {formatCNY(projection.personalAccountPension)}
+                （计发月数 {projection.personalAccountPayoutMonths.toFixed(1)}）
               </div>
             )}
           </div>
@@ -200,10 +215,25 @@ export default function PensionSettingsPage({ onBack }: Props) {
             <select value={pension.cityKey} onChange={e => setPension({ cityKey: e.target.value })} style={selectStyle}>
               {PENSION_CITIES.map(c => (
                 <option key={c.key} value={c.key}>
-                  {c.name} · 社平 ¥{c.averageWage.toLocaleString()}/月
+                  {c.name} · 内置社平 ¥{c.averageWage.toLocaleString()}/月
                 </option>
               ))}
             </select>
+          </Field>
+
+          <Field label="当前社平工资 / 计发基数（元/月）">
+            <input type="number" inputMode="decimal"
+              min={0}
+              value={pension.averageWageOverride ?? ''}
+              placeholder={`默认使用内置值：${city?.averageWage.toLocaleString() ?? '-'}`}
+              onChange={e => {
+                const n = parseFloat(e.target.value)
+                setPension({ averageWageOverride: Number.isFinite(n) && n > 0 ? n : undefined })
+              }}
+              style={inputStyle} />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
+              当前计算使用 <strong>¥{Math.round(baseAverageWage).toLocaleString()}</strong>/月。浙江 2025 年官方口径为 8433 元/月；退休当年社平会按下方增长率继续外推。
+            </div>
           </Field>
 
           <Field label="已缴费月数">
@@ -251,13 +281,30 @@ export default function PensionSettingsPage({ onBack }: Props) {
             全程指数按月数加权平均，实时更新。
           </div>
           <Field label="已缴费期间平均指数">
-            <select value={pension.historicalIndex.toFixed(2)}
-              onChange={e => setPension({ historicalIndex: parseFloat(e.target.value) })}
-              style={selectStyle}>
+            <input type="number" inputMode="decimal"
+              min={0.6} max={3} step={0.0001}
+              value={pension.historicalIndex}
+              onChange={e => {
+                const n = parseFloat(e.target.value)
+                setPension({ historicalIndex: Number.isFinite(n) ? Math.max(0.6, Math.min(n, 3)) : 1 })
+              }}
+              style={inputStyle} />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
+              可填官方系统返回的精确值，例如 2.65245；不知道时用下方常见档位参考。
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
               {INDEX_OPTIONS.map(v => (
-                <option key={v.value} value={v.value.toFixed(2)}>{v.label}</option>
+                <button key={v.value} type="button" onClick={() => setPension({ historicalIndex: v.value })}
+                  style={{
+                    padding: '4px 8px', borderRadius: 8, border: '1px solid #e5e5e5',
+                    background: Math.abs(pension.historicalIndex - v.value) < 0.0001 ? '#1a3a2a' : '#fff',
+                    color: Math.abs(pension.historicalIndex - v.value) < 0.0001 ? '#fff' : '#666',
+                    fontSize: 11, cursor: 'pointer',
+                  }}>
+                  {v.value.toFixed(2)}
+                </button>
               ))}
-            </select>
+            </div>
           </Field>
           <Field label="未来期望平均指数">
             <select value={pension.futureIndex.toFixed(2)}
@@ -274,7 +321,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
           }}>
             <div style={{ color: 'var(--muted)', marginBottom: 4, fontSize: 11 }}>全程指数（加权平均）</div>
             <div>
-              <strong>{pension.historicalIndex.toFixed(2)}</strong> × {pension.monthsContributed} 月 ＋{' '}
+              <strong>{pension.historicalIndex.toFixed(5)}</strong> × {pension.monthsContributed} 月 ＋{' '}
               <strong>{pension.futureIndex.toFixed(2)}</strong> × {projection.plannedFutureMonths} 月
             </div>
             <div style={{ marginTop: 4 }}>
@@ -297,7 +344,7 @@ export default function PensionSettingsPage({ onBack }: Props) {
               onChange={v => setPension({ socialWageGrowthRate: v / 100 })}
             />
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
-              0% = 按今日购买力；历史名义增速约 5%、实际增速约 2%。
+              例如官方测算用 1.00% 时，8433 元/月会按年增长外推到退休当年。
             </div>
           </Field>
           <Field label="个人账户记账利率（%/年）">
@@ -327,8 +374,8 @@ export default function PensionSettingsPage({ onBack }: Props) {
               marginTop: 6, padding: 10, background: '#f7f7f7', borderRadius: 8,
               fontSize: 11, color: 'var(--muted)', lineHeight: 1.6,
             }}>
-              当前缴费基数 ≈ ¥{Math.round((city?.averageWage ?? 0) * pension.futureIndex).toLocaleString()}，
-              月划入 ≈ ¥{Math.round((city?.averageWage ?? 0) * pension.futureIndex * 0.08).toLocaleString()} (基数×8%)。
+              当前缴费基数 ≈ ¥{Math.round(baseAverageWage * pension.futureIndex).toLocaleString()}，
+              月划入 ≈ ¥{Math.round(baseAverageWage * pension.futureIndex * 0.08).toLocaleString()} (基数×8%)。
               <br />
               退休时余额按记账利率 {(pension.personalAccountRate * 100).toFixed(2)}% 复利估算为{' '}
               <strong style={{ color: '#1a3a2a' }}>¥{Math.round(projection.projectedPersonalBalance).toLocaleString()}</strong>。
@@ -412,8 +459,29 @@ function Stepper({ value, step, min, max, onChange }: {
   max: number
   onChange: (v: number) => void
 }) {
+  const [draft, setDraft] = useState(formatStepperValue(value))
+
+  useEffect(() => {
+    setDraft(formatStepperValue(value))
+  }, [value])
+
   function clamp(v: number) {
     return Math.max(min, Math.min(max, Math.round(v * 100) / 100))
+  }
+  function commit(raw: string) {
+    const n = parseFloat(raw)
+    if (!Number.isFinite(n)) {
+      setDraft(formatStepperValue(value))
+      return
+    }
+    const next = clamp(n)
+    setDraft(formatStepperValue(next))
+    onChange(next)
+  }
+  function adjust(nextValue: number) {
+    const next = clamp(nextValue)
+    setDraft(formatStepperValue(next))
+    onChange(next)
   }
   return (
     <div style={{
@@ -422,21 +490,35 @@ function Stepper({ value, step, min, max, onChange }: {
       background: '#fff',
     }}>
       <button type="button"
-        onClick={() => onChange(clamp(value - step))}
+        onClick={() => adjust(value - step)}
         disabled={value <= min}
         style={stepBtnStyle}>−</button>
-      <div style={{
-        minWidth: 80, padding: '10px 14px', textAlign: 'center',
-        fontSize: 15, fontWeight: 700, borderLeft: '1px solid #eee', borderRight: '1px solid #eee',
-      }}>
-        {value.toFixed(2)}
-      </div>
+      <input type="number" inputMode="decimal"
+        value={draft}
+        min={min}
+        max={max}
+        step={0.01}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={e => commit(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur()
+        }}
+        style={{
+          width: 96, padding: '10px 14px', textAlign: 'center',
+          fontSize: 15, fontWeight: 700, borderLeft: '1px solid #eee', borderRight: '1px solid #eee',
+          borderTop: 'none', borderBottom: 'none', borderRadius: 0,
+          outline: 'none', fontFamily: 'inherit',
+        }} />
       <button type="button"
-        onClick={() => onChange(clamp(value + step))}
+        onClick={() => adjust(value + step)}
         disabled={value >= max}
         style={stepBtnStyle}>+</button>
     </div>
   )
+}
+
+function formatStepperValue(value: number): string {
+  return Number.isFinite(value) ? value.toFixed(2) : ''
 }
 
 const stepBtnStyle: React.CSSProperties = {

@@ -102,11 +102,12 @@ export default function RetirementPage() {
             <div style={{ height: 8 }} />
             <StatRow label="缴费城市" value={city?.name ?? plan.pension.cityKey} />
             <StatRow label="累计缴费" value={`${(pension.totalMonths / 12).toFixed(1)} 年`} />
-            <StatRow label="加权缴费指数" value={pension.weightedIndex.toFixed(2)} />
+            <StatRow label="加权缴费指数" value={pension.weightedIndex.toFixed(4)} />
             <StatRow label="实际退休年龄" value={`${pension.actualRetirementYears} 岁 ${pension.actualRetirementExtraMonths} 月`} />
             <StatRow label="退休年月" value={pension.retirementYearMonth} />
             <StatRow label="退休时社平工资" value={`${formatCNY(pension.projectedSocialWage)}/月`} />
             <StatRow label="预计退休时个人账户" value={formatCNY(pension.projectedPersonalBalance)} />
+            <StatRow label="个人账户计发月数" value={pension.personalAccountPayoutMonths.toFixed(1)} />
             <div style={{ marginTop: 10, padding: 10, background: '#fff7ed', borderRadius: 8, fontSize: 11, color: '#8a4b1a' }}>
               MVP 简化公式：未考虑过渡性养老金、地方性补贴、缴费基数上下限等。精确数额以各地人社局测算为准。
             </div>

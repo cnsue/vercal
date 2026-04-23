@@ -57,6 +57,9 @@ function migratePension(stored: unknown): PensionConfig {
       // 缺失的两个可选参数回退到默认
       socialWageGrowthRate: typeof s.socialWageGrowthRate === 'number' ? s.socialWageGrowthRate : DEFAULT_PENSION.socialWageGrowthRate,
       personalAccountRate: typeof s.personalAccountRate === 'number' ? s.personalAccountRate : DEFAULT_PENSION.personalAccountRate,
+      averageWageOverride: typeof s.averageWageOverride === 'number' && isFinite(s.averageWageOverride) && s.averageWageOverride > 0
+        ? s.averageWageOverride
+        : undefined,
     } as PensionConfig
   }
 
