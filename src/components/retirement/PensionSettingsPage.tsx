@@ -289,25 +289,25 @@ export default function PensionSettingsPage({ onBack }: Props) {
             默认与人社部"退休待遇测算器"一致。调整后推算结果立即更新。
           </div>
           <Field label="在岗职工平均工资增长率（%/年）">
-            <input type="number" inputMode="decimal" step="0.01"
-              value={(pension.socialWageGrowthRate * 100).toFixed(2)}
-              onChange={e => {
-                const v = parseFloat(e.target.value)
-                setPension({ socialWageGrowthRate: isFinite(v) ? v / 100 : 0 })
-              }}
-              style={inputStyle} />
+            <Stepper
+              value={pension.socialWageGrowthRate * 100}
+              step={0.01}
+              min={-5}
+              max={15}
+              onChange={v => setPension({ socialWageGrowthRate: v / 100 })}
+            />
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
               0% = 按今日购买力；历史名义增速约 5%、实际增速约 2%。
             </div>
           </Field>
           <Field label="个人账户记账利率（%/年）">
-            <input type="number" inputMode="decimal" step="0.01"
-              value={(pension.personalAccountRate * 100).toFixed(2)}
-              onChange={e => {
-                const v = parseFloat(e.target.value)
-                setPension({ personalAccountRate: isFinite(v) ? v / 100 : 0 })
-              }}
-              style={inputStyle} />
+            <Stepper
+              value={pension.personalAccountRate * 100}
+              step={0.01}
+              min={0}
+              max={10}
+              onChange={v => setPension({ personalAccountRate: v / 100 })}
+            />
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
               人社部公布：近五年 2.62% - 4.17%（2024 年为 2.62%）。
             </div>
@@ -403,6 +403,45 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{value}</div>
     </div>
   )
+}
+
+function Stepper({ value, step, min, max, onChange }: {
+  value: number
+  step: number
+  min: number
+  max: number
+  onChange: (v: number) => void
+}) {
+  function clamp(v: number) {
+    return Math.max(min, Math.min(max, Math.round(v * 100) / 100))
+  }
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'stretch',
+      border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden',
+      background: '#fff',
+    }}>
+      <button type="button"
+        onClick={() => onChange(clamp(value - step))}
+        disabled={value <= min}
+        style={stepBtnStyle}>−</button>
+      <div style={{
+        minWidth: 80, padding: '10px 14px', textAlign: 'center',
+        fontSize: 15, fontWeight: 700, borderLeft: '1px solid #eee', borderRight: '1px solid #eee',
+      }}>
+        {value.toFixed(2)}
+      </div>
+      <button type="button"
+        onClick={() => onChange(clamp(value + step))}
+        disabled={value >= max}
+        style={stepBtnStyle}>+</button>
+    </div>
+  )
+}
+
+const stepBtnStyle: React.CSSProperties = {
+  width: 40, padding: 0, background: '#fff', border: 'none',
+  color: '#1a3a2a', fontSize: 18, fontWeight: 700, cursor: 'pointer',
 }
 
 const inputStyle: React.CSSProperties = {

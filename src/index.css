@@ -9,8 +9,14 @@
   -webkit-font-smoothing: antialiased;
 }
 
-body {
+/* 用 html/body/#root 链式 100% 铺满视口，规避 iOS 的 dvh/svh 首帧测量 bug */
+html, body, #root {
+  height: 100%;
   margin: 0;
+  overflow: hidden;
+}
+
+body {
   background: var(--bg);
   color: #1a1a1a;
   /* 禁用双击缩放等原生手势 */
