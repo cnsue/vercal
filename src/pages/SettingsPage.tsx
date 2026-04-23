@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { useAssetStore } from '../store/useAssetStore'
 import { PLATFORM_LABELS, CLASS_LABELS } from '../types/models'
-import PensionConfigCard from '../components/retirement/PensionConfigCard'
+import PensionSettingsPage from '../components/retirement/PensionSettingsPage'
 
 export default function SettingsPage() {
   const store = useAssetStore()
   const [newPlatform, setNewPlatform] = useState('')
   const [newClass, setNewClass] = useState('')
+  const [subpage, setSubpage] = useState<'pension' | null>(null)
+
+  if (subpage === 'pension') {
+    return <PensionSettingsPage onBack={() => setSubpage(null)} />
+  }
 
   function addPlatform() {
     const name = newPlatform.trim()
@@ -20,9 +25,22 @@ export default function SettingsPage() {
 
   return (
     <div style={{ paddingTop: 12, paddingBottom: 80 }}>
-      <div style={{ marginBottom: 12 }}>
-        <PensionConfigCard />
-      </div>
+      <button onClick={() => setSubpage('pension')}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+          background: '#fff', border: '1px solid #eee', borderRadius: 16,
+          padding: 16, marginBottom: 12, cursor: 'pointer', textAlign: 'left',
+        }}>
+        <span style={{ fontSize: 22 }}>🏛️</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>养老金信息</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+            性别、出生年月、缴费情况、弹性退休
+          </div>
+        </div>
+        <span style={{ color: '#aaa', fontSize: 20 }}>›</span>
+      </button>
+
       <Card title="平台管理">
         <SectionLabel>内置平台</SectionLabel>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>

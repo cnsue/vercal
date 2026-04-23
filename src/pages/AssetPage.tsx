@@ -90,7 +90,7 @@ export default function AssetPage({ onOpenEditor }: Props) {
           }}
         />
         <CoverageRing
-          ratio={coverage.ratio}
+          ratio={coverage.nowRatio}
           unset={coverage.decentMonthly <= 0}
           onClick={() => setShowDecentEditor(true)}
         />

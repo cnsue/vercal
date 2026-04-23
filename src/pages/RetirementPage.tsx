@@ -37,15 +37,16 @@ export default function RetirementPage() {
   }, [coverage])
 
   const city = findPensionCity(plan.pension.cityKey)
-  const pensionConfigured = plan.pension.yearsContributed + plan.pension.plannedFutureYears > 0
+  const pensionConfigured = plan.pension.monthsContributed + plan.pension.plannedFutureMonths > 0
 
   return (
     <div style={{ padding: '0 0 80px' }}>
       <CoverageHero
-        ratio={coverage.ratio}
         decentMonthly={coverage.decentMonthly}
-        monthlyIncome={coverage.monthlyIncome}
-        variant="full"
+        nowRatio={coverage.nowRatio}
+        retiredRatio={coverage.retiredRatio}
+        nowMonthly={coverage.nowMonthly}
+        retiredMonthly={coverage.retiredMonthly}
         onEdit={() => setShowDecentEditor(true)}
       />
 
@@ -78,7 +79,10 @@ export default function RetirementPage() {
             <StatRow label="  · 个人账户养老金" value={formatCNY(pension.personalAccountPension)} />
             <div style={{ height: 8 }} />
             <StatRow label="缴费城市" value={city?.name ?? plan.pension.cityKey} />
-            <StatRow label="累计缴费年限" value={`${pension.totalYears} 年`} />
+            <StatRow label="累计缴费" value={`${(pension.totalMonths / 12).toFixed(1)} 年`} />
+            <StatRow label="加权缴费指数" value={pension.weightedIndex.toFixed(2)} />
+            <StatRow label="实际退休年龄" value={`${pension.actualRetirementYears} 岁 ${pension.actualRetirementExtraMonths} 月`} />
+            <StatRow label="退休年月" value={pension.retirementYearMonth} />
             <StatRow label="退休时社平工资" value={`${formatCNY(pension.projectedSocialWage)}/月`} />
             <StatRow label="预计退休时个人账户" value={formatCNY(pension.projectedPersonalBalance)} />
             <div style={{ marginTop: 10, padding: 10, background: '#fff7ed', borderRadius: 8, fontSize: 11, color: '#8a4b1a' }}>

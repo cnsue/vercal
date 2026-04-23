@@ -1,6 +1,6 @@
 import type { Snapshot, ExchangeRate } from '../types/models'
-import type { RetirementPlan } from '../types/retirement'
-import { DEFAULT_RETIREMENT_PLAN } from '../types/retirement'
+import type { RetirementPlan, PensionConfig } from '../types/retirement'
+import { DEFAULT_RETIREMENT_PLAN, DEFAULT_PENSION } from '../types/retirement'
 
 const K = {
   snapshots: 'asset-tracker:snapshots',
@@ -28,6 +28,39 @@ function set(key: string, value: unknown): void {
     localStorage.setItem(key, JSON.stringify(value))
   } catch {
     // localStorage full — silently ignore
+  }
+}
+
+/**
+ * 把 v0.2.0 的 PensionConfig（年单位 + 单一缴费指数 + 固定退休年龄）
+ * 迁移到 v0.3.0 的新模型（月单位 + 历史/未来指数 + 渐进式退休）。
+ */
+function migratePension(stored: unknown): PensionConfig {
+  if (!stored || typeof stored !== 'object') return DEFAULT_PENSION
+  const s = stored as Record<string, unknown>
+
+  // 已是新模型
+  if (typeof s.monthsContributed === 'number' && typeof s.birthYear === 'number') {
+    return { ...DEFAULT_PENSION, ...s } as PensionConfig
+  }
+
+  // 旧模型 → 新模型
+  const years = typeof s.yearsContributed === 'number' ? s.yearsContributed : 0
+  const futureYears = typeof s.plannedFutureYears === 'number' ? s.plannedFutureYears : 0
+  const currentAge = typeof s.currentAge === 'number' ? s.currentAge : 30
+  const retirementAge = typeof s.retirementAge === 'number' ? s.retirementAge : 60
+  const idx = typeof s.averageContributionIndex === 'number' ? s.averageContributionIndex : 1.0
+  return {
+    cityKey: typeof s.cityKey === 'string' ? s.cityKey : DEFAULT_PENSION.cityKey,
+    gender: 'male',
+    birthYear: new Date().getFullYear() - currentAge,
+    birthMonth: 1,
+    monthsContributed: Math.round(years * 12),
+    plannedFutureMonths: Math.round(futureYears * 12),
+    historicalIndex: idx,
+    futureIndex: idx,
+    retirementOffsetMonths: (retirementAge - 60) * 12,
+    personalAccountBalance: typeof s.personalAccountBalance === 'number' ? s.personalAccountBalance : 0,
   }
 }
 
@@ -63,7 +96,7 @@ export const StorageService = {
       ...DEFAULT_RETIREMENT_PLAN,
       ...stored,
       decentStandard: { ...DEFAULT_RETIREMENT_PLAN.decentStandard, ...stored.decentStandard },
-      pension: { ...DEFAULT_RETIREMENT_PLAN.pension, ...stored.pension },
+      pension: migratePension(stored.pension),
       holdings: stored.holdings ?? [],
       otherIncomes: stored.otherIncomes ?? [],
     }

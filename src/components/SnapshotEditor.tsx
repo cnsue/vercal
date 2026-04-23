@@ -34,6 +34,52 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
     setActiveId(newItem.id)
   }
 
+  /** 一键按平台全部展开：为当前未覆盖的可见内置平台和自定义平台各生成一条空 item */
+  function expandByPlatforms() {
+    const existing = new Set(snap.items.map(i =>
+      i.platform === 'other' && i.customPlatformName
+        ? `__custom__${i.customPlatformName}`
+        : i.platform
+    ))
+    const additions: SnapshotItem[] = []
+    for (const p of Object.keys(PLATFORM_LABELS) as AssetPlatform[]) {
+      if (p === 'other') continue
+      if (hiddenPlatforms.includes(p)) continue
+      if (existing.has(p)) continue
+      additions.push({
+        id: uuidv4(), platform: p, customPlatformName: '',
+        accountType: '', assetClass: 'other', customAssetClassName: '',
+        assetLabel: '', amount: 0, currency: PLATFORM_DEFAULT_CURRENCY[p], valueCNY: 0, note: '',
+      })
+    }
+    for (const name of customPlatforms) {
+      if (existing.has(`__custom__${name}`)) continue
+      additions.push({
+        id: uuidv4(), platform: 'other', customPlatformName: name,
+        accountType: '', assetClass: 'other', customAssetClassName: '',
+        assetLabel: '', amount: 0, currency: 'CNY', valueCNY: 0, note: '',
+      })
+    }
+    if (additions.length === 0) return
+    setSnap(s => ({ ...s, items: [...s.items, ...additions] }))
+  }
+
+  const expandableCount = (() => {
+    const existing = new Set(snap.items.map(i =>
+      i.platform === 'other' && i.customPlatformName
+        ? `__custom__${i.customPlatformName}`
+        : i.platform
+    ))
+    let n = 0
+    for (const p of Object.keys(PLATFORM_LABELS) as AssetPlatform[]) {
+      if (p !== 'other' && !hiddenPlatforms.includes(p) && !existing.has(p)) n++
+    }
+    for (const name of customPlatforms) {
+      if (!existing.has(`__custom__${name}`)) n++
+    }
+    return n
+  })()
+
   function removeItem(id: string) {
     setSnap(s => ({ ...s, items: s.items.filter(i => i.id !== id) }))
     setActiveId(null)
@@ -93,7 +139,17 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
               )}
             </div>
           ))}
-          <button onClick={addItem} style={{ ...btnStyle('secondary'), width: '100%', marginTop: 8 }}>＋ 新增一条资产</button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button onClick={addItem} style={{ ...btnStyle('secondary'), flex: 1 }}>＋ 新增一条</button>
+            <button onClick={expandByPlatforms} disabled={expandableCount === 0}
+              style={{
+                ...btnStyle('secondary'), flex: 1,
+                opacity: expandableCount === 0 ? 0.4 : 1,
+                cursor: expandableCount === 0 ? 'default' : 'pointer',
+              }}>
+              {expandableCount > 0 ? `按平台展开 +${expandableCount}` : '已按平台展开'}
+            </button>
+          </div>
         </div>
       </div>
 

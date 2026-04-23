@@ -1,5 +1,5 @@
 import type {
-  DividendHolding, PensionConfig, RetirementPlan, OtherIncome,
+  DividendHolding, PensionConfig, RetirementPlan, OtherIncome, Gender,
 } from '../types/retirement'
 import { findDividendStock } from '../data/dividendStocks'
 import {
@@ -13,8 +13,7 @@ export interface HoldingIncome {
   dividendPerShare: number
   grossAnnual: number
   netAnnual: number
-  referenceMarketValue: number // 参考市值（按内置参考价），用于估算仓位
-  /** 按参考价计算的年化股息率（%）；未知参考价时为 0 */
+  referenceMarketValue: number
   yieldPct: number
 }
 
@@ -44,66 +43,125 @@ export function computeDividendSummary(holdings: DividendHolding[]): DividendSum
   const netAnnual = perHolding.reduce((s, h) => s + h.netAnnual, 0)
   const totalReferenceMarketValue = perHolding.reduce((s, h) => s + h.referenceMarketValue, 0)
   return {
-    grossAnnual,
-    netAnnual,
+    grossAnnual, netAnnual,
     netMonthly: netAnnual / 12,
     totalReferenceMarketValue,
     perHolding,
   }
 }
 
-/* -------- 养老金简化公式 -------- */
+/* -------- 渐进式标准退休年龄（2025-01-01 起实施） --------
+ * 男：1965.01 起出生的，每 4 个月加 1 个月，封顶 63 岁（+36 月）
+ * 女干部：1970.01 起出生的，每 4 个月加 1 个月，封顶 58 岁（+36 月）
+ * 女工人：1975.01 起出生的，每 2 个月加 1 个月，封顶 55 岁（+60 月）
+ */
+
+export interface StandardRetirementAge {
+  /** 标准退休年 */
+  years: number
+  /** 标准退休附加月（0-11） */
+  months: number
+  /** 标准退休总月龄 */
+  totalMonths: number
+}
+
+export function computeStandardRetirement(gender: Gender, birthYear: number, birthMonth: number): StandardRetirementAge {
+  const birthIdx = birthYear * 12 + (birthMonth - 1)
+  let baseYears: number, cutoffIdx: number, stepMonths: number, capExtra: number
+  if (gender === 'male') {
+    baseYears = 60; cutoffIdx = 1965 * 12; stepMonths = 4; capExtra = 36
+  } else if (gender === 'femaleCadre') {
+    baseYears = 55; cutoffIdx = 1970 * 12; stepMonths = 4; capExtra = 36
+  } else {
+    baseYears = 50; cutoffIdx = 1975 * 12; stepMonths = 2; capExtra = 60
+  }
+  let extra = 0
+  if (birthIdx >= cutoffIdx) {
+    extra = Math.min(Math.floor((birthIdx - cutoffIdx) / stepMonths) + 1, capExtra)
+  }
+  const totalMonths = baseYears * 12 + extra
+  return {
+    years: Math.floor(totalMonths / 12),
+    months: totalMonths % 12,
+    totalMonths,
+  }
+}
+
+/* -------- 养老金预估 -------- */
 
 export interface PensionProjection {
   valid: boolean
-  /** 退休时当地社平工资（元/月，含增长假设） */
-  projectedSocialWage: number
-  /** 基础养老金（元/月） */
-  basicPension: number
-  /** 个人账户养老金（元/月） */
-  personalAccountPension: number
-  /** 月养老金合计（元） */
-  monthlyTotal: number
-  /** 总缴费年限 */
-  totalYears: number
-  /** 退休时预计个人账户余额（元） */
-  projectedPersonalBalance: number
+  projectedSocialWage: number         // 退休时社平工资（元/月）
+  basicPension: number                // 基础养老金（元/月）
+  personalAccountPension: number      // 个人账户养老金（元/月）
+  monthlyTotal: number                // 月养老金合计
+  totalMonths: number                 // 总缴费月数
+  projectedPersonalBalance: number    // 退休时个人账户预计余额
+  standardRetirement: StandardRetirementAge  // 标准退休年龄
+  /** 实际退休年（标准 + 弹性） */
+  actualRetirementYears: number
+  /** 实际退休附加月 0-11 */
+  actualRetirementExtraMonths: number
+  /** 实际退休年月 'YYYY-MM' */
+  retirementYearMonth: string
+  /** 到退休还剩的年数（小数） */
+  yearsToRetire: number
+  /** 加权平均缴费指数 */
+  weightedIndex: number
 }
 
 export function computePensionProjection(cfg: PensionConfig): PensionProjection {
   const city = findPensionCity(cfg.cityKey)
-  const yearsToRetire = Math.max(cfg.retirementAge - cfg.currentAge, 0)
-  const totalYears = cfg.yearsContributed + Math.min(cfg.plannedFutureYears, yearsToRetire)
+  const std = computeStandardRetirement(cfg.gender, cfg.birthYear, cfg.birthMonth)
+  const actualTotalMonths = std.totalMonths + cfg.retirementOffsetMonths
+  const actualYears = Math.floor(actualTotalMonths / 12)
+  const actualExtraMonths = actualTotalMonths % 12
 
-  if (!city || totalYears <= 0) {
+  // 出生日期 + 月龄 = 退休日期
+  const retirementDateObj = new Date(cfg.birthYear, cfg.birthMonth - 1 + actualTotalMonths, 1)
+  const retirementYearMonth = `${retirementDateObj.getFullYear()}-${String(retirementDateObj.getMonth() + 1).padStart(2, '0')}`
+  const now = new Date()
+  const yearsToRetire = Math.max((retirementDateObj.getTime() - now.getTime()) / (365.25 * 24 * 3600 * 1000), 0)
+
+  const totalMonths = cfg.monthsContributed + cfg.plannedFutureMonths
+  const weightedIndex = totalMonths > 0
+    ? (cfg.monthsContributed * cfg.historicalIndex + cfg.plannedFutureMonths * cfg.futureIndex) / totalMonths
+    : cfg.historicalIndex
+
+  if (!city || totalMonths <= 0) {
     return {
       valid: false,
       projectedSocialWage: city?.averageWage ?? 0,
       basicPension: 0,
       personalAccountPension: 0,
       monthlyTotal: 0,
-      totalYears,
+      totalMonths,
       projectedPersonalBalance: cfg.personalAccountBalance,
+      standardRetirement: std,
+      actualRetirementYears: actualYears,
+      actualRetirementExtraMonths: actualExtraMonths,
+      retirementYearMonth,
+      yearsToRetire,
+      weightedIndex,
     }
   }
 
-  // 退休时社平工资（按年增长率复利）
+  const boundedIdx = Math.max(0.6, Math.min(weightedIndex, 3.0))
   const projectedSocialWage = city.averageWage * Math.pow(1 + SOCIAL_WAGE_GROWTH_RATE, yearsToRetire)
 
-  // 基础养老金 = 退休时社平工资 × (1 + 平均缴费指数) / 2 × 缴费年限 × 1%
-  const idx = Math.max(0.6, Math.min(cfg.averageContributionIndex, 3.0))
-  const basicPension = projectedSocialWage * (1 + idx) / 2 * totalYears * 0.01
+  // 基础养老金 = 退休时社平 × (1 + 加权指数) / 2 × (总月数/12) × 1%
+  const totalYearsCredit = totalMonths / 12
+  const basicPension = projectedSocialWage * (1 + boundedIdx) / 2 * totalYearsCredit * 0.01
 
-  // 退休时个人账户余额 ≈ 现有余额 + 未来缴费期间年均缴入（中位社平工资）
-  const futureYears = Math.min(cfg.plannedFutureYears, yearsToRetire)
-  const midWage = (city.averageWage + projectedSocialWage) / 2
-  const annualContribution = midWage * idx * 0.08 * 12
-  // 简化：按 3% 年化复利粗略膨胀现有账户
+  // 个人账户（3% 年化增长 + 未来月缴入按中位社平算）
   const grownBalance = cfg.personalAccountBalance * Math.pow(1.03, yearsToRetire)
-  const projectedPersonalBalance = grownBalance + annualContribution * futureYears
+  const midWage = (city.averageWage + projectedSocialWage) / 2
+  const futureMonthlyContribution = midWage * boundedIdx * 0.08
+  const projectedPersonalBalance = grownBalance + futureMonthlyContribution * cfg.plannedFutureMonths
 
-  const months = getPersonalAccountMonths(cfg.retirementAge)
-  const personalAccountPension = projectedPersonalBalance / months
+  // 个人账户计发月数按实际退休年龄（整岁）查表
+  const payoutMonths = getPersonalAccountMonths(actualYears)
+  const personalAccountPension = projectedPersonalBalance / payoutMonths
 
   return {
     valid: true,
@@ -111,21 +169,25 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
     basicPension,
     personalAccountPension,
     monthlyTotal: basicPension + personalAccountPension,
-    totalYears,
+    totalMonths,
     projectedPersonalBalance,
+    standardRetirement: std,
+    actualRetirementYears: actualYears,
+    actualRetirementExtraMonths: actualExtraMonths,
+    retirementYearMonth,
+    yearsToRetire,
+    weightedIndex,
   }
 }
 
 /* -------- 体面覆盖率 -------- */
 
 export interface CoverageSummary {
-  /** 月目标开支（体面标准） */
   decentMonthly: number
-  /** 月度总现金流（股息 + 养老金 + 其他被动） */
-  monthlyIncome: number
-  /** 覆盖率，0 = 未设置 */
-  ratio: number
-  /** 构成 */
+  nowMonthly: number
+  retiredMonthly: number
+  nowRatio: number
+  retiredRatio: number
   breakdown: {
     dividend: number
     pension: number
@@ -139,13 +201,15 @@ export function computeCoverage(
   pension: PensionProjection,
 ): CoverageSummary {
   const otherMonthly = plan.otherIncomes.reduce((s, o) => s + o.monthlyAmount, 0)
-  const monthlyIncome = dividend.netMonthly + pension.monthlyTotal + otherMonthly
+  const nowMonthly = dividend.netMonthly + otherMonthly
+  const retiredMonthly = nowMonthly + pension.monthlyTotal
   const decent = plan.decentStandard.monthlyAmount
-  const ratio = decent > 0 ? monthlyIncome / decent : 0
   return {
     decentMonthly: decent,
-    monthlyIncome,
-    ratio,
+    nowMonthly,
+    retiredMonthly,
+    nowRatio: decent > 0 ? nowMonthly / decent : 0,
+    retiredRatio: decent > 0 ? retiredMonthly / decent : 0,
     breakdown: {
       dividend: dividend.netMonthly,
       pension: pension.monthlyTotal,
@@ -154,18 +218,17 @@ export function computeCoverage(
   }
 }
 
-/* -------- 4% 安全提现率（基于总资产） -------- */
+/* -------- 4% 安全提现率 -------- */
 
 export function safeWithdrawMonthly(totalAssetsCNY: number): number {
   return (totalAssetsCNY * 0.04) / 12
 }
 
-/* -------- 缺口分析 / 智能建议 -------- */
+/* -------- 缺口分析 -------- */
 
 export interface GapAnalysis {
-  gapMonthly: number             // >0 表示缺口
+  gapMonthly: number
   gapAnnual: number
-  /** 要完全覆盖，需要再增加多少高股息本金（按 5% 参考股息率） */
   extraPrincipalAtReferenceYield: number
   referenceYield: number
 }
@@ -173,7 +236,7 @@ export interface GapAnalysis {
 const REFERENCE_YIELD = 0.05
 
 export function computeGap(coverage: CoverageSummary): GapAnalysis {
-  const gapMonthly = Math.max(coverage.decentMonthly - coverage.monthlyIncome, 0)
+  const gapMonthly = Math.max(coverage.decentMonthly - coverage.retiredMonthly, 0)
   const gapAnnual = gapMonthly * 12
   return {
     gapMonthly,
@@ -183,8 +246,19 @@ export function computeGap(coverage: CoverageSummary): GapAnalysis {
   }
 }
 
-/* -------- 其它被动收入合计（方便调用） -------- */
-
 export function sumOtherIncome(items: OtherIncome[]): number {
   return items.reduce((s, o) => s + o.monthlyAmount, 0)
+}
+
+/**
+ * 按月领取基本养老金的最低缴费年限（月）。
+ * 依据《国务院关于渐进式延迟法定退休年龄的办法》附件二：
+ *  - 2025-2029 年退休：保持 15 年（180 月）
+ *  - 2030 起每年 +6 月（2030=186、2031=192 …）
+ *  - 2039 及以后：20 年（240 月）
+ */
+export function getMinimumContributionMonths(retirementYear: number): number {
+  if (retirementYear < 2030) return 180
+  if (retirementYear >= 2039) return 240
+  return 180 + (retirementYear - 2029) * 6
 }

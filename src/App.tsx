@@ -56,7 +56,7 @@ export default function App() {
   const showPlusAction = tab === 'asset' && !editingSnap
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       {/* Top nav bar — provides safe-area-inset-top buffer + title */}
       <div style={{
         paddingTop: 'env(safe-area-inset-top)',
