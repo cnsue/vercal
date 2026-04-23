@@ -5,17 +5,19 @@ interface Props {
   annualTarget: number
   onEdit: () => void
   variant?: 'full' | 'compact'
+  /** 右侧保留像素（供浮动元素如体面覆盖率环使用） */
+  reservedRight?: number
 }
 
 /**
- * 年度资产目标卡片（独立抽出的紧凑卡片，供资产首页与 岁月 页共用配色方案）。
+ * 年度资产目标卡片。
  * 颜色语义：
  * - 未设置：深灰 —— 引导设置
  * - 进行中 (0 < ratio < 1)：琥珀渐变
  * - 已达标 (ratio ≥ 1)：亮绿渐变
  */
 export default function AnnualTargetCard({
-  totalValueCNY, annualTarget, onEdit, variant = 'compact',
+  totalValueCNY, annualTarget, onEdit, variant = 'compact', reservedRight = 0,
 }: Props) {
   const unset = annualTarget <= 0
   const ratio = unset ? 0 : totalValueCNY / annualTarget
@@ -31,7 +33,8 @@ export default function AnnualTargetCard({
 
   const titleSize = variant === 'compact' ? 13 : 16
   const valueSize = variant === 'compact' ? 22 : 34
-  const padding = variant === 'compact' ? 14 : 20
+  const basePadding = variant === 'compact' ? 14 : 20
+  const padding = `${basePadding}px ${basePadding + reservedRight}px ${basePadding}px ${basePadding}px`
 
   return (
     <button onClick={onEdit}
@@ -40,7 +43,7 @@ export default function AnnualTargetCard({
         background, borderRadius: 20, padding, color: '#fff',
         border: 'none', cursor: 'pointer',
       }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: variant === 'compact' ? 4 : 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: variant === 'compact' ? 4 : 6 }}>
         <div style={{ fontSize: titleSize, fontWeight: 800, letterSpacing: '-0.02em' }}>年度目标</div>
         {!unset && (
           <div style={{

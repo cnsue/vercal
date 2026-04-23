@@ -13,10 +13,17 @@ body {
   margin: 0;
   background: var(--bg);
   color: #1a1a1a;
+  /* 禁用双击缩放等原生手势 */
+  touch-action: manipulation;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+}
+
+/* iOS 聚焦字号 < 16px 的 input 会强制页面放大，用 !important 覆盖组件内联 fontSize: 14 */
+input, select, textarea {
+  font-size: 16px !important;
 }
 
 input[type="number"]::-webkit-inner-spin-button,

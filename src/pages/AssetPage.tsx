@@ -3,7 +3,7 @@ import { useAssetStore } from '../store/useAssetStore'
 import { useRetirementStore } from '../store/useRetirementStore'
 import HeroCard from '../components/HeroCard'
 import AnnualTargetCard from '../components/AnnualTargetCard'
-import CoverageHero from '../components/retirement/CoverageHero'
+import CoverageRing from '../components/retirement/CoverageRing'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import TrendChart from '../components/charts/TrendChart'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
@@ -77,22 +77,22 @@ export default function AssetPage({ onOpenEditor }: Props) {
         latestDateKey={latest?.dateKey ?? null}
       />
 
-      {/* 左右双卡片：年度目标 + 体面覆盖率 */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+      {/* 年度目标卡片（含右上角体面覆盖率环） */}
+      <div style={{ position: 'relative', marginBottom: 14 }}>
         <AnnualTargetCard
           totalValueCNY={latest?.totalValueCNY ?? 0}
           annualTarget={store.annualTarget}
+          variant="full"
+          reservedRight={64}
           onEdit={() => {
             setTargetInput(store.annualTarget > 0 ? String(store.annualTarget) : '')
             setShowTargetEditor(true)
           }}
         />
-        <CoverageHero
+        <CoverageRing
           ratio={coverage.ratio}
-          decentMonthly={coverage.decentMonthly}
-          monthlyIncome={coverage.monthlyIncome}
-          variant="compact"
-          onEdit={() => setShowDecentEditor(true)}
+          unset={coverage.decentMonthly <= 0}
+          onClick={() => setShowDecentEditor(true)}
         />
       </div>
 
