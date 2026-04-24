@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { formatCNY } from '../../utils/formatters'
 import type { DimensionCoverage } from '../../utils/retirementCalc'
 import { getCoverageLevel, getNextCoverageLevel, COVERAGE_LEVELS } from '../../types/retirement'
@@ -10,12 +9,16 @@ interface Breakdown {
   other: number
 }
 
+export type CoverageMode = 'now' | 'retired'
+
 interface Props {
   decentMonthly: number
   nowRatio: number
   retiredRatio: number
   nowMonthly: number
   retiredMonthly: number
+  mode: CoverageMode
+  onModeChange: (mode: CoverageMode) => void
   breakdown?: Breakdown
   onEdit?: () => void
   /** 底部维度圆环列表；传空数组则不渲染底部区域 */
@@ -27,10 +30,8 @@ const MAX_RATIO = 1.6
 
 export default function CoverageHero({
   decentMonthly, nowRatio, retiredRatio, nowMonthly, retiredMonthly, breakdown, onEdit,
-  dimensions = [], onDimensionClick,
+  mode, onModeChange, dimensions = [], onDimensionClick,
 }: Props) {
-  const [mode, setMode] = useState<'now' | 'retired'>('retired')
-
   const unset = decentMonthly <= 0
   const activeRatio = mode === 'now' ? nowRatio : retiredRatio
   const otherRatio = mode === 'now' ? retiredRatio : nowRatio
@@ -60,7 +61,7 @@ export default function CoverageHero({
               {(['now', 'retired'] as const).map(m => (
                 <button
                   key={m}
-                  onClick={() => setMode(m)}
+                  onClick={() => onModeChange(m)}
                   style={{
                     border: 'none', borderRadius: 8, cursor: 'pointer',
                     padding: '3px 8px', fontSize: 11, fontWeight: 700,

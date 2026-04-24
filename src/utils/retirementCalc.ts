@@ -368,39 +368,59 @@ function getItemPriority(item: DecentBreakdownItem): DecentPriority {
   return CUSTOM_PRIORITY
 }
 
+const FLEXIBLE_RESERVE_RATIO = 0.2
+
+function sumItemBudget(items: DecentBreakdownItem[]): number {
+  return items.reduce((s, i) => s + Math.max(0, i.monthlyAmount), 0)
+}
+
+function allocateByBudgetWeight(
+  items: DecentBreakdownItem[],
+  allocation: number,
+  incomePerItem: Map<string, number>,
+) {
+  const groupBudget = sumItemBudget(items)
+  if (groupBudget <= 0 || allocation <= 0) return
+
+  for (const item of items) {
+    const budget = Math.max(0, item.monthlyAmount)
+    const weight = budget / groupBudget
+    incomePerItem.set(item.id, (incomePerItem.get(item.id) ?? 0) + allocation * weight)
+  }
+}
+
 /**
  * 计算各维度覆盖率。
  *
  * 分配规则：
- * - 必需（priority=1，衣食住行）优先全部满足，同级内部按预算占比分摊该组配额
- * - 弹性（priority=2，医乐爱及自定义）只能瓜分必需覆盖完后剩下的收入
- * - 同级收入不足时，组内仍按预算占比分（每个维度都会按比例覆盖一部分）
+ * - 若有弹性项（医乐爱及自定义）且收入大于 0，先预留 20% 收入给弹性项，避免钱少时归零
+ * - 剩余收入优先满足必需项（衣食住行）
+ * - 必需项满足后，剩余收入继续补给弹性项
+ * - 同组内部始终按预算占比分摊
  */
 export function computeDimensionCoverage(
   breakdown: DecentBreakdownItem[],
   monthlyIncome: number,
 ): DimensionCoverage[] {
-  const groups = new Map<DecentPriority, DecentBreakdownItem[]>()
-  for (const item of breakdown) {
-    const p = getItemPriority(item)
-    if (!groups.has(p)) groups.set(p, [])
-    groups.get(p)!.push(item)
-  }
-  const sortedPriorities = [...groups.keys()].sort((a, b) => a - b)
+  const requiredItems = breakdown.filter(item => getItemPriority(item) === 1)
+  const flexibleItems = breakdown.filter(item => getItemPriority(item) === 2)
+  const requiredBudget = sumItemBudget(requiredItems)
+  const flexibleBudget = sumItemBudget(flexibleItems)
+  const totalIncome = Math.max(0, monthlyIncome)
 
   const incomePerItem = new Map<string, number>()
-  let remaining = Math.max(0, monthlyIncome)
-  for (const p of sortedPriorities) {
-    const items = groups.get(p)!
-    const groupBudget = items.reduce((s, i) => s + Math.max(0, i.monthlyAmount), 0)
-    const allocated = Math.min(groupBudget, remaining)
-    for (const item of items) {
-      const budget = Math.max(0, item.monthlyAmount)
-      const weight = groupBudget > 0 ? budget / groupBudget : 0
-      incomePerItem.set(item.id, allocated * weight)
-    }
-    remaining -= allocated
-  }
+  const flexibleReserve = flexibleBudget > 0 && totalIncome > 0
+    ? Math.min(totalIncome * FLEXIBLE_RESERVE_RATIO, flexibleBudget)
+    : 0
+  allocateByBudgetWeight(flexibleItems, flexibleReserve, incomePerItem)
+
+  let remaining = totalIncome - flexibleReserve
+  const requiredAllocation = Math.min(requiredBudget, remaining)
+  allocateByBudgetWeight(requiredItems, requiredAllocation, incomePerItem)
+  remaining -= requiredAllocation
+
+  const flexibleTopUp = Math.min(Math.max(0, flexibleBudget - flexibleReserve), remaining)
+  allocateByBudgetWeight(flexibleItems, flexibleTopUp, incomePerItem)
 
   return breakdown.map(item => {
     const budget = Math.max(0, item.monthlyAmount)

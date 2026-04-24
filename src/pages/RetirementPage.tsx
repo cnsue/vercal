@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRetirementStore } from '../store/useRetirementStore'
 import { useAssetStore } from '../store/useAssetStore'
-import CoverageHero from '../components/retirement/CoverageHero'
+import CoverageHero, { type CoverageMode } from '../components/retirement/CoverageHero'
 import DimensionDetailSheet from '../components/retirement/DimensionDetailSheet'
 import DividendHoldings from '../components/retirement/DividendHoldings'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
@@ -25,6 +25,7 @@ export default function RetirementPage() {
 
   const [showDecentEditor, setShowDecentEditor] = useState(false)
   const [showOtherEditor, setShowOtherEditor] = useState(false)
+  const [coverageMode, setCoverageMode] = useState<CoverageMode>('retired')
   const [detailDimId, setDetailDimId] = useState<string | null>(null)
 
   const dividend = useMemo(() => computeDividendSummary(plan.holdings), [plan.holdings])
@@ -39,10 +40,15 @@ export default function RetirementPage() {
   )
   const gap = useMemo(() => computeGap(coverage), [coverage])
   const safeMonthly = safeWithdrawMonthly(totalAssets)
-  const dimensions = useMemo(
+  const nowDimensions = useMemo(
+    () => computeDimensionCoverage(plan.decentStandard.breakdown, coverage.nowMonthly),
+    [plan.decentStandard.breakdown, coverage.nowMonthly],
+  )
+  const retiredDimensions = useMemo(
     () => computeDimensionCoverage(plan.decentStandard.breakdown, coverage.retiredMonthly),
     [plan.decentStandard.breakdown, coverage.retiredMonthly],
   )
+  const dimensions = coverageMode === 'now' ? nowDimensions : retiredDimensions
 
   // 首次进入：未设置任何维度预算时自动拉起向导
   useEffect(() => {
@@ -51,6 +57,12 @@ export default function RetirementPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (detailDimId && !dimensions.some(d => d.id === detailDimId)) {
+      setDetailDimId(null)
+    }
+  }, [detailDimId, dimensions])
 
   const dividendMultiplier = dividend.netAnnual > 0
     ? projectedDividend.netAnnual / dividend.netAnnual
@@ -77,6 +89,8 @@ export default function RetirementPage() {
         retiredRatio={coverage.retiredRatio}
         nowMonthly={coverage.nowMonthly}
         retiredMonthly={coverage.retiredMonthly}
+        mode={coverageMode}
+        onModeChange={setCoverageMode}
         breakdown={coverage.breakdown}
         onEdit={() => setShowDecentEditor(true)}
         dimensions={coverage.decentMonthly > 0 ? dimensions : []}
