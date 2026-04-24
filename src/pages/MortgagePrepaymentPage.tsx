@@ -409,35 +409,51 @@ function RateRow({ label, value, onChange, baseRate, presets, baseLabel }: {
   presets: number[]
   baseLabel: string
 }) {
-  const activeBps = presets.find(bp => Math.abs(Math.round((value - baseRate) * 100) - bp) < 1) ?? null
+  const currentBps = Math.round((value - baseRate) * 100)
+  const activeBps  = presets.find(bp => bp === currentBps) ?? null
+
+  function bump(deltaBps: number) {
+    const next = Math.round((value * 100 + deltaBps)) / 100
+    onChange(Math.max(0.01, next))
+  }
 
   return (
-    <div>
-      <NumberRow label={label} unit="%" value={value} onChange={onChange} step={0.05} precision={3} />
-      <div style={{ paddingLeft: 0, paddingBottom: 6, paddingTop: 2 }}>
-        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>
-          参考 {baseLabel}：{baseRate}%
+    <div style={{ padding: '8px 0' }}>
+      {/* 标题行 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ fontSize: 13, color: 'var(--muted)' }}>{label}</span>
+        <span style={{ fontSize: 11, color: 'var(--muted)' }}>参考 {baseLabel}: {baseRate}%</span>
+      </div>
+      {/* TagPill 选择器 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+        {presets.map(bp => {
+          const rate   = Math.round((baseRate + bp / 100) * 1000) / 1000
+          const active = activeBps === bp
+          return (
+            <button key={bp} onClick={() => onChange(rate)}
+              style={{
+                display: 'inline-flex', alignItems: 'center',
+                background: active ? 'var(--primary)' : 'var(--button-secondary-bg)',
+                color: active ? '#fff' : 'var(--button-secondary-text)',
+                borderRadius: 6, padding: '5px 10px',
+                border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: active ? 700 : 400,
+              }}>
+              {bp === 0 ? '基准' : `${bp > 0 ? '+' : ''}${bp}bp`}
+            </button>
+          )
+        })}
+      </div>
+      {/* 步进条（±10bp） */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={() => bump(-10)} aria-label="减少 10bp" style={stepperStyle}>−</button>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>{value}%</span>
+          <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 6 }}>
+            {currentBps === 0 ? '基准' : `${currentBps > 0 ? '+' : ''}${currentBps}bp`}
+          </span>
         </div>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          {presets.map(bp => {
-            const rate = Math.round((baseRate + bp / 100) * 1000) / 1000
-            const active = activeBps === bp
-            return (
-              <button key={bp} onClick={() => onChange(rate)}
-                style={{
-                  padding: '4px 9px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                  fontSize: 11, fontWeight: active ? 700 : 400,
-                  background: active ? 'var(--primary)' : 'var(--button-secondary-bg)',
-                  color: active ? '#fff' : 'var(--button-secondary-text)',
-                  lineHeight: 1.4,
-                }}>
-                {bp === 0 ? '基准' : `${bp > 0 ? '+' : ''}${bp}bp`}
-                <br />
-                <span style={{ opacity: 0.8 }}>{rate}%</span>
-              </button>
-            )
-          })}
-        </div>
+        <button onClick={() => bump(10)} aria-label="增加 10bp" style={stepperStyle}>+</button>
       </div>
     </div>
   )
