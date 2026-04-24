@@ -65,6 +65,7 @@ export default function TrendChart({ slots, period }: Props) {
   const plotCanvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const pinchRef = useRef<{ distance: number; zoom: number; focusX: number; centerX: number } | null>(null)
+  const panRef = useRef<{ startX: number; startScrollLeft: number } | null>(null)
   const pendingFocusRef = useRef<{ zoom: number; focusX: number; centerX: number } | null>(null)
   const zoomRef = useRef(1)
   const [themeTick, setThemeTick] = useState(0)
@@ -116,26 +117,53 @@ export default function TrendChart({ slots, period }: Props) {
       }
     }
 
+    const beginPan = (touch: Touch) => {
+      panRef.current = {
+        startX: touch.clientX,
+        startScrollLeft: el.scrollLeft,
+      }
+    }
+
     const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length === 2) beginPinch(event.touches)
+      if (event.touches.length === 2) {
+        panRef.current = null
+        beginPinch(event.touches)
+        event.preventDefault()
+      } else if (event.touches.length === 1) {
+        pinchRef.current = null
+        beginPan(event.touches[0])
+        event.preventDefault()
+      }
     }
     const onTouchMove = (event: TouchEvent) => {
-      if (event.touches.length !== 2 || !pinchRef.current) return
-      event.preventDefault()
-      const nextZoom = clamp(
-        pinchRef.current.zoom * (touchDistance(event.touches) / pinchRef.current.distance),
-        MIN_ZOOM,
-        MAX_ZOOM,
-      )
-      pendingFocusRef.current = {
-        zoom: pinchRef.current.zoom,
-        focusX: pinchRef.current.focusX,
-        centerX: touchCenterX(event.touches, el),
+      if (event.touches.length === 2 && pinchRef.current) {
+        event.preventDefault()
+        const nextZoom = clamp(
+          pinchRef.current.zoom * (touchDistance(event.touches) / pinchRef.current.distance),
+          MIN_ZOOM,
+          MAX_ZOOM,
+        )
+        pendingFocusRef.current = {
+          zoom: pinchRef.current.zoom,
+          focusX: pinchRef.current.focusX,
+          centerX: touchCenterX(event.touches, el),
+        }
+        setZoom(nextZoom)
+      } else if (event.touches.length === 1 && panRef.current) {
+        event.preventDefault()
+        const dx = event.touches[0].clientX - panRef.current.startX
+        el.scrollLeft = panRef.current.startScrollLeft - dx
       }
-      setZoom(nextZoom)
     }
     const onTouchEnd = (event: TouchEvent) => {
-      if (event.touches.length < 2) pinchRef.current = null
+      if (event.touches.length === 0) {
+        pinchRef.current = null
+        panRef.current = null
+      } else if (event.touches.length === 1) {
+        // Transition: pinch just ended, one finger still down — switch to pan.
+        pinchRef.current = null
+        beginPan(event.touches[0])
+      }
     }
     const onWheel = (event: WheelEvent) => {
       if (!event.ctrlKey && !event.metaKey) return
@@ -150,7 +178,7 @@ export default function TrendChart({ slots, period }: Props) {
       setZoom(current => clamp(current * Math.exp(-event.deltaY * 0.01), MIN_ZOOM, MAX_ZOOM))
     }
 
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
     el.addEventListener('touchmove', onTouchMove, { passive: false })
     el.addEventListener('touchend', onTouchEnd)
     el.addEventListener('touchcancel', onTouchEnd)
@@ -313,7 +341,7 @@ export default function TrendChart({ slots, period }: Props) {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
         <canvas ref={axisCanvasRef} style={{ display: 'block', flex: '0 0 auto', background: 'var(--surface)' }} />
-        <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', flex: 1, touchAction: 'pan-x' }}>
+        <div ref={scrollRef} style={{ overflowX: 'auto', flex: 1, touchAction: 'none' }}>
           <canvas ref={plotCanvasRef} style={{ display: 'block' }} />
         </div>
       </div>
