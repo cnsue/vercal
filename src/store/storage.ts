@@ -1,6 +1,6 @@
 import type { Snapshot, ExchangeRate } from '../types/models'
-import type { RetirementPlan, PensionConfig } from '../types/retirement'
-import { DEFAULT_RETIREMENT_PLAN, DEFAULT_PENSION } from '../types/retirement'
+import type { RetirementPlan, PensionConfig, DecentStandard, DecentBreakdownItem, DecentDimensionKey } from '../types/retirement'
+import { DEFAULT_RETIREMENT_PLAN, DEFAULT_PENSION, DECENT_DIMENSIONS, sumBreakdown } from '../types/retirement'
 import type { ThemePreference } from '../types/theme'
 
 const K = {
@@ -106,6 +106,52 @@ function clampNonNegativeInt(v: unknown, max: number): number {
   return Math.max(0, Math.min(Math.round(v), max))
 }
 
+/**
+ * 迁移历史 DecentStandard 到 6 维度模型。
+ * - 老数据只有 monthlyAmount，且 >0 → 按默认权重比例拆为 6 维
+ * - 老数据有 breakdown（旧自由结构）→ 尝试按 id 映射到固定 6 维，补齐缺失维度
+ * - 全 0 / 无 breakdown → 返回空 breakdown，触发首次向导
+ */
+function migrateDecentStandard(stored: unknown): DecentStandard {
+  if (!stored || typeof stored !== 'object') {
+    return { monthlyAmount: 0, breakdown: [] }
+  }
+  const s = stored as Record<string, unknown>
+  const rawMonthly = typeof s.monthlyAmount === 'number' && isFinite(s.monthlyAmount) ? Math.max(0, s.monthlyAmount) : 0
+  const rawBreakdown = Array.isArray(s.breakdown) ? s.breakdown : []
+
+  const validKeys = new Set<DecentDimensionKey>(DECENT_DIMENSIONS.map(d => d.key))
+  const typedItems: DecentBreakdownItem[] = []
+  for (const raw of rawBreakdown) {
+    if (!raw || typeof raw !== 'object') continue
+    const r = raw as Record<string, unknown>
+    const key = r.key
+    if (typeof key !== 'string' || !validKeys.has(key as DecentDimensionKey)) continue
+    const amount = typeof r.monthlyAmount === 'number' && isFinite(r.monthlyAmount) ? Math.max(0, r.monthlyAmount) : 0
+    typedItems.push({ key: key as DecentDimensionKey, monthlyAmount: amount })
+  }
+
+  // 已是新模型且所有 6 维都在
+  if (typedItems.length === DECENT_DIMENSIONS.length) {
+    const ordered = DECENT_DIMENSIONS.map(d => typedItems.find(i => i.key === d.key) ?? { key: d.key, monthlyAmount: 0 })
+    return { monthlyAmount: sumBreakdown(ordered), breakdown: ordered }
+  }
+
+  // 老数据仅有 monthlyAmount 且 > 0 → 按默认权重分摊
+  if (rawMonthly > 0) {
+    const defaultTotal = DECENT_DIMENSIONS.reduce((s, d) => s + d.defaultMonthly, 0)
+    const scale = defaultTotal > 0 ? rawMonthly / defaultTotal : 0
+    const breakdown = DECENT_DIMENSIONS.map(d => ({
+      key: d.key,
+      monthlyAmount: Math.round(d.defaultMonthly * scale),
+    }))
+    return { monthlyAmount: sumBreakdown(breakdown), breakdown }
+  }
+
+  // 首次 / 无数据
+  return { monthlyAmount: 0, breakdown: [] }
+}
+
 export const StorageService = {
   getSnapshots: (): Snapshot[] => get<Snapshot[]>(K.snapshots, []),
   saveSnapshots: (s: Snapshot[]): void => set(K.snapshots, s),
@@ -137,7 +183,7 @@ export const StorageService = {
     return {
       ...DEFAULT_RETIREMENT_PLAN,
       ...stored,
-      decentStandard: { ...DEFAULT_RETIREMENT_PLAN.decentStandard, ...stored.decentStandard },
+      decentStandard: migrateDecentStandard(stored.decentStandard),
       pension: migratePension(stored.pension),
       holdings: stored.holdings ?? [],
       otherIncomes: stored.otherIncomes ?? [],

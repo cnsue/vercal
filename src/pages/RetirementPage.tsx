@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRetirementStore } from '../store/useRetirementStore'
 import { useAssetStore } from '../store/useAssetStore'
 import CoverageHero from '../components/retirement/CoverageHero'
+import CoverageDimensions from '../components/retirement/CoverageDimensions'
 import DividendHoldings from '../components/retirement/DividendHoldings'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
@@ -10,6 +11,7 @@ import {
   computeDividendSummary, projectDividendSummary,
   computePensionProjection, computeCoverage,
   computeGap, computeHoldingIncome, safeWithdrawMonthly,
+  computeDimensionCoverage,
 } from '../utils/retirementCalc'
 import { findPensionCity } from '../data/pensionCities'
 import { findDividendStock } from '../data/dividendStocks'
@@ -36,6 +38,18 @@ export default function RetirementPage() {
   )
   const gap = useMemo(() => computeGap(coverage), [coverage])
   const safeMonthly = safeWithdrawMonthly(totalAssets)
+  const dimensions = useMemo(
+    () => computeDimensionCoverage(plan.decentStandard.breakdown, coverage.retiredMonthly),
+    [plan.decentStandard.breakdown, coverage.retiredMonthly],
+  )
+
+  // 首次进入：未设置任何维度预算时自动拉起向导
+  useEffect(() => {
+    if (plan.decentStandard.breakdown.length === 0 && plan.decentStandard.monthlyAmount === 0) {
+      setShowDecentEditor(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const dividendMultiplier = dividend.netAnnual > 0
     ? projectedDividend.netAnnual / dividend.netAnnual
@@ -64,6 +78,14 @@ export default function RetirementPage() {
         retiredMonthly={coverage.retiredMonthly}
         onEdit={() => setShowDecentEditor(true)}
       />
+
+      {coverage.decentMonthly > 0 && plan.decentStandard.breakdown.length > 0 && (
+        <CoverageDimensions
+          dimensions={dimensions}
+          phase="retired"
+          onEdit={() => setShowDecentEditor(true)}
+        />
+      )}
 
       <ScenarioSelector
         years={pension.yearsToRetire}

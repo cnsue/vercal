@@ -61,18 +61,62 @@ export const DIVIDEND_SCENARIO_LABELS: Record<DividendGrowthScenario, string> = 
   optimistic: '乐观',
 }
 
-/** "体面标准" —— 月度目标开支；未来可扩展为"体面指数"拆衣食住行 */
-export interface DecentStandard {
-  /** 月目标开支（元，税后） */
-  monthlyAmount: number
-  /** 预留：衣食住行拆分 */
-  breakdown?: DecentBreakdownItem[]
-}
+/** "体面标准" —— 6 维度月度目标开支 */
+export type DecentDimensionKey = 'food' | 'housing' | 'transport' | 'medical' | 'leisure' | 'social'
 
 export interface DecentBreakdownItem {
-  id: string
-  name: string            // 衣 / 食 / 住 / 行 / 其他
+  key: DecentDimensionKey
   monthlyAmount: number
+}
+
+export interface DecentStandard {
+  /** 月目标开支（元，税后）。由 breakdown 汇总，保持冗余方便老代码读取。 */
+  monthlyAmount: number
+  /** 6 维度预算；未设置时为空数组（触发首次向导） */
+  breakdown: DecentBreakdownItem[]
+}
+
+export interface DecentDimensionMeta {
+  key: DecentDimensionKey
+  label: string
+  icon: string
+  defaultMonthly: number
+  suggestion: string
+}
+
+export const DECENT_DIMENSIONS: readonly DecentDimensionMeta[] = [
+  {
+    key: 'food', label: '食', icon: '🍱', defaultMonthly: 2400,
+    suggestion: '可关注食品饮料、必选消费板块的稳定分红标的，生活刚需现金流波动小。',
+  },
+  {
+    key: 'housing', label: '住', icon: '🏠', defaultMonthly: 3000,
+    suggestion: '若租房，可通过 REITs / 公用事业股息对冲房租；若自住，重点覆盖物业与维护。',
+  },
+  {
+    key: 'transport', label: '行', icon: '🚌', defaultMonthly: 1000,
+    suggestion: '出行开销弹性大，可用红利低波类 ETF 或公共交通类个股覆盖。',
+  },
+  {
+    key: 'medical', label: '医', icon: '🏥', defaultMonthly: 2400,
+    suggestion: '医疗开销随年龄上行，建议增加医药、保险板块的高股息配置，并留出医疗专项应急金。',
+  },
+  {
+    key: 'leisure', label: '乐', icon: '🎨', defaultMonthly: 1800,
+    suggestion: '娱乐、旅行、文化消费，可由文娱、传媒或自由现金流覆盖，弹性调整。',
+  },
+  {
+    key: 'social', label: '爱', icon: '💞', defaultMonthly: 1400,
+    suggestion: '家庭、人情、公益支出，优先用稳定现金流（债息、年金）托底。',
+  },
+] as const
+
+export function defaultDecentBreakdown(): DecentBreakdownItem[] {
+  return DECENT_DIMENSIONS.map(d => ({ key: d.key, monthlyAmount: d.defaultMonthly }))
+}
+
+export function sumBreakdown(items: DecentBreakdownItem[]): number {
+  return items.reduce((s, i) => s + Math.max(0, i.monthlyAmount), 0)
 }
 
 /** 其它稳定被动收入（租金、年金等） */
@@ -108,7 +152,7 @@ export const DEFAULT_PENSION: PensionConfig = {
 }
 
 export const DEFAULT_RETIREMENT_PLAN: RetirementPlan = {
-  decentStandard: { monthlyAmount: 0 },
+  decentStandard: { monthlyAmount: 0, breakdown: [] },
   holdings: [],
   pension: DEFAULT_PENSION,
   otherIncomes: [],
