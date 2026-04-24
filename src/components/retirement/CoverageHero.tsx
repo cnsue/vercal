@@ -132,9 +132,13 @@ function DimensionsRow({ dimensions, onDimensionClick }: {
         各维度覆盖 · 点圆环看缺口
       </div>
       <div style={{
-        display: 'flex', gap: 4,
-        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
-        paddingBottom: 2, touchAction: 'pan-x',
+        display: 'grid',
+        // ≤9 项一行铺满；更多时均摊两行，避免最后一行只有 1-2 个
+        gridTemplateColumns: `repeat(${
+          dimensions.length <= 9 ? dimensions.length : Math.ceil(dimensions.length / 2)
+        }, minmax(0, 1fr))`,
+        gap: 2,
+        rowGap: 10,
       }}>
         {dimensions.map(d => (
           <DimensionMini key={d.id} dim={d} onClick={() => onDimensionClick?.(d.id)} />
@@ -145,8 +149,8 @@ function DimensionsRow({ dimensions, onDimensionClick }: {
 }
 
 function DimensionMini({ dim, onClick }: { dim: DimensionCoverage; onClick: () => void }) {
-  const size = 44
-  const stroke = 4
+  const size = 38
+  const stroke = 3
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
   const reached = dim.ratio >= 1
@@ -158,10 +162,9 @@ function DimensionMini({ dim, onClick }: { dim: DimensionCoverage; onClick: () =
   return (
     <button onClick={onClick} aria-label={`${dim.label} ${pctText}`}
       style={{
-        flex: '1 0 auto', minWidth: 54,
-        background: 'none', border: 'none', padding: '4px 2px',
-        color: '#fff', cursor: 'pointer',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+        background: 'none', border: 'none', padding: '2px 0',
+        color: '#fff', cursor: 'pointer', minWidth: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
       }}>
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
@@ -178,7 +181,7 @@ function DimensionMini({ dim, onClick }: { dim: DimensionCoverage; onClick: () =
         <div style={{
           position: 'absolute', inset: 0, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, lineHeight: 1,
+          fontSize: 14, lineHeight: 1,
         }}>
           {dim.icon}
         </div>
@@ -186,7 +189,7 @@ function DimensionMini({ dim, onClick }: { dim: DimensionCoverage; onClick: () =
       <div style={{ fontSize: 10, opacity: 0.9, fontWeight: 700, lineHeight: 1 }}>
         {dim.label}
       </div>
-      <div style={{ fontSize: 10, opacity: 0.8, lineHeight: 1 }}>
+      <div style={{ fontSize: 9, opacity: 0.8, lineHeight: 1 }}>
         {pctText}
       </div>
     </button>
