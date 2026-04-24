@@ -1,33 +1,76 @@
 /**
- * 商贷提前还款计算。
+ * 房贷提前还款计算（支持商业贷款、公积金贷款、组合贷款）。
  *
  * 约定：
  * - 月利率 = 年利率 / 12（中国房贷惯例，而非几何年化）
  * - 等额本息（EPI）月供恒定；等额本金（EMP）首期高、逐月递减
- * - v1 只支持一次性提前还款
+ * - 已还月数由首次还款年月自动推算
  */
 
 export type RepaymentMethod = 'epi' | 'emp'
 export type PrepaymentMode = 'shortenTerm' | 'reduceMonthly'
+export type LoanType = 'commercial' | 'providentFund' | 'combined'
+export type PrepayTarget = 'commercial' | 'pf'
+
+// 参考利率基准（2024 年末）
+export const LPR_5Y = 3.10        // 5 年期 LPR
+export const PF_RATE_5Y = 2.85    // 公积金 5 年以上基准利率
+
+export const LPR_PRESETS_BPS = [-100, -50, -30, -20, -10, 0, 10, 20, 30] as const
+export const PF_PRESETS_BPS  = [-20, -10, 0, 10, 20] as const
 
 export interface MortgageInputs {
-  principal: number         // 本金（元）
-  years: number             // 贷款年限
-  annualRatePct: number     // 年利率（百分数，例如 4.1）
+  loanType: LoanType
+
+  // 商业贷款（或纯公积金时同一套字段）
+  principal: number
+  years: number
+  annualRatePct: number
   method: RepaymentMethod
-  paidMonths: number        // 已还月数
-  prepaymentAmount: number  // 预还金额（元）
+
+  // 公积金部分（仅组合贷款使用）
+  pfPrincipal: number
+  pfYears: number
+  pfAnnualRatePct: number
+  pfMethod: RepaymentMethod
+
+  firstRepaymentDate: string   // "YYYY-MM"
+  prepaymentAmount: number
   prepaymentMode: PrepaymentMode
+  prepayTarget: PrepayTarget   // 组合贷款提前还哪部分
+}
+
+/** 由首次还款年月推算已还月数（截至当前月） */
+export function computePaidMonths(firstRepaymentDate: string): number {
+  const m = firstRepaymentDate.match(/^(\d{4})-(\d{2})$/)
+  if (!m) return 0
+  const year = parseInt(m[1], 10)
+  const month = parseInt(m[2], 10)
+  const now = new Date()
+  const months = (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - month)
+  return Math.max(0, months)
+}
+
+function defaultFirstRepaymentDate(): string {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() - 3)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 export const DEFAULT_MORTGAGE_INPUTS: MortgageInputs = {
+  loanType: 'commercial',
   principal: 1_000_000,
   years: 30,
-  annualRatePct: 4.1,
+  annualRatePct: LPR_5Y,
   method: 'epi',
-  paidMonths: 0,
+  pfPrincipal: 300_000,
+  pfYears: 20,
+  pfAnnualRatePct: PF_RATE_5Y,
+  pfMethod: 'epi',
+  firstRepaymentDate: defaultFirstRepaymentDate(),
   prepaymentAmount: 0,
   prepaymentMode: 'shortenTerm',
+  prepayTarget: 'commercial',
 }
 
 function monthlyRate(annualRatePct: number): number {
@@ -76,7 +119,6 @@ export function computeEMP(principal: number, annualRatePct: number, totalMonths
   const mp = principal / totalMonths
   const firstPayment = mp + principal * r
   const lastPayment = mp + mp * r
-  // 总利息 = r * Σ(剩余本金) = r * P * (n+1)/2
   const totalInterest = r * principal * (totalMonths + 1) / 2
   return {
     monthlyPrincipal: mp, firstPayment, lastPayment,
@@ -84,7 +126,7 @@ export function computeEMP(principal: number, annualRatePct: number, totalMonths
   }
 }
 
-/* -------- 进度推导（剩余本金 / 已付利息） -------- */
+/* -------- 进度推导 -------- */
 
 export function remainingBalanceEPI(
   principal: number, annualRatePct: number, totalMonths: number, paidMonths: number,
@@ -118,21 +160,20 @@ function paidInterestEMP(principal: number, annualRatePct: number, totalMonths: 
   const r = monthlyRate(annualRatePct)
   const mp = principal / totalMonths
   const k = Math.min(paidMonths, totalMonths)
-  // Σ_{i=1..k} (P - (i-1)*mp) * r = r * (P*k - mp*k*(k-1)/2)
   return r * (principal * k - mp * k * (k - 1) / 2)
 }
 
-/* -------- 提前还款 -------- */
+/* -------- 提前还款结果类型 -------- */
 
 export interface PrepayResult {
   valid: boolean
   original: {
     method: RepaymentMethod
     totalMonths: number
-    monthlyPayment?: number     // EPI
-    firstPayment?: number       // EMP
-    lastPayment?: number        // EMP
-    monthlyPrincipal?: number   // EMP
+    monthlyPayment?: number
+    firstPayment?: number
+    lastPayment?: number
+    monthlyPrincipal?: number
     totalInterest: number
     totalPayment: number
   }
@@ -148,16 +189,16 @@ export interface PrepayResult {
     actualPrepayment: number
     newBalance: number
     newRemainingMonths: number
-    newMonthlyPayment?: number        // EPI
-    newFirstPayment?: number          // EMP
-    newLastPayment?: number           // EMP
-    newMonthlyPrincipal?: number      // EMP
+    newMonthlyPayment?: number
+    newFirstPayment?: number
+    newLastPayment?: number
+    newMonthlyPrincipal?: number
     remainingInterest: number
-    settled: boolean                   // 是否已全部还清
+    settled: boolean
   }
   savings: {
-    interestSaved: number              // 对比两种未来应付利息
-    monthsShortened: number            // 仅 shortenTerm 非 0
+    interestSaved: number
+    monthsShortened: number
   }
 }
 
@@ -172,21 +213,34 @@ function emptyResult(method: RepaymentMethod): PrepayResult {
   }
 }
 
-export function prepay(inputs: MortgageInputs): PrepayResult {
-  const {
-    principal, years, annualRatePct, method,
-    paidMonths, prepaymentAmount, prepaymentMode,
-  } = inputs
+/* -------- 核心计算（接受已还月数） -------- */
+
+export function prepayLoan(
+  principal: number, years: number, annualRatePct: number,
+  method: RepaymentMethod, paidMonths: number,
+  prepaymentAmount: number, prepaymentMode: PrepaymentMode,
+): PrepayResult {
   const totalMonths = Math.round(years * 12)
   const r = monthlyRate(annualRatePct)
-
   if (principal <= 0 || totalMonths <= 0 || paidMonths < 0 || paidMonths >= totalMonths) {
     return emptyResult(method)
   }
-
-  if (method === 'epi') return prepayEPI(principal, annualRatePct, totalMonths, r, paidMonths, prepaymentAmount, prepaymentMode)
+  if (method === 'epi') {
+    return prepayEPI(principal, annualRatePct, totalMonths, r, paidMonths, prepaymentAmount, prepaymentMode)
+  }
   return prepayEMP(principal, annualRatePct, totalMonths, r, paidMonths, prepaymentAmount, prepaymentMode)
 }
+
+/** 高层入口：从 MortgageInputs 中取商业贷款字段计算，已还月数由首次还款日期推算 */
+export function prepay(inputs: MortgageInputs): PrepayResult {
+  const paidMonths = computePaidMonths(inputs.firstRepaymentDate)
+  return prepayLoan(
+    inputs.principal, inputs.years, inputs.annualRatePct, inputs.method,
+    paidMonths, inputs.prepaymentAmount, inputs.prepaymentMode,
+  )
+}
+
+/* -------- EPI / EMP 内部实现（与原版完全一致） -------- */
 
 function prepayEPI(
   P: number, annualRatePct: number, n: number, r: number,
@@ -196,7 +250,6 @@ function prepayEPI(
   const balanceBefore = remainingBalanceEPI(P, annualRatePct, n, k)
   const paidInterest = paidInterestEPI(P, annualRatePct, n, k)
   const paidPrincipal = P - balanceBefore
-  // 原方案剩余应付利息
   const remainingInterestOriginal = orig.totalInterest - paidInterest
 
   const actualPrepay = Math.min(Math.max(0, prepayAmount), balanceBefore)
@@ -209,16 +262,12 @@ function prepayEPI(
   }
   const paidBlock = { paidMonths: k, paidPrincipal, paidInterest }
 
-  // 全部还清
   if (balanceAfter <= 0.01) {
     return {
-      valid: true,
-      original: originalBlock,
-      paid: paidBlock,
+      valid: true, original: originalBlock, paid: paidBlock,
       beforePrepay: { remainingBalance: balanceBefore },
       afterPrepay: {
-        actualPrepayment: actualPrepay,
-        newBalance: 0, newRemainingMonths: 0,
+        actualPrepayment: actualPrepay, newBalance: 0, newRemainingMonths: 0,
         newMonthlyPayment: 0, remainingInterest: 0, settled: true,
       },
       savings: { interestSaved: remainingInterestOriginal, monthsShortened: n - k },
@@ -238,18 +287,15 @@ function prepayEPI(
     } else {
       const denom = newMonthlyPayment - balanceAfter * r
       if (denom <= 0) {
-        // 月供还不足以覆盖当月利息（极端情况，通常不会出现）
         newRemainingMonths = 1
         remainingInterestAfter = balanceAfter * r
       } else {
         const tReal = -Math.log(1 - balanceAfter * r / newMonthlyPayment) / Math.log(1 + r)
         newRemainingMonths = Math.ceil(tReal)
-        // 精确剩余利息（按真实非整数 t）
         remainingInterestAfter = Math.max(0, newMonthlyPayment * tReal - balanceAfter)
       }
     }
   } else {
-    // reduceMonthly：保持剩余月数，重算月供
     newRemainingMonths = remainOriginal
     if (r <= 0) {
       newMonthlyPayment = balanceAfter / remainOriginal
@@ -262,13 +308,11 @@ function prepayEPI(
   }
 
   return {
-    valid: true,
-    original: originalBlock,
-    paid: paidBlock,
+    valid: true, original: originalBlock, paid: paidBlock,
     beforePrepay: { remainingBalance: balanceBefore },
     afterPrepay: {
-      actualPrepayment: actualPrepay,
-      newBalance: balanceAfter, newRemainingMonths, newMonthlyPayment,
+      actualPrepayment: actualPrepay, newBalance: balanceAfter,
+      newRemainingMonths, newMonthlyPayment,
       remainingInterest: remainingInterestAfter, settled: false,
     },
     savings: {
@@ -301,13 +345,10 @@ function prepayEMP(
 
   if (balanceAfter <= 0.01) {
     return {
-      valid: true,
-      original: originalBlock,
-      paid: paidBlock,
+      valid: true, original: originalBlock, paid: paidBlock,
       beforePrepay: { remainingBalance: balanceBefore },
       afterPrepay: {
-        actualPrepayment: actualPrepay,
-        newBalance: 0, newRemainingMonths: 0,
+        actualPrepayment: actualPrepay, newBalance: 0, newRemainingMonths: 0,
         newMonthlyPrincipal: 0, newFirstPayment: 0, newLastPayment: 0,
         remainingInterest: 0, settled: true,
       },
@@ -323,7 +364,6 @@ function prepayEMP(
   let remainingInterestAfter: number
 
   if (mode === 'shortenTerm') {
-    // 每月本金保持原 mp 不变
     newMonthlyPrincipal = orig.monthlyPrincipal
     const fullMonths = Math.floor(balanceAfter / newMonthlyPrincipal)
     const residual = balanceAfter - fullMonths * newMonthlyPrincipal
@@ -331,12 +371,10 @@ function prepayEMP(
     newRemainingMonths = residual > 0.01 ? fullMonths + 1 : fullMonths
     newFirstPayment = newMonthlyPrincipal + balanceAfter * r
     newLastPayment = lastMonthPrincipal + lastMonthPrincipal * r
-    // 利息 = r * (首 n-1 月完整 mp 的剩余本金之和 + 末月残留)
     const full = newRemainingMonths - 1
     const fullSum = balanceAfter * full - newMonthlyPrincipal * full * (full - 1) / 2
     remainingInterestAfter = r * (fullSum + lastMonthPrincipal)
   } else {
-    // reduceMonthly：保持剩余月数，每月本金降低
     newRemainingMonths = remainOriginal
     newMonthlyPrincipal = balanceAfter / remainOriginal
     newFirstPayment = newMonthlyPrincipal + balanceAfter * r
@@ -345,13 +383,10 @@ function prepayEMP(
   }
 
   return {
-    valid: true,
-    original: originalBlock,
-    paid: paidBlock,
+    valid: true, original: originalBlock, paid: paidBlock,
     beforePrepay: { remainingBalance: balanceBefore },
     afterPrepay: {
-      actualPrepayment: actualPrepay,
-      newBalance: balanceAfter, newRemainingMonths,
+      actualPrepayment: actualPrepay, newBalance: balanceAfter, newRemainingMonths,
       newMonthlyPrincipal, newFirstPayment, newLastPayment,
       remainingInterest: remainingInterestAfter, settled: false,
     },
