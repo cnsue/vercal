@@ -69,19 +69,31 @@ export default function TrendChart({ slots, period }: Props) {
   const zoomRef = useRef(1)
   const [themeTick, setThemeTick] = useState(0)
   const [zoom, setZoom] = useState(1)
+  const [containerW, setContainerW] = useState(0)
   zoomRef.current = zoom
 
   const barW = Math.round(BAR_W * zoom)
   const barGap = Math.max(2, Math.round(BAR_GAP * zoom))
   const rightPad = Math.round(RIGHT_PAD * zoom)
   const plotW = Math.max(0, slots.length * (barW + barGap) - barGap)
-  const totalW = plotW + rightPad
+  const naturalW = plotW + rightPad
+  const totalW = Math.max(naturalW, containerW)
   const totalH = TOP_PAD + PLOT_H + LABEL_H
 
   useEffect(() => {
     const onThemeChange = () => setThemeTick(v => v + 1)
     window.addEventListener('coinsight-theme-change', onThemeChange)
     return () => window.removeEventListener('coinsight-theme-change', onThemeChange)
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const update = () => setContainerW(el.clientWidth)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [])
 
   useEffect(() => {
@@ -199,7 +211,7 @@ export default function TrendChart({ slots, period }: Props) {
       plotCtx.beginPath()
       plotCtx.setLineDash(step === 0 ? [] : [3, 3])
       plotCtx.moveTo(0, y)
-      plotCtx.lineTo(plotW, y)
+      plotCtx.lineTo(totalW, y)
       plotCtx.strokeStyle = grid
       plotCtx.lineWidth = 1
       plotCtx.stroke()
