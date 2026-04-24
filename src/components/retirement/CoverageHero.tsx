@@ -1,6 +1,14 @@
+import { useState } from 'react'
 import { formatCNY } from '../../utils/formatters'
 import type { DimensionCoverage } from '../../utils/retirementCalc'
 import { getCoverageLevel, getNextCoverageLevel, COVERAGE_LEVELS } from '../../types/retirement'
+
+interface Breakdown {
+  nowDividend: number
+  dividend: number
+  pension: number
+  other: number
+}
 
 interface Props {
   decentMonthly: number
@@ -8,6 +16,7 @@ interface Props {
   retiredRatio: number
   nowMonthly: number
   retiredMonthly: number
+  breakdown?: Breakdown
   onEdit?: () => void
   /** 底部维度圆环列表；传空数组则不渲染底部区域 */
   dimensions?: DimensionCoverage[]
@@ -17,18 +26,24 @@ interface Props {
 const MAX_RATIO = 1.6
 
 export default function CoverageHero({
-  decentMonthly, nowRatio, retiredRatio, nowMonthly: _nowMonthly, retiredMonthly, onEdit,
+  decentMonthly, nowRatio, retiredRatio, nowMonthly, retiredMonthly, breakdown, onEdit,
   dimensions = [], onDimensionClick,
 }: Props) {
+  const [mode, setMode] = useState<'now' | 'retired'>('retired')
+
   const unset = decentMonthly <= 0
-  const level = unset ? null : getCoverageLevel(retiredRatio)
-  const nextLevel = unset ? null : getNextCoverageLevel(retiredRatio)
+  const activeRatio = mode === 'now' ? nowRatio : retiredRatio
+  const otherRatio = mode === 'now' ? retiredRatio : nowRatio
+  const activeMonthly = mode === 'now' ? nowMonthly : retiredMonthly
+
+  const level = unset ? null : getCoverageLevel(activeRatio)
+  const nextLevel = unset ? null : getNextCoverageLevel(activeRatio)
 
   const background = level
     ? level.gradient
     : 'linear-gradient(135deg, #3a3a3a 0%, #555 100%)'
 
-  const barFill = Math.min(retiredRatio / MAX_RATIO, 1) * 100
+  const barFill = Math.min(activeRatio / MAX_RATIO, 1) * 100
 
   return (
     <div style={{ background, borderRadius: 20, padding: 20, color: '#fff', marginBottom: 14 }}>
@@ -36,12 +51,27 @@ export default function CoverageHero({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em' }}>退休幸福指数</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {level && (
+          {/* Mode toggle */}
+          {!unset && (
             <div style={{
-              background: 'rgba(255,255,255,0.92)', color: level.color,
-              borderRadius: 12, padding: '3px 10px', fontSize: 12, fontWeight: 700,
+              display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: 10,
+              padding: 2, gap: 2,
             }}>
-              {level.emoji} {level.label}
+              {(['now', 'retired'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  style={{
+                    border: 'none', borderRadius: 8, cursor: 'pointer',
+                    padding: '3px 8px', fontSize: 11, fontWeight: 700,
+                    background: mode === m ? 'rgba(255,255,255,0.9)' : 'transparent',
+                    color: mode === m ? (level?.color ?? '#333') : 'rgba(255,255,255,0.75)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {m === 'now' ? '当前' : '退休后'}
+                </button>
+              ))}
             </div>
           )}
           {onEdit && (
@@ -92,10 +122,15 @@ export default function CoverageHero({
                 ))}
               </div>
               <div style={{
-                fontSize: 24, fontWeight: 900, letterSpacing: '-0.03em',
-                lineHeight: 1, flexShrink: 0, minWidth: 52, textAlign: 'right',
+                flexShrink: 0, minWidth: 52, textAlign: 'right',
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
               }}>
-                {Math.round(retiredRatio * 100)}%
+                <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                  {Math.round(activeRatio * 100)}%
+                </div>
+                <div style={{ fontSize: 9, opacity: 0.65, lineHeight: 1, marginTop: 3, whiteSpace: 'nowrap' }}>
+                  {mode === 'now' ? '当前覆盖率' : '退休覆盖率'}
+                </div>
               </div>
             </div>
 
@@ -120,19 +155,45 @@ export default function CoverageHero({
           {/* Next level hint */}
           <div style={{ marginBottom: 6, marginTop: 6, fontSize: 13, fontWeight: 600, opacity: 0.95 }}>
             {nextLevel
-              ? `下一站：${nextLevel.emoji} ${nextLevel.label}（还差 ${Math.max(1, Math.round((nextLevel.minRatio - retiredRatio) * 100))}%）`
+              ? `下一站：${nextLevel.emoji} ${nextLevel.label}（还差 ${Math.max(1, Math.round((nextLevel.minRatio - activeRatio) * 100))}%）`
               : `${level?.emoji ?? '🦋'} ${level?.slogan ?? '人生无憾，心满意足'}`
             }
           </div>
 
           {/* Monthly income / target */}
           <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>
-            退休月收入 {formatCNY(retiredMonthly)} / 目标 {formatCNY(decentMonthly)}
+            {mode === 'now' ? '当前月收入' : '退休月收入'} {formatCNY(activeMonthly)} / 目标 {formatCNY(decentMonthly)}
           </div>
 
-          {/* Secondary: current / retired ratios */}
-          <div style={{ fontSize: 11, opacity: 0.65, marginBottom: dimensions.length > 0 ? 0 : 2 }}>
-            当前 {Math.round(nowRatio * 100)}% · 退休预测 {Math.round(retiredRatio * 100)}%
+          {/* Income source breakdown */}
+          {breakdown && (
+            <div style={{ fontSize: 11, opacity: 0.72, marginBottom: 4, lineHeight: 1.7 }}>
+              {mode === 'now' ? (
+                <>
+                  {breakdown.nowDividend > 0 && <span>股息 {formatCNY(breakdown.nowDividend)}</span>}
+                  {breakdown.other > 0 && <span> · 其他 {formatCNY(breakdown.other)}</span>}
+                  {breakdown.pension > 0 && (
+                    <span style={{ opacity: 0.55 }}> · 养老金退休后 +{formatCNY(breakdown.pension)}</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  {breakdown.dividend > 0 && <span>股息 {formatCNY(breakdown.dividend)}</span>}
+                  {breakdown.pension > 0 && <span> · 养老金 {formatCNY(breakdown.pension)}</span>}
+                  {breakdown.other > 0 && <span> · 其他 {formatCNY(breakdown.other)}</span>}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Other mode comparison */}
+          <div style={{ fontSize: 11, opacity: 0.6, marginBottom: dimensions.length > 0 ? 0 : 2 }}>
+            {Math.abs(nowRatio - retiredRatio) > 0.01
+              ? mode === 'now'
+                ? `退休后预测 ${Math.round(otherRatio * 100)}%`
+                : `当前 ${Math.round(otherRatio * 100)}%`
+              : '当前与退休预测相同'
+            }
           </div>
 
           {dimensions.length > 0 && (

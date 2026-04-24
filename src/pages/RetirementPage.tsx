@@ -77,6 +77,7 @@ export default function RetirementPage() {
         retiredRatio={coverage.retiredRatio}
         nowMonthly={coverage.nowMonthly}
         retiredMonthly={coverage.retiredMonthly}
+        breakdown={coverage.breakdown}
         onEdit={() => setShowDecentEditor(true)}
         dimensions={coverage.decentMonthly > 0 ? dimensions : []}
         onDimensionClick={id => setDetailDimId(id)}

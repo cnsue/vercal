@@ -278,7 +278,8 @@ export interface CoverageSummary {
   nowRatio: number
   retiredRatio: number
   breakdown: {
-    dividend: number
+    nowDividend: number
+    dividend: number  // retired dividend
     pension: number
     other: number
   }
@@ -303,6 +304,7 @@ export function computeCoverage(
     nowRatio: decent > 0 ? nowMonthly / decent : 0,
     retiredRatio: decent > 0 ? retiredMonthly / decent : 0,
     breakdown: {
+      nowDividend: nowDividendMonthly,
       dividend: retiredDividendMonthly,
       pension: pension.monthlyTotal,
       other: otherMonthly,
