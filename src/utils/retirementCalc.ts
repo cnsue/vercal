@@ -1,8 +1,8 @@
 import type {
   DividendHolding, PensionConfig, RetirementPlan, OtherIncome, Gender, DividendGrowthScenario,
-  DecentBreakdownItem,
+  DecentBreakdownItem, DecentPriority,
 } from '../types/retirement'
-import { DECENT_DIMENSIONS, DEFAULT_CUSTOM_SUGGESTION } from '../types/retirement'
+import { DECENT_DIMENSIONS, DEFAULT_CUSTOM_SUGGESTION, CUSTOM_PRIORITY } from '../types/retirement'
 import { findDividendStock } from '../data/dividendStocks'
 import {
   findPensionCity, getPersonalAccountMonths,
@@ -342,7 +342,7 @@ export function sumOtherIncome(items: OtherIncome[]): number {
   return items.reduce((s, o) => s + o.monthlyAmount, 0)
 }
 
-/* -------- 维度覆盖（v1：按预算权重均匀分摊收入） -------- */
+/* -------- 维度覆盖（优先级瀑布 + 同级按预算占比分摊） -------- */
 
 export interface DimensionCoverage {
   id: string
@@ -350,6 +350,7 @@ export interface DimensionCoverage {
   label: string
   icon: string
   description: string
+  priority: DecentPriority
   budget: number
   income: number
   ratio: number
@@ -357,19 +358,51 @@ export interface DimensionCoverage {
   suggestion: string
 }
 
+function getItemPriority(item: DecentBreakdownItem): DecentPriority {
+  if (item.builtinKey) {
+    const meta = DECENT_DIMENSIONS.find(d => d.key === item.builtinKey)
+    if (meta) return meta.priority
+  }
+  return CUSTOM_PRIORITY
+}
+
 /**
- * 按各维度预算占总预算的比例，把月收入均匀分摊，计算每维度覆盖率与缺口。
- * v1 不支持"股息专攻医疗"这类收入-维度绑定，后续可扩展。
+ * 计算各维度覆盖率。
+ *
+ * 分配规则：
+ * - 必需（priority=1，衣食住行）优先全部满足，同级内部按预算占比分摊该组配额
+ * - 弹性（priority=2，医乐爱及自定义）只能瓜分必需覆盖完后剩下的收入
+ * - 同级收入不足时，组内仍按预算占比分（每个维度都会按比例覆盖一部分）
  */
 export function computeDimensionCoverage(
   breakdown: DecentBreakdownItem[],
   monthlyIncome: number,
 ): DimensionCoverage[] {
-  const totalBudget = breakdown.reduce((s, i) => s + Math.max(0, i.monthlyAmount), 0)
+  const groups = new Map<DecentPriority, DecentBreakdownItem[]>()
+  for (const item of breakdown) {
+    const p = getItemPriority(item)
+    if (!groups.has(p)) groups.set(p, [])
+    groups.get(p)!.push(item)
+  }
+  const sortedPriorities = [...groups.keys()].sort((a, b) => a - b)
+
+  const incomePerItem = new Map<string, number>()
+  let remaining = Math.max(0, monthlyIncome)
+  for (const p of sortedPriorities) {
+    const items = groups.get(p)!
+    const groupBudget = items.reduce((s, i) => s + Math.max(0, i.monthlyAmount), 0)
+    const allocated = Math.min(groupBudget, remaining)
+    for (const item of items) {
+      const budget = Math.max(0, item.monthlyAmount)
+      const weight = groupBudget > 0 ? budget / groupBudget : 0
+      incomePerItem.set(item.id, allocated * weight)
+    }
+    remaining -= allocated
+  }
+
   return breakdown.map(item => {
     const budget = Math.max(0, item.monthlyAmount)
-    const weight = totalBudget > 0 ? budget / totalBudget : 0
-    const income = monthlyIncome * weight
+    const income = incomePerItem.get(item.id) ?? 0
     const ratio = budget > 0 ? income / budget : 0
     const gap = Math.max(0, budget - income)
     const meta = item.builtinKey ? DECENT_DIMENSIONS.find(d => d.key === item.builtinKey) : undefined
@@ -379,6 +412,7 @@ export function computeDimensionCoverage(
       label: item.name,
       icon: item.icon,
       description: meta?.description ?? '自定义项目',
+      priority: getItemPriority(item),
       budget,
       income,
       ratio,

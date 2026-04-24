@@ -1,4 +1,5 @@
 import { formatCNY } from '../../utils/formatters'
+import { DECENT_PRIORITY_LABELS } from '../../types/retirement'
 import type { DimensionCoverage } from '../../utils/retirementCalc'
 
 interface Props {
@@ -28,7 +29,16 @@ export default function DimensionDetailSheet({ dim, onClose }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
           <span style={{ fontSize: 28 }}>{dim.icon}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em' }}>{dim.label}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em' }}>{dim.label}</div>
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
+                background: dim.priority === 1 ? 'var(--primary-bg, rgba(46, 125, 50, 0.15))' : 'var(--surface-muted)',
+                color: dim.priority === 1 ? 'var(--primary-strong)' : 'var(--muted)',
+              }}>
+                {DECENT_PRIORITY_LABELS[dim.priority]}
+              </span>
+            </div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{dim.description}</div>
           </div>
           <button onClick={onClose} aria-label="关闭"

@@ -83,8 +83,9 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
           <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.02em' }}>
             设定你的体面退休标准
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, marginBottom: 14 }}>
-            我们帮你拆解为 6 个生活方面，也可以添加自定义项目
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, marginBottom: 14, lineHeight: 1.5 }}>
+            我们帮你拆解为 7 个生活方面，也可以添加自定义项目。<br />
+            衣食住行为「必需」，收入不足时优先覆盖；医乐爱及自定义为「弹性」。
           </div>
         </div>
 
@@ -195,8 +196,18 @@ function DimensionRow({ item, onAmountChange, onFieldChange, onRemove }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, paddingLeft: 54 }}>
         <button onClick={() => onAmountChange(item.monthlyAmount - STEP)} aria-label="减少"
           style={stepperStyle}>−</button>
-        <input type="number" inputMode="numeric" value={item.monthlyAmount}
-          onChange={e => onAmountChange(parseFloat(e.target.value) || 0)}
+        <input type="number" inputMode="numeric"
+          value={item.monthlyAmount === 0 ? '' : item.monthlyAmount}
+          placeholder="0"
+          onChange={e => {
+            const raw = e.target.value
+            if (raw === '') {
+              onAmountChange(0)
+              return
+            }
+            const n = parseFloat(raw)
+            if (!Number.isNaN(n)) onAmountChange(Math.max(0, n))
+          }}
           style={{
             flex: 1, padding: '8px 10px', borderRadius: 8,
             border: '1px solid var(--input-border)', background: 'var(--input-bg)',
