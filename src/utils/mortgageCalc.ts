@@ -12,12 +12,9 @@ export type PrepaymentMode = 'shortenTerm' | 'reduceMonthly'
 export type LoanType = 'commercial' | 'providentFund' | 'combined'
 export type PrepayTarget = 'commercial' | 'pf'
 
-// 参考利率基准（2024 年末）
-export const LPR_5Y = 3.10        // 5 年期 LPR
+// 参考利率基准
+export const LPR_5Y = 3.5         // 5 年期以上 LPR（房贷基准）
 export const PF_RATE_5Y = 2.85    // 公积金 5 年以上基准利率
-
-export const LPR_PRESETS_BPS = [-100, -50, -30, -20, -10, 0, 10, 20, 30] as const
-export const PF_PRESETS_BPS  = [-20, -10, 0, 10, 20] as const
 
 export interface MortgageInputs {
   loanType: LoanType
@@ -61,7 +58,7 @@ export const DEFAULT_MORTGAGE_INPUTS: MortgageInputs = {
   loanType: 'commercial',
   principal: 1_000_000,
   years: 30,
-  annualRatePct: LPR_5Y,
+  annualRatePct: LPR_5Y - 0.3,   // 常见折扣：LPR - 30bp = 3.20%
   method: 'epi',
   pfPrincipal: 300_000,
   pfYears: 20,

@@ -3,7 +3,6 @@ import { StorageService } from '../store/storage'
 import {
   prepayLoan, computePaidMonths, formatMonths,
   DEFAULT_MORTGAGE_INPUTS, LPR_5Y, PF_RATE_5Y,
-  LPR_PRESETS_BPS, PF_PRESETS_BPS,
   type MortgageInputs, type RepaymentMethod,
   type PrepaymentMode, type PrepayResult, type LoanType, type PrepayTarget,
 } from '../utils/mortgageCalc'
@@ -102,8 +101,7 @@ export default function MortgagePrepaymentPage() {
             <RateRow
               label="年利率" value={inputs.annualRatePct}
               onChange={v => update('annualRatePct', v)}
-              baseRate={LPR_5Y} presets={LPR_PRESETS_BPS as unknown as number[]}
-              baseLabel="LPR 5Y" />
+              baseRate={LPR_5Y} baseLabel="LPR 5年期以上" />
             <SegmentRow label="还款方式" value={inputs.method}
               options={[
                 { value: 'epi', label: '等额本息' },
@@ -130,8 +128,7 @@ export default function MortgagePrepaymentPage() {
               label={isCombined ? '公积金利率' : '年利率'}
               value={isCombined ? inputs.pfAnnualRatePct : inputs.annualRatePct}
               onChange={v => isCombined ? update('pfAnnualRatePct', v) : update('annualRatePct', v)}
-              baseRate={PF_RATE_5Y} presets={PF_PRESETS_BPS as unknown as number[]}
-              baseLabel="公积金基准" />
+              baseRate={PF_RATE_5Y} baseLabel="公积金基准" />
             <SegmentRow label="还款方式"
               value={isCombined ? inputs.pfMethod : inputs.method}
               options={[
@@ -401,60 +398,40 @@ function NumberRow({ label, unit, value, onChange, step, max, precision }: {
   )
 }
 
-function RateRow({ label, value, onChange, baseRate, presets, baseLabel }: {
+// -100bp 到 +100bp，步进 10bp，共 21 档
+const BPS_OPTIONS = Array.from({ length: 21 }, (_, i) => (i - 10) * 10)
+
+function RateRow({ label, value, onChange, baseRate, baseLabel }: {
   label: string
   value: number
   onChange: (v: number) => void
   baseRate: number
-  presets: number[]
   baseLabel: string
 }) {
   const currentBps = Math.round((value - baseRate) * 100)
-  const activeBps  = presets.find(bp => bp === currentBps) ?? null
+  const snappedBps = Math.max(-100, Math.min(100, Math.round(currentBps / 10) * 10))
 
-  function bump(deltaBps: number) {
-    const next = Math.round((value * 100 + deltaBps)) / 100
-    onChange(Math.max(0.01, next))
+  function handleSelect(bpsStr: string) {
+    const bp   = parseInt(bpsStr, 10)
+    const rate = Math.round((baseRate + bp / 100) * 1000) / 1000
+    onChange(rate)
   }
 
   return (
     <div style={{ padding: '8px 0' }}>
-      {/* 标题行 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{ fontSize: 13, color: 'var(--muted)' }}>{label}</span>
         <span style={{ fontSize: 11, color: 'var(--muted)' }}>参考 {baseLabel}: {baseRate}%</span>
       </div>
-      {/* TagPill 选择器 */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-        {presets.map(bp => {
-          const rate   = Math.round((baseRate + bp / 100) * 1000) / 1000
-          const active = activeBps === bp
-          return (
-            <button key={bp} onClick={() => onChange(rate)}
-              style={{
-                display: 'inline-flex', alignItems: 'center',
-                background: active ? 'var(--primary)' : 'var(--button-secondary-bg)',
-                color: active ? '#fff' : 'var(--button-secondary-text)',
-                borderRadius: 6, padding: '5px 10px',
-                border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: active ? 700 : 400,
-              }}>
-              {bp === 0 ? '基准' : `${bp > 0 ? '+' : ''}${bp}bp`}
-            </button>
-          )
+      <select value={String(snappedBps)} onChange={e => handleSelect(e.target.value)} style={rateSelectStyle}>
+        {BPS_OPTIONS.map(bp => {
+          const rate = Math.round((baseRate + bp / 100) * 1000) / 1000
+          const optLabel = bp === 0
+            ? `基准  ${rate}%`
+            : `${bp > 0 ? '+' : ''}${bp}bp  →  ${rate}%`
+          return <option key={bp} value={String(bp)}>{optLabel}</option>
         })}
-      </div>
-      {/* 步进条（±10bp） */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button onClick={() => bump(-10)} aria-label="减少 10bp" style={stepperStyle}>−</button>
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>{value}%</span>
-          <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 6 }}>
-            {currentBps === 0 ? '基准' : `${currentBps > 0 ? '+' : ''}${currentBps}bp`}
-          </span>
-        </div>
-        <button onClick={() => bump(10)} aria-label="增加 10bp" style={stepperStyle}>+</button>
-      </div>
+      </select>
     </div>
   )
 }
@@ -555,4 +532,11 @@ const selectStyle: React.CSSProperties = {
   background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14,
   fontFamily: 'inherit', cursor: 'pointer', appearance: 'none',
   WebkitAppearance: 'none', textAlign: 'center',
+}
+
+const rateSelectStyle: React.CSSProperties = {
+  width: '100%', padding: '10px 12px', borderRadius: 8,
+  border: '1px solid var(--input-border)', background: 'var(--input-bg)',
+  color: 'var(--text)', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit',
+  cursor: 'pointer',
 }
