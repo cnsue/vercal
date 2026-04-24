@@ -3,6 +3,10 @@ import AssetPage from './pages/AssetPage'
 import RetirementPage from './pages/RetirementPage'
 import ToolsPage from './pages/ToolsPage'
 import SettingsPage from './pages/SettingsPage'
+import PensionSettingsPage from './components/retirement/PensionSettingsPage'
+import AssetClassSettingsPage from './pages/AssetClassSettingsPage'
+import MortgagePrepaymentPage from './pages/MortgagePrepaymentPage'
+import ExternalToolPage from './pages/ExternalToolPage'
 import SnapshotEditor from './components/SnapshotEditor'
 import { bootstrapStore } from './store/useAssetStore'
 import { useAssetStore } from './store/useAssetStore'
@@ -21,8 +25,25 @@ const TAB_TITLES: Record<Tab, string> = {
   settings: '设置',
 }
 
+export type Subpage =
+  | { kind: 'pension-settings' }
+  | { kind: 'asset-classes' }
+  | { kind: 'mortgage-prepayment' }
+  | { kind: 'external-tool'; title: string; url: string }
+  | null
+
+function subpageTitle(s: Exclude<Subpage, null>): string {
+  switch (s.kind) {
+    case 'pension-settings': return '养老金信息'
+    case 'asset-classes': return '资产类别管理'
+    case 'mortgage-prepayment': return '房贷提前还款'
+    case 'external-tool': return s.title
+  }
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('asset')
+  const [subpage, setSubpage] = useState<Subpage>(null)
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const [editingSnap, setEditingSnap] = useState<Snapshot | null>(null)
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => StorageService.getThemePreference())
@@ -75,11 +96,14 @@ export default function App() {
     }
   }
 
-  const showPlusAction = tab === 'asset' && !editingSnap
+  const title = subpage ? subpageTitle(subpage) : TAB_TITLES[tab]
+  const showPlusAction = tab === 'asset' && !editingSnap && !subpage
+  const showBottomTabs = !editingSnap && !subpage
+  const isIframeSubpage = subpage?.kind === 'external-tool'
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', background: 'var(--tab-bg)' }}>
-      {/* Top nav bar — provides safe-area-inset-top buffer + title */}
+      {/* Top nav bar */}
       <div style={{
         paddingTop: 'env(safe-area-inset-top)',
         background: 'var(--surface)',
@@ -105,24 +129,45 @@ export default function App() {
             <span style={{ fontSize: 12, opacity: 0.9 }}>点击刷新 ›</span>
           </button>
         )}
-        <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>{TAB_TITLES[tab]}</div>
-          {showPlusAction && (
-            <button
-              onClick={() => setEditingSnap(store.draftSnapshot(todayKey))}
-              aria-label="新增资产快照"
-              style={{
-                width: 32, height: 32, borderRadius: '50%', border: 'none',
-                background: 'var(--primary)', color: '#fff', fontSize: 22, lineHeight: '28px',
-                cursor: 'pointer', padding: 0, fontWeight: 400,
-              }}
-            >+</button>
-          )}
+        <div style={{ padding: '10px 8px', display: 'flex', alignItems: 'center', gap: 4, minHeight: 52 }}>
+          <div style={{ width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {subpage && (
+              <button onClick={() => setSubpage(null)} aria-label="返回"
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 26, lineHeight: 1, cursor: 'pointer', padding: '6px 10px' }}>
+                ‹
+              </button>
+            )}
+          </div>
+          <div style={{
+            flex: 1, textAlign: 'center',
+            fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {title}
+          </div>
+          <div style={{ width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {showPlusAction && (
+              <button
+                onClick={() => setEditingSnap(store.draftSnapshot(todayKey))}
+                aria-label="新增资产快照"
+                style={{
+                  width: 32, height: 32, borderRadius: '50%', border: 'none',
+                  background: 'var(--primary)', color: '#fff', fontSize: 22, lineHeight: '28px',
+                  cursor: 'pointer', padding: 0, fontWeight: 400,
+                }}
+              >+</button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: editingSnap ? 0 : '12px 16px 0', background: 'var(--bg)' }}>
+      <div style={{
+        flex: 1,
+        overflowY: isIframeSubpage ? 'hidden' : 'auto',
+        padding: (editingSnap || isIframeSubpage) ? 0 : '12px 16px 0',
+        background: 'var(--bg)',
+      }}>
         {editingSnap ? (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <SnapshotEditor
@@ -132,30 +177,53 @@ export default function App() {
               onCancel={() => setEditingSnap(null)}
             />
           </div>
+        ) : subpage ? (
+          renderSubpage(subpage, () => setSubpage(null))
         ) : (
           <>
             {tab === 'asset' && <AssetPage onOpenEditor={setEditingSnap} />}
             {tab === 'retirement' && <RetirementPage />}
-            {tab === 'tools' && <ToolsPage />}
-            {tab === 'settings' && <SettingsPage themePreference={themePreference} onThemePreferenceChange={setThemePreference} />}
+            {tab === 'tools' && <ToolsPage onNavigate={setSubpage} />}
+            {tab === 'settings' && (
+              <SettingsPage
+                themePreference={themePreference}
+                onThemePreferenceChange={setThemePreference}
+                onNavigate={setSubpage}
+              />
+            )}
           </>
         )}
       </div>
 
-      {/* Bottom tab bar (flex column 末位自然吸底，不需要 sticky) */}
-      <div style={{
-        background: 'var(--tab-bg)',
-        backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)',
-        display: 'flex', paddingBottom: 0,
-        flexShrink: 0,
-      }}>
-        <TabButton label="资产" icon="💰" active={tab === 'asset'} badge={!recordedToday && sorted.length > 0} onClick={() => setTab('asset')} />
-        <TabButton label="岁月" icon="📅" active={tab === 'retirement'} onClick={() => setTab('retirement')} />
-        <TabButton label="工具" icon="📊" active={tab === 'tools'} onClick={() => setTab('tools')} />
-        <TabButton label="设置" icon="⚙️" active={tab === 'settings'} onClick={() => setTab('settings')} />
-      </div>
+      {/* Bottom tab bar — hidden when sub-page or snapshot editor is active */}
+      {showBottomTabs && (
+        <div style={{
+          background: 'var(--tab-bg)',
+          backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)',
+          display: 'flex', paddingBottom: 0,
+          flexShrink: 0,
+        }}>
+          <TabButton label="资产" icon="💰" active={tab === 'asset'} badge={!recordedToday && sorted.length > 0} onClick={() => setTab('asset')} />
+          <TabButton label="岁月" icon="📅" active={tab === 'retirement'} onClick={() => setTab('retirement')} />
+          <TabButton label="工具" icon="📊" active={tab === 'tools'} onClick={() => setTab('tools')} />
+          <TabButton label="设置" icon="⚙️" active={tab === 'settings'} onClick={() => setTab('settings')} />
+        </div>
+      )}
     </div>
   )
+}
+
+function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void) {
+  switch (subpage.kind) {
+    case 'pension-settings':
+      return <PensionSettingsPage onBack={back} />
+    case 'asset-classes':
+      return <AssetClassSettingsPage />
+    case 'mortgage-prepayment':
+      return <MortgagePrepaymentPage />
+    case 'external-tool':
+      return <ExternalToolPage url={subpage.url} />
+  }
 }
 
 function TabButton({ label, icon, active, badge, onClick }: {

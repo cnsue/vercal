@@ -113,16 +113,8 @@ export default function PensionSettingsPage({ onBack }: Props) {
     : city?.averageWage ?? 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px 14px' }}>
-        <button onClick={onBack} aria-label="返回"
-          style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '4px 8px' }}>
-          ‹
-        </button>
-        <div style={{ fontSize: 16, fontWeight: 800 }}>养老金信息</div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
+    <div>
+      <div style={{ paddingTop: 4, paddingBottom: 12 }}>
         {/* 推算结果 */}
         <Card>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>推算结果（实时）</div>

@@ -2,14 +2,10 @@ import { useState } from 'react'
 import { useAssetStore } from '../store/useAssetStore'
 import { PLATFORM_LABELS, CLASS_LABELS } from '../types/models'
 
-interface Props {
-  onBack: () => void
-}
-
 /**
  * 资产类别管理独立子页：内置平台/类别的隐藏与恢复 + 自定义增删。
  */
-export default function AssetClassSettingsPage({ onBack }: Props) {
+export default function AssetClassSettingsPage() {
   const store = useAssetStore()
   const [newPlatform, setNewPlatform] = useState('')
   const [newClass, setNewClass] = useState('')
@@ -25,16 +21,8 @@ export default function AssetClassSettingsPage({ onBack }: Props) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px 14px' }}>
-        <button onClick={onBack} aria-label="返回"
-          style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '4px 8px' }}>
-          ‹
-        </button>
-        <div style={{ fontSize: 16, fontWeight: 800 }}>资产类别管理</div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 32 }}>
+    <div>
+      <div style={{ paddingTop: 4, paddingBottom: 32 }}>
         <Card title="平台管理">
           <SectionLabel>内置平台</SectionLabel>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>

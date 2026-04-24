@@ -1,37 +1,27 @@
-import { useState } from 'react'
-import PensionSettingsPage from '../components/retirement/PensionSettingsPage'
-import AssetClassSettingsPage from './AssetClassSettingsPage'
 import type { ThemePreference } from '../types/theme'
 import { THEME_LABELS } from '../types/theme'
+import type { Subpage } from '../App'
 
-type Subpage = 'pension' | 'assetClasses' | null
-
-export default function SettingsPage({ themePreference, onThemePreferenceChange }: {
+interface Props {
   themePreference: ThemePreference
   onThemePreferenceChange: (v: ThemePreference) => void
-}) {
-  const [subpage, setSubpage] = useState<Subpage>(null)
+  onNavigate: (subpage: Subpage) => void
+}
 
-  if (subpage === 'pension') {
-    return <PensionSettingsPage onBack={() => setSubpage(null)} />
-  }
-  if (subpage === 'assetClasses') {
-    return <AssetClassSettingsPage onBack={() => setSubpage(null)} />
-  }
-
+export default function SettingsPage({ themePreference, onThemePreferenceChange, onNavigate }: Props) {
   return (
     <div style={{ paddingTop: 12, paddingBottom: 16 }}>
       <EntryRow
         icon="🏛️"
         title="养老金信息"
         subtitle="性别、出生年月、缴费情况、弹性退休"
-        onClick={() => setSubpage('pension')}
+        onClick={() => onNavigate({ kind: 'pension-settings' })}
       />
       <EntryRow
         icon="🗂️"
         title="资产类别管理"
         subtitle="管理平台和资产类别（可隐藏内置项 / 增删自定义）"
-        onClick={() => setSubpage('assetClasses')}
+        onClick={() => onNavigate({ kind: 'asset-classes' })}
       />
       <div style={{
         background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16,

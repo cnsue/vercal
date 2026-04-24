@@ -6,11 +6,7 @@ import {
 } from '../utils/mortgageCalc'
 import { formatCNY } from '../utils/formatters'
 
-interface Props {
-  onBack: () => void
-}
-
-export default function MortgagePrepaymentPage({ onBack }: Props) {
+export default function MortgagePrepaymentPage() {
   const [inputs, setInputs] = useState<MortgageInputs>(() => StorageService.getMortgageInputs())
 
   // Debounced persist
@@ -33,21 +29,14 @@ export default function MortgagePrepaymentPage({ onBack }: Props) {
   const prepayOverBalance = result.valid && inputs.prepaymentAmount > result.beforePrepay.remainingBalance
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px 14px' }}>
-        <button onClick={onBack} aria-label="返回"
-          style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '4px 8px' }}>
-          ‹
-        </button>
-        <div style={{ fontSize: 16, fontWeight: 800, flex: 1 }}>房贷提前还款计算器</div>
-        <button onClick={resetDefaults}
-          style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12, cursor: 'pointer', padding: '4px 8px' }}>
-          重置
-        </button>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
-        <Section title="贷款基本信息">
+    <div style={{ paddingTop: 4, paddingBottom: 20 }}>
+      <Section title="贷款基本信息"
+        right={
+          <button onClick={resetDefaults}
+            style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12, cursor: 'pointer', padding: 0 }}>
+            重置为默认
+          </button>
+        }>
           <NumberRow label="贷款金额" unit="元" value={inputs.principal}
             onChange={v => update('principal', v)} step={10000} />
           <NumberRow label="贷款年限" unit="年" value={inputs.years}
@@ -85,7 +74,6 @@ export default function MortgagePrepaymentPage({ onBack }: Props) {
         </Section>
 
         {result.valid && <ResultSections result={result} />}
-      </div>
     </div>
   )
 }
@@ -155,10 +143,13 @@ function ResultSections({ result }: { result: PrepayResult }) {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 14 }}>
-      <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>{title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ fontSize: 15, fontWeight: 700 }}>{title}</div>
+        {right}
+      </div>
       {children}
     </div>
   )
