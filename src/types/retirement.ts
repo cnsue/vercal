@@ -205,3 +205,122 @@ export const DEFAULT_RETIREMENT_PLAN: RetirementPlan = {
   otherIncomes: [],
   dividendScenario: 'neutral',
 }
+
+/* ────────────────────────────────────────────────
+   体面覆盖率层级系统（L1–L5）
+──────────────────────────────────────────────── */
+
+export interface CoverageLevel {
+  key:         'subsistence' | 'stable' | 'decent' | 'comfortable' | 'fulfilled'
+  label:       string
+  emoji:       string
+  slogan:      string
+  description: string   // 三口之家一线城市生活状态
+  minRatio:    number   // 触发该层级所需最低覆盖率
+  color:       string   // 主色 hex
+  gradient:    string   // 卡片背景渐变
+}
+
+export const COVERAGE_LEVELS: CoverageLevel[] = [
+  {
+    key: 'subsistence', label: '温饱', emoji: '🏠', minRatio: 0.5,
+    color: '#8B9D6B', gradient: 'linear-gradient(135deg, #6a7a50 0%, #9baf74 100%)',
+    slogan: '日子能过，心不慌',
+    description: '住偏远小户型（房贷/租约8.5k），吃饭基本自己做，孩子仅上公立普惠幼儿园，医疗靠医保小病扛，无娱乐预算。艰难维持，但能活。',
+  },
+  {
+    key: 'stable', label: '安稳', emoji: '⚓', minRatio: 0.7,
+    color: '#5B8CBE', gradient: 'linear-gradient(135deg, #3c6e9e 0%, #6fa4d2 100%)',
+    slogan: '日常够用，有存款',
+    description: '住独立一房一厅（房贷约13k），每周可外食一次，孩子有牛奶水果，能报一个低价兴趣班，偶尔去免费公园。日子紧巴但稳定，有些许期待。',
+  },
+  {
+    key: 'decent', label: '体面', emoji: '✨', minRatio: 1.0,
+    color: '#C58A20', gradient: 'linear-gradient(135deg, #c07c15 0%, #e8a735 100%)',
+    slogan: '活得有尊严，不将就',
+    description: '房贷26k，优质公立幼儿园+多个兴趣班，每月存6k孩子未来基金，周末可去科技馆/动物园，每年一次旅行，父母月汇500元。有尊严、不窘迫，孩子快乐成长。',
+  },
+  {
+    key: 'comfortable', label: '从容', emoji: '☕', minRatio: 1.2,
+    color: '#7C6A9E', gradient: 'linear-gradient(135deg, #5c4a7e 0%, #8a75ae 100%)',
+    slogan: '宽裕有余，不急不躁',
+    description: '房贷34k（更大地段），孩子私立双语幼儿园/国际班，每月存8k托举，每年两次长途旅行，医疗升级到私立门诊。从容不迫，生活有品质。',
+  },
+  {
+    key: 'fulfilled', label: '圆满', emoji: '🦋', minRatio: 1.5,
+    color: '#D96B5C', gradient: 'linear-gradient(135deg, #b85a4d 0%, #e08575 100%)',
+    slogan: '人生无憾，心满意足',
+    description: '房贷42k（或已还清），国际学校，每月存10k托举（可为孩子存够首付），旅行自由，有大额捐赠能力。精神物质双丰收，人生无憾。',
+  },
+]
+
+/** 返回当前比率对应的最高层级；< 0.5 时返回 null */
+export function getCoverageLevel(ratio: number): CoverageLevel | null {
+  return [...COVERAGE_LEVELS].reverse().find(l => ratio >= l.minRatio) ?? null
+}
+
+/** 返回下一个未达到的层级；圆满已达时返回 null */
+export function getNextCoverageLevel(ratio: number): CoverageLevel | null {
+  return COVERAGE_LEVELS.find(l => ratio < l.minRatio) ?? null
+}
+
+/* ────────────────────────────────────────────────
+   家庭套餐预算数据（三口之家 × 一线城市基准）
+──────────────────────────────────────────────── */
+
+export type FamilySize = 'single' | 'couple' | 'family3' | 'family4'
+export type CityTier   = 'tier1' | 'newTier1' | 'tier23' | 'tier45'
+
+export const FAMILY_SIZE_LABELS: Record<FamilySize, string> = {
+  single: '单人', couple: '两口', family3: '三口', family4: '四口',
+}
+
+export const CITY_TIER_LABELS: Record<CityTier, string> = {
+  tier1: '一线', newTier1: '新一线', tier23: '二三线', tier45: '四五线',
+}
+
+/**
+ * 三口之家 × 一线城市各层级维度月度预算基准（元/月）
+ * 合计：温饱 13,150 / 安稳 22,200 / 体面 49,400 / 从容 65,700 / 圆满 82,900
+ * 爱(social)内部：L3 = 教育4k+赡养1.3k+托举6k；L4 托举8k；L5 托举10k
+ */
+export const BUDGET_PRESETS_FAMILY3_TIER1: Record<string, Record<string, number>> = {
+  subsistence: { clothing: 250,  food: 2500,  housing: 8500,  transport: 400,  medical: 400,  leisure: 300,  social: 800   },
+  stable:      { clothing: 500,  food: 4200,  housing: 13000, transport: 700,  medical: 700,  leisure: 900,  social: 2200  },
+  decent:      { clothing: 1000, food: 6500,  housing: 26000, transport: 1300, medical: 1300, leisure: 2000, social: 11300 },
+  comfortable: { clothing: 1300, food: 8500,  housing: 34000, transport: 1800, medical: 1800, leisure: 2800, social: 15500 },
+  fulfilled:   { clothing: 2000, food: 10500, housing: 42000, transport: 2200, medical: 2200, leisure: 4000, social: 20000 },
+}
+
+/**
+ * 各维度城市等级系数（以一线为基准 1.0）
+ * 住宅系数差异最大；爱(social)系数由教育/赡养/托举三项按L3比例加权推导
+ */
+export const CITY_DIM_MULTIPLIERS: Record<CityTier, Record<string, number>> = {
+  tier1:    { clothing: 1.00, food: 1.00, housing: 1.00, transport: 1.00, medical: 1.00, leisure: 1.00, social: 1.00 },
+  newTier1: { clothing: 0.85, food: 0.85, housing: 0.65, transport: 0.85, medical: 0.90, leisure: 0.80, social: 0.73 },
+  tier23:   { clothing: 0.70, food: 0.70, housing: 0.45, transport: 0.70, medical: 0.75, leisure: 0.60, social: 0.53 },
+  tier45:   { clothing: 0.55, food: 0.55, housing: 0.30, transport: 0.55, medical: 0.60, leisure: 0.45, social: 0.36 },
+}
+
+export const FAMILY_SIZE_MULTIPLIER: Record<FamilySize, number> = {
+  single: 0.50, couple: 0.72, family3: 1.00, family4: 1.22,
+}
+
+/** 生成推荐预算明细（取整到百元） */
+export function buildPresetBreakdown(
+  levelKey: string,
+  familySize: FamilySize,
+  cityTier: CityTier,
+): DecentBreakdownItem[] {
+  const base   = BUDGET_PRESETS_FAMILY3_TIER1[levelKey] ?? BUDGET_PRESETS_FAMILY3_TIER1.decent
+  const fMul   = FAMILY_SIZE_MULTIPLIER[familySize]
+  const dimMul = CITY_DIM_MULTIPLIERS[cityTier]
+  return DECENT_DIMENSIONS.map(dim => ({
+    id: dim.key,
+    builtinKey: dim.key as DecentDimensionKey,
+    name: dim.label,
+    icon: dim.icon,
+    monthlyAmount: Math.round((base[dim.key] ?? 0) * fMul * dimMul[dim.key] / 100) * 100,
+  }))
+}

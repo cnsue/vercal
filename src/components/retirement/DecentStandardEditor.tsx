@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
 import {
   defaultDecentBreakdown, sumBreakdown, findDimensionMeta,
-  type DecentBreakdownItem,
+  buildPresetBreakdown, COVERAGE_LEVELS, FAMILY_SIZE_LABELS, CITY_TIER_LABELS,
+  type DecentBreakdownItem, type FamilySize, type CityTier,
 } from '../../types/retirement'
 import { formatCNY } from '../../utils/formatters'
 import { v4 as uuidv4 } from '../../utils/uuid'
@@ -22,6 +23,9 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
   const decent = useRetirementStore(s => s.plan.decentStandard)
   const setDecentStandard = useRetirementStore(s => s.setDecentStandard)
   const [items, setItems] = useState<DecentBreakdownItem[]>(defaultDecentBreakdown())
+  const [presetFamily, setPresetFamily] = useState<FamilySize>('family3')
+  const [presetCity, setPresetCity] = useState<CityTier>('tier1')
+  const [presetLevel, setPresetLevel] = useState<string>('decent')
 
   useEffect(() => {
     if (open) {
@@ -51,6 +55,10 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
 
   function removeCustom(id: string) {
     setItems(prev => prev.filter(i => i.id !== id))
+  }
+
+  function applyPreset() {
+    setItems(buildPresetBreakdown(presetLevel, presetFamily, presetCity))
   }
 
   function resetDefaults() {
@@ -90,6 +98,41 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          {/* Preset selector */}
+          <div style={{
+            background: 'var(--surface-muted)', borderRadius: 12, padding: '12px 12px 10px',
+            marginBottom: 14, border: '1px solid var(--border)',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 10 }}>
+              从推荐套餐开始
+            </div>
+            <PresetRow
+              label="家庭"
+              options={(Object.entries(FAMILY_SIZE_LABELS) as [FamilySize, string][]).map(([k, v]) => ({ key: k, label: v }))}
+              value={presetFamily}
+              onChange={v => setPresetFamily(v as FamilySize)}
+            />
+            <PresetRow
+              label="城市"
+              options={(Object.entries(CITY_TIER_LABELS) as [CityTier, string][]).map(([k, v]) => ({ key: k, label: v }))}
+              value={presetCity}
+              onChange={v => setPresetCity(v as CityTier)}
+            />
+            <PresetRow
+              label="层级"
+              options={COVERAGE_LEVELS.map(l => ({ key: l.key, label: `${l.emoji}${l.label}` }))}
+              value={presetLevel}
+              onChange={setPresetLevel}
+            />
+            <button onClick={applyPreset} style={{
+              width: '100%', marginTop: 8, padding: '9px 0', borderRadius: 8,
+              border: 'none', background: 'var(--primary)', color: '#fff',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}>
+              应用套餐
+            </button>
+          </div>
+
           {items.map(item => (
             <DimensionRow
               key={item.id}
@@ -226,4 +269,33 @@ const stepperStyle: React.CSSProperties = {
   width: 32, height: 32, borderRadius: 8, border: 'none',
   background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)',
   fontSize: 18, lineHeight: 1, cursor: 'pointer', padding: 0, fontWeight: 700,
+}
+
+function PresetRow<K extends string>({ label, options, value, onChange }: {
+  label: string
+  options: { key: K; label: string }[]
+  value: K
+  onChange: (k: K) => void
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
+      <div style={{ fontSize: 11, color: 'var(--muted)', width: 26, flexShrink: 0 }}>{label}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+        {options.map(o => (
+          <button
+            key={o.key}
+            onClick={() => onChange(o.key)}
+            style={{
+              padding: '4px 9px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+              border: 'none', cursor: 'pointer',
+              background: value === o.key ? 'var(--primary)' : 'var(--button-secondary-bg)',
+              color: value === o.key ? '#fff' : 'var(--button-secondary-text)',
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
