@@ -61,18 +61,23 @@ export const DIVIDEND_SCENARIO_LABELS: Record<DividendGrowthScenario, string> = 
   optimistic: '乐观',
 }
 
-/** "体面标准" —— 6 维度月度目标开支 */
+/** "体面标准" —— 支持 6 个内置维度 + 用户自定义 */
 export type DecentDimensionKey = 'food' | 'housing' | 'transport' | 'medical' | 'leisure' | 'social'
 
 export interface DecentBreakdownItem {
-  key: DecentDimensionKey
+  /** 内置项 = builtinKey；自定义 = uuid */
+  id: string
+  /** 仅内置项携带；自定义项为空 */
+  builtinKey?: DecentDimensionKey
+  name: string
+  icon: string
   monthlyAmount: number
 }
 
 export interface DecentStandard {
   /** 月目标开支（元，税后）。由 breakdown 汇总，保持冗余方便老代码读取。 */
   monthlyAmount: number
-  /** 6 维度预算；未设置时为空数组（触发首次向导） */
+  /** 维度预算；未设置时为空数组（触发首次向导） */
   breakdown: DecentBreakdownItem[]
 }
 
@@ -80,6 +85,7 @@ export interface DecentDimensionMeta {
   key: DecentDimensionKey
   label: string
   icon: string
+  description: string
   defaultMonthly: number
   suggestion: string
 }
@@ -87,32 +93,51 @@ export interface DecentDimensionMeta {
 export const DECENT_DIMENSIONS: readonly DecentDimensionMeta[] = [
   {
     key: 'food', label: '食', icon: '🍱', defaultMonthly: 2400,
+    description: '三餐、食材、外卖、饮品、节日食品',
     suggestion: '可关注食品饮料、必选消费板块的稳定分红标的，生活刚需现金流波动小。',
   },
   {
     key: 'housing', label: '住', icon: '🏠', defaultMonthly: 3000,
+    description: '房租 / 按揭、水电煤、物业、维修、家装',
     suggestion: '若租房，可通过 REITs / 公用事业股息对冲房租；若自住，重点覆盖物业与维护。',
   },
   {
     key: 'transport', label: '行', icon: '🚌', defaultMonthly: 1000,
+    description: '公共交通、打车、油费、停车、远行出游',
     suggestion: '出行开销弹性大，可用红利低波类 ETF 或公共交通类个股覆盖。',
   },
   {
     key: 'medical', label: '医', icon: '🏥', defaultMonthly: 2400,
+    description: '日常医疗、保健、体检、慢病、长期护理',
     suggestion: '医疗开销随年龄上行，建议增加医药、保险板块的高股息配置，并留出医疗专项应急金。',
   },
   {
     key: 'leisure', label: '乐', icon: '🎨', defaultMonthly: 1800,
+    description: '娱乐、订阅、旅行、学习成长、文体活动',
     suggestion: '娱乐、旅行、文化消费，可由文娱、传媒或自由现金流覆盖，弹性调整。',
   },
   {
     key: 'social', label: '爱', icon: '💞', defaultMonthly: 1400,
+    description: '人情、赡养、子女教育、公益、宠物',
     suggestion: '家庭、人情、公益支出，优先用稳定现金流（债息、年金）托底。',
   },
 ] as const
 
+export const DEFAULT_CUSTOM_SUGGESTION = '按自身计划调整预算与对应现金流来源。'
+
+export function findDimensionMeta(key: DecentDimensionKey | undefined): DecentDimensionMeta | undefined {
+  if (!key) return undefined
+  return DECENT_DIMENSIONS.find(d => d.key === key)
+}
+
 export function defaultDecentBreakdown(): DecentBreakdownItem[] {
-  return DECENT_DIMENSIONS.map(d => ({ key: d.key, monthlyAmount: d.defaultMonthly }))
+  return DECENT_DIMENSIONS.map(d => ({
+    id: d.key,
+    builtinKey: d.key,
+    name: d.label,
+    icon: d.icon,
+    monthlyAmount: d.defaultMonthly,
+  }))
 }
 
 export function sumBreakdown(items: DecentBreakdownItem[]): number {

@@ -1,6 +1,7 @@
 import type { Snapshot, ExchangeRate } from '../types/models'
 import type { RetirementPlan, PensionConfig, DecentStandard, DecentBreakdownItem, DecentDimensionKey } from '../types/retirement'
 import { DEFAULT_RETIREMENT_PLAN, DEFAULT_PENSION, DECENT_DIMENSIONS, sumBreakdown } from '../types/retirement'
+import { v4 as uuidv4 } from '../utils/uuid'
 import type { ThemePreference } from '../types/theme'
 
 const K = {
@@ -107,10 +108,11 @@ function clampNonNegativeInt(v: unknown, max: number): number {
 }
 
 /**
- * 迁移历史 DecentStandard 到 6 维度模型。
- * - 老数据只有 monthlyAmount，且 >0 → 按默认权重比例拆为 6 维
- * - 老数据有 breakdown（旧自由结构）→ 尝试按 id 映射到固定 6 维，补齐缺失维度
- * - 全 0 / 无 breakdown → 返回空 breakdown，触发首次向导
+ * 迁移历史 DecentStandard 到当前模型（内置 6 维 + 自定义）。
+ * - v1 早期：{ key, monthlyAmount }（无 id/name/icon 字段）
+ * - v2 当前：{ id, builtinKey?, name, icon, monthlyAmount }
+ * - 更早：仅 monthlyAmount → 按默认权重拆 6 维
+ * - 空 → 返回空 breakdown 触发向导
  */
 function migrateDecentStandard(stored: unknown): DecentStandard {
   if (!stored || typeof stored !== 'object') {
@@ -121,28 +123,57 @@ function migrateDecentStandard(stored: unknown): DecentStandard {
   const rawBreakdown = Array.isArray(s.breakdown) ? s.breakdown : []
 
   const validKeys = new Set<DecentDimensionKey>(DECENT_DIMENSIONS.map(d => d.key))
-  const typedItems: DecentBreakdownItem[] = []
+  const items: DecentBreakdownItem[] = []
+  const seenBuiltins = new Set<DecentDimensionKey>()
+
   for (const raw of rawBreakdown) {
     if (!raw || typeof raw !== 'object') continue
     const r = raw as Record<string, unknown>
-    const key = r.key
-    if (typeof key !== 'string' || !validKeys.has(key as DecentDimensionKey)) continue
     const amount = typeof r.monthlyAmount === 'number' && isFinite(r.monthlyAmount) ? Math.max(0, r.monthlyAmount) : 0
-    typedItems.push({ key: key as DecentDimensionKey, monthlyAmount: amount })
+
+    const legacyKey = typeof r.key === 'string' && validKeys.has(r.key as DecentDimensionKey) ? r.key as DecentDimensionKey : undefined
+    const builtinKey = typeof r.builtinKey === 'string' && validKeys.has(r.builtinKey as DecentDimensionKey)
+      ? r.builtinKey as DecentDimensionKey
+      : legacyKey
+
+    if (builtinKey) {
+      if (seenBuiltins.has(builtinKey)) continue
+      seenBuiltins.add(builtinKey)
+      const meta = DECENT_DIMENSIONS.find(d => d.key === builtinKey)!
+      items.push({
+        id: builtinKey,
+        builtinKey,
+        name: meta.label,
+        icon: meta.icon,
+        monthlyAmount: amount,
+      })
+    } else {
+      const id = typeof r.id === 'string' && r.id.length > 0 ? r.id : uuidv4()
+      const name = typeof r.name === 'string' && r.name.trim().length > 0 ? r.name.trim() : '自定义'
+      const icon = typeof r.icon === 'string' && r.icon.length > 0 ? r.icon : '⭐'
+      items.push({ id, name, icon, monthlyAmount: amount })
+    }
   }
 
-  // 已是新模型且所有 6 维都在
-  if (typedItems.length === DECENT_DIMENSIONS.length) {
-    const ordered = DECENT_DIMENSIONS.map(d => typedItems.find(i => i.key === d.key) ?? { key: d.key, monthlyAmount: 0 })
-    return { monthlyAmount: sumBreakdown(ordered), breakdown: ordered }
+  // 有可识别数据 → 保证 6 个内置维度都存在（缺失补 0），保留自定义项，按默认 + 添加顺序排列
+  if (items.length > 0) {
+    const orderedBuiltins = DECENT_DIMENSIONS.map(d => {
+      const existing = items.find(i => i.builtinKey === d.key)
+      return existing ?? {
+        id: d.key, builtinKey: d.key, name: d.label, icon: d.icon, monthlyAmount: 0,
+      }
+    })
+    const customs = items.filter(i => !i.builtinKey)
+    const merged = [...orderedBuiltins, ...customs]
+    return { monthlyAmount: sumBreakdown(merged), breakdown: merged }
   }
 
-  // 老数据仅有 monthlyAmount 且 > 0 → 按默认权重分摊
+  // 老数据仅 monthlyAmount → 按默认权重分摊
   if (rawMonthly > 0) {
-    const defaultTotal = DECENT_DIMENSIONS.reduce((s, d) => s + d.defaultMonthly, 0)
+    const defaultTotal = DECENT_DIMENSIONS.reduce((sum, d) => sum + d.defaultMonthly, 0)
     const scale = defaultTotal > 0 ? rawMonthly / defaultTotal : 0
-    const breakdown = DECENT_DIMENSIONS.map(d => ({
-      key: d.key,
+    const breakdown: DecentBreakdownItem[] = DECENT_DIMENSIONS.map(d => ({
+      id: d.key, builtinKey: d.key, name: d.label, icon: d.icon,
       monthlyAmount: Math.round(d.defaultMonthly * scale),
     }))
     return { monthlyAmount: sumBreakdown(breakdown), breakdown }

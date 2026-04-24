@@ -1,8 +1,8 @@
 import type {
   DividendHolding, PensionConfig, RetirementPlan, OtherIncome, Gender, DividendGrowthScenario,
-  DecentDimensionKey, DecentBreakdownItem,
+  DecentBreakdownItem,
 } from '../types/retirement'
-import { DECENT_DIMENSIONS } from '../types/retirement'
+import { DECENT_DIMENSIONS, DEFAULT_CUSTOM_SUGGESTION } from '../types/retirement'
 import { findDividendStock } from '../data/dividendStocks'
 import {
   findPensionCity, getPersonalAccountMonths,
@@ -345,9 +345,11 @@ export function sumOtherIncome(items: OtherIncome[]): number {
 /* -------- 维度覆盖（v1：按预算权重均匀分摊收入） -------- */
 
 export interface DimensionCoverage {
-  key: DecentDimensionKey
+  id: string
+  builtinKey?: string
   label: string
   icon: string
+  description: string
   budget: number
   income: number
   ratio: number
@@ -356,7 +358,7 @@ export interface DimensionCoverage {
 }
 
 /**
- * 按各维度预算占总预算的比例，把月收入均匀分摊到 6 维，计算每维度的覆盖率与缺口。
+ * 按各维度预算占总预算的比例，把月收入均匀分摊，计算每维度覆盖率与缺口。
  * v1 不支持"股息专攻医疗"这类收入-维度绑定，后续可扩展。
  */
 export function computeDimensionCoverage(
@@ -364,22 +366,24 @@ export function computeDimensionCoverage(
   monthlyIncome: number,
 ): DimensionCoverage[] {
   const totalBudget = breakdown.reduce((s, i) => s + Math.max(0, i.monthlyAmount), 0)
-  return DECENT_DIMENSIONS.map(meta => {
-    const item = breakdown.find(b => b.key === meta.key)
-    const budget = Math.max(0, item?.monthlyAmount ?? 0)
+  return breakdown.map(item => {
+    const budget = Math.max(0, item.monthlyAmount)
     const weight = totalBudget > 0 ? budget / totalBudget : 0
     const income = monthlyIncome * weight
     const ratio = budget > 0 ? income / budget : 0
     const gap = Math.max(0, budget - income)
+    const meta = item.builtinKey ? DECENT_DIMENSIONS.find(d => d.key === item.builtinKey) : undefined
     return {
-      key: meta.key,
-      label: meta.label,
-      icon: meta.icon,
+      id: item.id,
+      builtinKey: item.builtinKey,
+      label: item.name,
+      icon: item.icon,
+      description: meta?.description ?? '自定义项目',
       budget,
       income,
       ratio,
       gap,
-      suggestion: meta.suggestion,
+      suggestion: meta?.suggestion ?? DEFAULT_CUSTOM_SUGGESTION,
     }
   })
 }
