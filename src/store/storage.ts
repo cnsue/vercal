@@ -2,6 +2,8 @@ import type { Snapshot, ExchangeRate } from '../types/models'
 import type { RetirementPlan, PensionConfig, DecentStandard, DecentBreakdownItem, DecentDimensionKey } from '../types/retirement'
 import { DEFAULT_RETIREMENT_PLAN, DEFAULT_PENSION, DECENT_DIMENSIONS, sumBreakdown } from '../types/retirement'
 import { v4 as uuidv4 } from '../utils/uuid'
+import type { MortgageInputs } from '../utils/mortgageCalc'
+import { DEFAULT_MORTGAGE_INPUTS } from '../utils/mortgageCalc'
 import type { ThemePreference } from '../types/theme'
 
 const K = {
@@ -15,6 +17,7 @@ const K = {
   installBannerDismissed: 'asset-tracker:installBannerDismissed',
   retirementPlan: 'asset-tracker:retirementPlan',
   themePreference: 'asset-tracker:themePreference',
+  mortgageInputs: 'asset-tracker:mortgageInputs',
 } as const
 
 function get<T>(key: string, fallback: T): T {
@@ -227,6 +230,13 @@ export const StorageService = {
     return value === 'light' || value === 'dark' || value === 'system' ? value : 'system'
   },
   saveThemePreference: (v: ThemePreference): void => set(K.themePreference, v),
+
+  getMortgageInputs: (): MortgageInputs => {
+    const stored = get<Partial<MortgageInputs> | null>(K.mortgageInputs, null)
+    if (!stored) return DEFAULT_MORTGAGE_INPUTS
+    return { ...DEFAULT_MORTGAGE_INPUTS, ...stored }
+  },
+  saveMortgageInputs: (v: MortgageInputs): void => set(K.mortgageInputs, v),
 
   estimateSizeKB: (): number => {
     let total = 0
