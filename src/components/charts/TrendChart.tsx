@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChartSlot } from '../../types/models'
 
 interface Props {
@@ -15,27 +15,10 @@ const LABEL_H = 34
 const RIGHT_PAD = BAR_W * 2 + BAR_GAP * 4
 const DOT_R = 3
 const GRID_STEPS = 4
-const MIN_ZOOM = 0.55
-const MAX_ZOOM = 2.4
 
 function cssVar(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
   return value || fallback
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value))
-}
-
-function touchDistance(touches: TouchList): number {
-  const a = touches[0]
-  const b = touches[1]
-  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
-}
-
-function touchCenterX(touches: TouchList, element: HTMLElement): number {
-  const rect = element.getBoundingClientRect()
-  return (touches[0].clientX + touches[1].clientX) / 2 - rect.left
 }
 
 function showLabel(i: number, total: number, period: string): boolean {
@@ -64,25 +47,16 @@ export default function TrendChart({ slots, period }: Props) {
   const axisCanvasRef = useRef<HTMLCanvasElement>(null)
   const plotCanvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const pinchRef = useRef<{ distance: number; zoom: number; focusX: number; centerX: number } | null>(null)
-  const panRef = useRef<{ startX: number; startScrollLeft: number } | null>(null)
-  const pendingFocusRef = useRef<{ zoom: number; focusX: number; centerX: number } | null>(null)
-  const zoomRef = useRef(1)
   const [themeTick, setThemeTick] = useState(0)
-  const [zoom, setZoom] = useState(1)
   const [containerW, setContainerW] = useState(0)
-  zoomRef.current = zoom
 
-  const baseBarW = Math.round(BAR_W * zoom)
-  const baseBarGap = Math.max(2, Math.round(BAR_GAP * zoom))
-  const baseRightPad = Math.round(RIGHT_PAD * zoom)
-  const naturalPlotW = Math.max(0, slots.length * (baseBarW + baseBarGap) - baseBarGap)
-  const naturalTotalW = naturalPlotW + baseRightPad
+  const naturalPlotW = Math.max(0, slots.length * (BAR_W + BAR_GAP) - BAR_GAP)
+  const naturalTotalW = naturalPlotW + RIGHT_PAD
   const shouldStretch = slots.length > 0 && containerW > 0 && naturalTotalW < containerW
 
-  const step = shouldStretch ? containerW / slots.length : baseBarW + baseBarGap
-  const barW = shouldStretch ? Math.min(Math.round(step * 0.6), baseBarW * 2) : baseBarW
-  const rightPad = shouldStretch ? 0 : baseRightPad
+  const step = shouldStretch ? containerW / slots.length : BAR_W + BAR_GAP
+  const barW = shouldStretch ? Math.min(Math.round(step * 0.6), BAR_W * 2) : BAR_W
+  const rightPad = shouldStretch ? 0 : RIGHT_PAD
   const plotW = shouldStretch ? slots.length * step : naturalPlotW
   const totalW = plotW + rightPad
   const totalH = TOP_PAD + PLOT_H + LABEL_H
@@ -102,104 +76,6 @@ export default function TrendChart({ slots, period }: Props) {
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-
-    const beginPinch = (touches: TouchList) => {
-      const centerX = touchCenterX(touches, el)
-      pinchRef.current = {
-        distance: touchDistance(touches),
-        zoom: zoomRef.current,
-        focusX: el.scrollLeft + centerX,
-        centerX,
-      }
-    }
-
-    const beginPan = (touch: Touch) => {
-      panRef.current = {
-        startX: touch.clientX,
-        startScrollLeft: el.scrollLeft,
-      }
-    }
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length === 2) {
-        panRef.current = null
-        beginPinch(event.touches)
-        event.preventDefault()
-      } else if (event.touches.length === 1) {
-        pinchRef.current = null
-        beginPan(event.touches[0])
-        event.preventDefault()
-      }
-    }
-    const onTouchMove = (event: TouchEvent) => {
-      if (event.touches.length === 2 && pinchRef.current) {
-        event.preventDefault()
-        const nextZoom = clamp(
-          pinchRef.current.zoom * (touchDistance(event.touches) / pinchRef.current.distance),
-          MIN_ZOOM,
-          MAX_ZOOM,
-        )
-        pendingFocusRef.current = {
-          zoom: pinchRef.current.zoom,
-          focusX: pinchRef.current.focusX,
-          centerX: touchCenterX(event.touches, el),
-        }
-        setZoom(nextZoom)
-      } else if (event.touches.length === 1 && panRef.current) {
-        event.preventDefault()
-        const dx = event.touches[0].clientX - panRef.current.startX
-        el.scrollLeft = panRef.current.startScrollLeft - dx
-      }
-    }
-    const onTouchEnd = (event: TouchEvent) => {
-      if (event.touches.length === 0) {
-        pinchRef.current = null
-        panRef.current = null
-      } else if (event.touches.length === 1) {
-        // Transition: pinch just ended, one finger still down — switch to pan.
-        pinchRef.current = null
-        beginPan(event.touches[0])
-      }
-    }
-    const onWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return
-      event.preventDefault()
-      const rect = el.getBoundingClientRect()
-      const centerX = event.clientX - rect.left
-      pendingFocusRef.current = {
-        zoom: zoomRef.current,
-        focusX: el.scrollLeft + centerX,
-        centerX,
-      }
-      setZoom(current => clamp(current * Math.exp(-event.deltaY * 0.01), MIN_ZOOM, MAX_ZOOM))
-    }
-
-    el.addEventListener('touchstart', onTouchStart, { passive: false })
-    el.addEventListener('touchmove', onTouchMove, { passive: false })
-    el.addEventListener('touchend', onTouchEnd)
-    el.addEventListener('touchcancel', onTouchEnd)
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
-      el.removeEventListener('touchend', onTouchEnd)
-      el.removeEventListener('touchcancel', onTouchEnd)
-      el.removeEventListener('wheel', onWheel)
-    }
-  }, [])
-
-  useLayoutEffect(() => {
-    const el = scrollRef.current
-    const pending = pendingFocusRef.current
-    if (!el || !pending) return
-    const scaledFocusX = pending.focusX * (zoom / pending.zoom)
-    el.scrollLeft = Math.max(0, scaledFocusX - pending.centerX)
-    pendingFocusRef.current = null
-  }, [zoom, totalW])
 
   useEffect(() => {
     const axisCanvas = axisCanvasRef.current
@@ -239,11 +115,11 @@ export default function TrendChart({ slots, period }: Props) {
     axisCtx.font = '10px -apple-system, sans-serif'
     axisCtx.textAlign = 'right'
     axisCtx.textBaseline = 'middle'
-    for (let step = 0; step <= GRID_STEPS; step += 1) {
-      const ratio = step / GRID_STEPS
+    for (let gridStep = 0; gridStep <= GRID_STEPS; gridStep += 1) {
+      const ratio = gridStep / GRID_STEPS
       const y = plotBottom - ratio * PLOT_H
       plotCtx.beginPath()
-      plotCtx.setLineDash(step === 0 ? [] : [3, 3])
+      plotCtx.setLineDash(gridStep === 0 ? [] : [3, 3])
       plotCtx.moveTo(0, y)
       plotCtx.lineTo(totalW, y)
       plotCtx.strokeStyle = grid
@@ -341,7 +217,7 @@ export default function TrendChart({ slots, period }: Props) {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
         <canvas ref={axisCanvasRef} style={{ display: 'block', flex: '0 0 auto', background: 'var(--surface)' }} />
-        <div ref={scrollRef} style={{ overflowX: 'auto', flex: 1, touchAction: 'none' }}>
+        <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', flex: 1, touchAction: 'pan-x' }}>
           <canvas ref={plotCanvasRef} style={{ display: 'block' }} />
         </div>
       </div>
