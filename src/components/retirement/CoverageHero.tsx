@@ -1,4 +1,5 @@
 import { formatCNY } from '../../utils/formatters'
+import type { DimensionCoverage } from '../../utils/retirementCalc'
 
 interface Props {
   decentMonthly: number
@@ -7,15 +8,19 @@ interface Props {
   nowMonthly: number
   retiredMonthly: number
   onEdit?: () => void
+  /** 底部维度圆环列表；传空数组则不渲染底部区域 */
+  dimensions?: DimensionCoverage[]
+  onDimensionClick?: (id: string) => void
 }
 
 /**
  * 岁月页顶部的体面覆盖率大卡片。
- * 拆为两列：「当下」(股息+其他) 与 「退休后」(全部)；
- * 养老金只有退休后才会开始领，所以两个数经常差很多。
+ * - 两列：当下（股息+其他） | 退休后（加养老金）
+ * - 底部一排小圆环展示各维度覆盖率，点击弹出详情
  */
 export default function CoverageHero({
   decentMonthly, nowRatio, retiredRatio, nowMonthly, retiredMonthly, onEdit,
+  dimensions = [], onDimensionClick,
 }: Props) {
   const unset = decentMonthly <= 0
   const retiredReached = retiredRatio >= 1
@@ -27,25 +32,40 @@ export default function CoverageHero({
       : 'linear-gradient(135deg, #8a4b1a 0%, #d28c3b 100%)'
 
   return (
-    <button onClick={onEdit}
-      style={{
-        display: 'block', width: '100%', textAlign: 'left',
-        background, borderRadius: 20, padding: 20, color: '#fff',
-        border: 'none', cursor: onEdit ? 'pointer' : 'default', marginBottom: 14,
-      }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+    <div style={{
+      background, borderRadius: 20, padding: 20, color: '#fff',
+      marginBottom: 14,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 10 }}>
         <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em' }}>体面覆盖率</div>
-        {!unset && (
-          <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 12, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
-            {retiredReached ? '退休后已达标' : '进行中'}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {!unset && (
+            <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 12, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+              {retiredReached ? '退休后已达标' : '进行中'}
+            </div>
+          )}
+          {onEdit && (
+            <button onClick={onEdit} aria-label="调整体面标准"
+              style={{
+                background: 'rgba(255,255,255,0.2)', color: '#fff',
+                border: 'none', borderRadius: 12, padding: '2px 10px',
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+              }}>
+              调整 ›
+            </button>
+          )}
+        </div>
       </div>
 
       {unset ? (
-        <div style={{ fontSize: 15, fontWeight: 600, opacity: 0.9, marginTop: 6 }}>
+        <button onClick={onEdit}
+          style={{
+            display: 'block', width: '100%', textAlign: 'left',
+            background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff',
+            borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: 'pointer',
+          }}>
           点击设置体面标准 ›
-        </div>
+        </button>
       ) : (
         <>
           <div style={{ display: 'flex', gap: 16 }}>
@@ -56,9 +76,12 @@ export default function CoverageHero({
           <div style={{ fontSize: 11, opacity: 0.75, marginTop: 12, lineHeight: 1.5 }}>
             股息和其他被动收入「当下」就能领；养老金到退休后才开始，所以两个数通常差很多。
           </div>
+          {dimensions.length > 0 && (
+            <DimensionsRow dimensions={dimensions} onDimensionClick={onDimensionClick} />
+          )}
         </>
       )}
-    </button>
+    </div>
   )
 }
 
@@ -93,5 +116,79 @@ function PhaseBlock({ label, ratio, monthly, decent, emphasis }: {
         {formatCNY(monthly)} / {formatCNY(decent)}
       </div>
     </div>
+  )
+}
+
+function DimensionsRow({ dimensions, onDimensionClick }: {
+  dimensions: DimensionCoverage[]
+  onDimensionClick?: (id: string) => void
+}) {
+  return (
+    <div style={{
+      marginTop: 14, paddingTop: 12,
+      borderTop: '1px solid rgba(255,255,255,0.2)',
+    }}>
+      <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 10 }}>
+        各维度覆盖 · 点圆环看缺口
+      </div>
+      <div style={{
+        display: 'flex', gap: 4,
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+        paddingBottom: 2, touchAction: 'pan-x',
+      }}>
+        {dimensions.map(d => (
+          <DimensionMini key={d.id} dim={d} onClick={() => onDimensionClick?.(d.id)} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DimensionMini({ dim, onClick }: { dim: DimensionCoverage; onClick: () => void }) {
+  const size = 44
+  const stroke = 4
+  const radius = (size - stroke) / 2
+  const circumference = 2 * Math.PI * radius
+  const reached = dim.ratio >= 1
+  const unset = dim.budget <= 0
+  const progress = Math.min(Math.max(dim.ratio, 0), 1)
+  const offset = circumference * (1 - progress)
+  const pctText = unset ? '—' : `${Math.round(dim.ratio * 100)}%`
+
+  return (
+    <button onClick={onClick} aria-label={`${dim.label} ${pctText}`}
+      style={{
+        flex: '1 0 auto', minWidth: 54,
+        background: 'none', border: 'none', padding: '4px 2px',
+        color: '#fff', cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      }}>
+      <div style={{ position: 'relative', width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx={size / 2} cy={size / 2} r={radius}
+            fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={stroke} />
+          {!unset && (
+            <circle cx={size / 2} cy={size / 2} r={radius}
+              fill="none" stroke={reached ? '#d4fbe3' : '#fff'} strokeWidth={stroke}
+              strokeDasharray={circumference} strokeDashoffset={offset}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 0.4s' }} />
+          )}
+        </svg>
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, lineHeight: 1,
+        }}>
+          {dim.icon}
+        </div>
+      </div>
+      <div style={{ fontSize: 10, opacity: 0.9, fontWeight: 700, lineHeight: 1 }}>
+        {dim.label}
+      </div>
+      <div style={{ fontSize: 10, opacity: 0.8, lineHeight: 1 }}>
+        {pctText}
+      </div>
+    </button>
   )
 }

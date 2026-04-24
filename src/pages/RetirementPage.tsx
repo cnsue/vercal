@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRetirementStore } from '../store/useRetirementStore'
 import { useAssetStore } from '../store/useAssetStore'
 import CoverageHero from '../components/retirement/CoverageHero'
-import CoverageDimensions from '../components/retirement/CoverageDimensions'
+import DimensionDetailSheet from '../components/retirement/DimensionDetailSheet'
 import DividendHoldings from '../components/retirement/DividendHoldings'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
@@ -25,6 +25,7 @@ export default function RetirementPage() {
 
   const [showDecentEditor, setShowDecentEditor] = useState(false)
   const [showOtherEditor, setShowOtherEditor] = useState(false)
+  const [detailDimId, setDetailDimId] = useState<string | null>(null)
 
   const dividend = useMemo(() => computeDividendSummary(plan.holdings), [plan.holdings])
   const pension = useMemo(() => computePensionProjection(plan.pension), [plan.pension])
@@ -77,15 +78,9 @@ export default function RetirementPage() {
         nowMonthly={coverage.nowMonthly}
         retiredMonthly={coverage.retiredMonthly}
         onEdit={() => setShowDecentEditor(true)}
+        dimensions={coverage.decentMonthly > 0 ? dimensions : []}
+        onDimensionClick={id => setDetailDimId(id)}
       />
-
-      {coverage.decentMonthly > 0 && plan.decentStandard.breakdown.length > 0 && (
-        <CoverageDimensions
-          dimensions={dimensions}
-          phase="retired"
-          onEdit={() => setShowDecentEditor(true)}
-        />
-      )}
 
       <ScenarioSelector
         years={pension.yearsToRetire}
@@ -193,6 +188,10 @@ export default function RetirementPage() {
 
       <DecentStandardEditor open={showDecentEditor} onClose={() => setShowDecentEditor(false)} />
       <OtherIncomeEditor open={showOtherEditor} onClose={() => setShowOtherEditor(false)} />
+      {detailDimId && (() => {
+        const dim = dimensions.find(d => d.id === detailDimId)
+        return dim ? <DimensionDetailSheet dim={dim} onClose={() => setDetailDimId(null)} /> : null
+      })()}
     </div>
   )
 }
