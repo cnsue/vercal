@@ -119,7 +119,8 @@ export default function AssetPage({ onOpenEditor }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0 12px', fontSize: 13 }}>
         <span style={{ color: 'var(--muted)', fontWeight: 600 }}>USD/CNY</span>
         <span style={{ fontWeight: 700 }}>{store.exchangeRate ? store.exchangeRate.rate.toFixed(4) : '未获取'}</span>
-        <span style={{ color: 'var(--muted)', fontSize: 11, flex: 1 }}>{store.rateStatus}</span>
+        <span style={{ color: 'var(--muted)', fontSize: 11 }}>在岸·日更</span>
+        <span style={{ color: 'var(--muted)', fontSize: 11, flex: 1, textAlign: 'right' }}>{store.rateStatus}</span>
         <button onClick={() => store.refreshExchangeRate()} disabled={store.isFetchingRate}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-strong)', fontSize: 16, lineHeight: 1 }}>
           <span className={store.isFetchingRate ? 'spin' : ''}>↻</span>

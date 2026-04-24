@@ -1,6 +1,6 @@
 import type { ExchangeRate } from '../types/models'
 
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
+const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
 export function isFresh(rate: ExchangeRate | null): boolean {
   if (!rate) return false
