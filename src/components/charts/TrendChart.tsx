@@ -72,12 +72,18 @@ export default function TrendChart({ slots, period }: Props) {
   const [containerW, setContainerW] = useState(0)
   zoomRef.current = zoom
 
-  const barW = Math.round(BAR_W * zoom)
-  const barGap = Math.max(2, Math.round(BAR_GAP * zoom))
-  const rightPad = Math.round(RIGHT_PAD * zoom)
-  const plotW = Math.max(0, slots.length * (barW + barGap) - barGap)
-  const naturalW = plotW + rightPad
-  const totalW = Math.max(naturalW, containerW)
+  const baseBarW = Math.round(BAR_W * zoom)
+  const baseBarGap = Math.max(2, Math.round(BAR_GAP * zoom))
+  const baseRightPad = Math.round(RIGHT_PAD * zoom)
+  const naturalPlotW = Math.max(0, slots.length * (baseBarW + baseBarGap) - baseBarGap)
+  const naturalTotalW = naturalPlotW + baseRightPad
+  const shouldStretch = slots.length > 0 && containerW > 0 && naturalTotalW < containerW
+
+  const step = shouldStretch ? containerW / slots.length : baseBarW + baseBarGap
+  const barW = shouldStretch ? Math.min(Math.round(step * 0.6), baseBarW * 2) : baseBarW
+  const rightPad = shouldStretch ? 0 : baseRightPad
+  const plotW = shouldStretch ? slots.length * step : naturalPlotW
+  const totalW = plotW + rightPad
   const totalH = TOP_PAD + PLOT_H + LABEL_H
 
   useEffect(() => {
@@ -227,7 +233,7 @@ export default function TrendChart({ slots, period }: Props) {
 
     // Bars
     slots.forEach((slot, i) => {
-      const x = i * (barW + barGap)
+      const x = i * step + (step - barW) / 2
       if (slot.snapshot && slot.totalValueCNY > 0) {
         const h = Math.max(8, PLOT_H * (slot.totalValueCNY / axisMax))
         plotCtx.fillStyle = green
@@ -246,7 +252,7 @@ export default function TrendChart({ slots, period }: Props) {
     const points = slots
       .map((slot, i) => {
         if (!slot.snapshot || slot.totalValueCNY <= 0) return null
-        const x = i * (barW + barGap) + barW / 2
+        const x = i * step + step / 2
         const h = Math.max(8, PLOT_H * (slot.totalValueCNY / axisMax))
         const barTop = plotBottom - h
         const y = Math.min(plotBottom - DOT_R - 1, Math.max(plotTop + DOT_R + 1, barTop + h / 2))
@@ -278,10 +284,10 @@ export default function TrendChart({ slots, period }: Props) {
     plotCtx.textBaseline = 'top'
     slots.forEach((slot, i) => {
       if (!showLabel(i, slots.length, period)) return
-      const x = i * (barW + barGap) + barW / 2
+      const x = i * step + step / 2
       plotCtx.fillText(slot.label, x, plotBottom + 10)
     })
-  }, [slots, plotW, totalH, totalW, period, themeTick, barW, barGap])
+  }, [slots, plotW, totalH, totalW, period, themeTick, barW, step])
 
   // Scroll to end on mount / period change
   useEffect(() => {
