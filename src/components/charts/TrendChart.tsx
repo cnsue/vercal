@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChartSlot } from '../../types/models'
+import { COLORS } from './DonutChart'
+
+export interface TrendSeries {
+  name: string
+  values: number[]
+  color?: string
+}
 
 interface Props {
   slots: ChartSlot[]
   period: 'day' | 'week' | 'month' | 'year'
+  series?: TrendSeries[]
 }
 
 const BAR_W = 28
@@ -43,7 +51,7 @@ function computeAxisMax(maxValue: number): number {
   return 10 * magnitude
 }
 
-export default function TrendChart({ slots, period }: Props) {
+export default function TrendChart({ slots, period, series = [] }: Props) {
   const axisCanvasRef = useRef<HTMLCanvasElement>(null)
   const plotCanvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -100,7 +108,12 @@ export default function TrendChart({ slots, period }: Props) {
     axisCtx.clearRect(0, 0, AXIS_W, totalH)
     plotCtx.clearRect(0, 0, totalW, totalH)
 
-    const maxVal = Math.max(...slots.map(s => s.totalValueCNY), 1)
+    const seriesTotals = slots.map((slot, i) => (
+      series.length > 0
+        ? series.reduce((sum, s) => sum + Math.max(0, s.values[i] ?? 0), 0)
+        : slot.totalValueCNY
+    ))
+    const maxVal = Math.max(...seriesTotals, 1)
     const axisMax = computeAxisMax(maxVal)
     const green = cssVar('--primary-strong', '#1e6845')
     const empty = cssVar('--chart-empty', 'rgba(0,0,0,0.08)')
@@ -138,8 +151,28 @@ export default function TrendChart({ slots, period }: Props) {
     // Bars
     slots.forEach((slot, i) => {
       const x = i * step + (step - barW) / 2
-      if (slot.snapshot && slot.totalValueCNY > 0) {
-        const h = Math.max(8, PLOT_H * (slot.totalValueCNY / axisMax))
+      const slotTotal = seriesTotals[i] ?? 0
+      if (slot.snapshot && slotTotal > 0) {
+        const h = Math.max(8, PLOT_H * (slotTotal / axisMax))
+        if (series.length > 0) {
+          plotCtx.save()
+          plotCtx.beginPath()
+          plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
+          plotCtx.clip()
+          let y = plotBottom
+          series.forEach((s, seriesIdx) => {
+            const value = Math.max(0, s.values[i] ?? 0)
+            if (value <= 0) return
+            const segmentH = Math.max(1, h * (value / slotTotal))
+            y -= segmentH
+            plotCtx.fillStyle = s.color ?? COLORS[seriesIdx % COLORS.length]
+            plotCtx.beginPath()
+            plotCtx.rect(x, y, barW, segmentH)
+            plotCtx.fill()
+          })
+          plotCtx.restore()
+          return
+        }
         plotCtx.fillStyle = green
         plotCtx.beginPath()
         plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
@@ -155,9 +188,10 @@ export default function TrendChart({ slots, period }: Props) {
     // Trend line + dots
     const points = slots
       .map((slot, i) => {
-        if (!slot.snapshot || slot.totalValueCNY <= 0) return null
+        const slotTotal = seriesTotals[i] ?? 0
+        if (!slot.snapshot || slotTotal <= 0) return null
         const x = i * step + step / 2
-        const h = Math.max(8, PLOT_H * (slot.totalValueCNY / axisMax))
+        const h = Math.max(8, PLOT_H * (slotTotal / axisMax))
         const barTop = plotBottom - h
         const y = Math.min(plotBottom - DOT_R - 1, Math.max(plotTop + DOT_R + 1, barTop + h / 2))
         return { x, y }
@@ -191,7 +225,7 @@ export default function TrendChart({ slots, period }: Props) {
       const x = i * step + step / 2
       plotCtx.fillText(slot.label, x, plotBottom + 10)
     })
-  }, [slots, plotW, totalH, totalW, period, themeTick, barW, step])
+  }, [slots, series, plotW, totalH, totalW, period, themeTick, barW, step])
 
   // Scroll to end on mount / period change
   useEffect(() => {
@@ -199,7 +233,14 @@ export default function TrendChart({ slots, period }: Props) {
     if (el) el.scrollLeft = el.scrollWidth
   }, [slots])
 
-  const dataSlots = slots.filter(s => s.snapshot && s.totalValueCNY > 0)
+  const slotValue = (slot: ChartSlot, index: number) => (
+    series.length > 0
+      ? series.reduce((sum, s) => sum + Math.max(0, s.values[index] ?? 0), 0)
+      : slot.totalValueCNY
+  )
+  const dataSlots = slots
+    .map((slot, index) => ({ slot, index, value: slotValue(slot, index) }))
+    .filter(s => s.slot.snapshot && s.value > 0)
   if (dataSlots.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)' }}>
@@ -211,7 +252,7 @@ export default function TrendChart({ slots, period }: Props) {
 
   const first = dataSlots[0]
   const last = dataSlots[dataSlots.length - 1]
-  const change = last.totalValueCNY - first.totalValueCNY
+  const change = last.value - first.value
 
   return (
     <div>
@@ -227,6 +268,16 @@ export default function TrendChart({ slots, period }: Props) {
           <span style={{ color: change >= 0 ? 'var(--primary-strong)' : 'var(--danger)', fontWeight: 600 }}>
             {change >= 0 ? '+' : ''}{change.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </span>
+        </div>
+      )}
+      {series.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 10px', marginTop: 10 }}>
+          {series.map((s, i) => (
+            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--muted)' }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color ?? COLORS[i % COLORS.length] }} />
+              <span>{s.name}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>

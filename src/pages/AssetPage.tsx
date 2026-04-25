@@ -4,7 +4,7 @@ import { useRetirementStore } from '../store/useRetirementStore'
 import HeroCard from '../components/HeroCard'
 import AnnualTargetCard from '../components/AnnualTargetCard'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
-import TrendChart from '../components/charts/TrendChart'
+import TrendChart, { type TrendSeries } from '../components/charts/TrendChart'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
 import { generateSlots } from '../utils/dateSlots'
 import { formatCNY, formatDateKey, displayDate } from '../utils/formatters'
@@ -22,6 +22,15 @@ const PERIODS: { key: ChartPeriod; label: string }[] = [
 ]
 
 type DistMode = 'platform' | 'class'
+type TrendMode = 'total' | 'platform' | 'class'
+
+const TREND_MODES: { key: TrendMode; label: string }[] = [
+  { key: 'total', label: '总览' },
+  { key: 'platform', label: '按平台' },
+  { key: 'class', label: '按类别' },
+]
+
+const MAX_TREND_SERIES = 6
 
 interface Props {
   onOpenEditor: (snap: Snapshot) => void
@@ -31,6 +40,7 @@ export default function AssetPage({ onOpenEditor }: Props) {
   const store = useAssetStore()
   const plan = useRetirementStore(s => s.plan)
   const [period, setPeriod] = useState<ChartPeriod>('day')
+  const [trendMode, setTrendMode] = useState<TrendMode>('total')
   const [distMode, setDistMode] = useState<DistMode>('platform')
   const [showTargetEditor, setShowTargetEditor] = useState(false)
   const [targetInput, setTargetInput] = useState('')
@@ -52,6 +62,10 @@ export default function AssetPage({ onOpenEditor }: Props) {
   const recordedToday = sorted.some(s => s.dateKey === todayKey)
 
   const slots = useMemo(() => generateSlots(sorted, period), [sorted, period])
+  const trendSeries = useMemo(
+    () => trendMode === 'total' ? [] : buildTrendSeries(slots, trendMode),
+    [slots, trendMode],
+  )
 
   const distItems = useMemo((): BreakdownItem[] => {
     if (!latest) return []
@@ -126,6 +140,19 @@ export default function AssetPage({ onOpenEditor }: Props) {
 
       {/* Trend chart */}
       <Section title="资产变化">
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          {TREND_MODES.map(m => (
+            <button key={m.key} onClick={() => setTrendMode(m.key)}
+              style={{
+                flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+                fontWeight: 600, fontSize: 13,
+                background: trendMode === m.key ? 'var(--primary)' : 'var(--button-secondary-bg)',
+                color: trendMode === m.key ? '#fff' : 'var(--button-secondary-text)',
+              }}>
+              {m.label}
+            </button>
+          ))}
+        </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
           {PERIODS.map(p => (
             <button key={p.key} onClick={() => setPeriod(p.key)}
@@ -136,7 +163,7 @@ export default function AssetPage({ onOpenEditor }: Props) {
             </button>
           ))}
         </div>
-        <TrendChart slots={slots} period={period} />
+        <TrendChart slots={slots} period={period} series={trendSeries} />
       </Section>
 
       {/* Distribution */}
@@ -208,6 +235,45 @@ export default function AssetPage({ onOpenEditor }: Props) {
       )}
     </div>
   )
+}
+
+function buildTrendSeries(slots: ReturnType<typeof generateSlots>, mode: Exclude<TrendMode, 'total'>): TrendSeries[] {
+  const valuesByName = new Map<string, number[]>()
+  const totalsByName = new Map<string, number>()
+
+  slots.forEach((slot, slotIndex) => {
+    if (!slot.snapshot) return
+    const slotTotals = new Map<string, number>()
+    for (const item of slot.snapshot.items) {
+      const name = mode === 'platform' ? effectivePlatformLabel(item) : effectiveClassLabel(item)
+      slotTotals.set(name, (slotTotals.get(name) ?? 0) + Math.max(0, item.valueCNY))
+    }
+    for (const [name, value] of slotTotals) {
+      if (!valuesByName.has(name)) valuesByName.set(name, Array(slots.length).fill(0))
+      valuesByName.get(name)![slotIndex] = value
+      totalsByName.set(name, (totalsByName.get(name) ?? 0) + value)
+    }
+  })
+
+  const names = [...totalsByName.entries()]
+    .filter(([, total]) => total > 0)
+    .sort(([, a], [, b]) => b - a)
+    .map(([name]) => name)
+
+  const visible = names.slice(0, MAX_TREND_SERIES)
+  const overflow = names.slice(MAX_TREND_SERIES)
+  const series = visible.map(name => ({ name, values: valuesByName.get(name) ?? [] }))
+
+  if (overflow.length > 0) {
+    series.push({
+      name: '其他合计',
+      values: slots.map((_, slotIndex) => overflow.reduce((sum, name) => (
+        sum + (valuesByName.get(name)?.[slotIndex] ?? 0)
+      ), 0)),
+    })
+  }
+
+  return series
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
