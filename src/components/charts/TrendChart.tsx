@@ -123,6 +123,7 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
     const dot = cssVar('--chart-dot', '#fff')
     const label = cssVar('--chart-label', 'rgba(0,0,0,0.45)')
     const grid = cssVar('--border-strong', '#ddd')
+    const selectedBg = cssVar('--surface-active', '#e8f5ee')
     const plotTop = TOP_PAD
     const plotBottom = plotTop + PLOT_H
 
@@ -149,6 +150,18 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
     axisCtx.lineTo(AXIS_W - 1, plotBottom)
     axisCtx.strokeStyle = grid
     axisCtx.stroke()
+
+    if (selectedIndex !== null && slots[selectedIndex]?.snapshot && (seriesTotals[selectedIndex] ?? 0) > 0) {
+      const selectedX = selectedIndex * step + step / 2
+      const highlightW = Math.max(barW + 10, Math.min(step * 0.82, barW + 18))
+      plotCtx.save()
+      plotCtx.globalAlpha = 0.55
+      plotCtx.fillStyle = selectedBg
+      plotCtx.beginPath()
+      plotCtx.roundRect(selectedX - highlightW / 2, plotTop, highlightW, PLOT_H, 8)
+      plotCtx.fill()
+      plotCtx.restore()
+    }
 
     // Bars
     slots.forEach((slot, i) => {
@@ -179,18 +192,26 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
           plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
           plotCtx.fill()
         }
+        if (i === selectedIndex) {
+          plotCtx.save()
+          plotCtx.strokeStyle = dot
+          plotCtx.lineWidth = 1.5
+          plotCtx.globalAlpha = 0.88
+          plotCtx.beginPath()
+          plotCtx.roundRect(x - 1, plotBottom - h - 1, barW + 2, h + 2, 5)
+          plotCtx.stroke()
+          plotCtx.fillStyle = dot
+          plotCtx.globalAlpha = 0.95
+          plotCtx.beginPath()
+          plotCtx.arc(x + barW / 2, plotBottom + 9, 3, 0, Math.PI * 2)
+          plotCtx.fill()
+          plotCtx.restore()
+        }
       } else {
         plotCtx.fillStyle = empty
         plotCtx.beginPath()
         plotCtx.roundRect(x, plotBottom - 4, barW, 4, 2)
         plotCtx.fill()
-      }
-      if (i === selectedIndex) {
-        plotCtx.strokeStyle = dot
-        plotCtx.lineWidth = 2
-        plotCtx.beginPath()
-        plotCtx.roundRect(x - 2, plotTop + 2, barW + 4, PLOT_H - 4, 6)
-        plotCtx.stroke()
       }
     })
 

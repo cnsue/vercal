@@ -25,9 +25,9 @@ type DistMode = 'platform' | 'class'
 type TrendMode = 'total' | 'platform' | 'class'
 
 const TREND_MODES: { key: TrendMode; label: string }[] = [
-  { key: 'total', label: '总览K' },
-  { key: 'platform', label: '平台K' },
-  { key: 'class', label: '类别K' },
+  { key: 'total', label: '总览' },
+  { key: 'platform', label: '平台' },
+  { key: 'class', label: '类别' },
 ]
 
 const MAX_TREND_SERIES = 6
@@ -140,28 +140,52 @@ export default function AssetPage({ onOpenEditor }: Props) {
 
       {/* Trend chart */}
       <Section title="资产变化">
-        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-          {TREND_MODES.map(m => (
-            <button key={m.key} onClick={() => setTrendMode(m.key)}
-              style={{
-                flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-                fontWeight: 600, fontSize: 13,
-                background: trendMode === m.key ? 'var(--primary)' : 'var(--button-secondary-bg)',
-                color: trendMode === m.key ? '#fff' : 'var(--button-secondary-text)',
-              }}>
-              {m.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-          {PERIODS.map(p => (
-            <button key={p.key} onClick={() => setPeriod(p.key)}
-              style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
-                background: period === p.key ? 'var(--primary)' : 'var(--button-secondary-bg)',
-                color: period === p.key ? '#fff' : 'var(--button-secondary-text)' }}>
-              {p.label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+          <div style={{
+            display: 'flex',
+            gap: 2,
+            padding: 2,
+            borderRadius: 9,
+            background: 'var(--button-secondary-bg)',
+            flex: 1,
+            minWidth: 0,
+          }}>
+            {TREND_MODES.map(m => (
+              <button key={m.key} onClick={() => setTrendMode(m.key)}
+                style={{
+                  flex: 1,
+                  padding: '5px 0',
+                  borderRadius: 7,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  background: trendMode === m.key ? 'var(--primary)' : 'transparent',
+                  color: trendMode === m.key ? '#fff' : 'var(--button-secondary-text)',
+                }}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <select
+            aria-label="资产变化周期"
+            value={period}
+            onChange={e => setPeriod(e.target.value as ChartPeriod)}
+            style={{
+              width: 74,
+              height: 32,
+              borderRadius: 9,
+              border: '1px solid var(--border)',
+              background: 'var(--surface-muted)',
+              color: 'var(--text)',
+              fontWeight: 700,
+              padding: '0 8px',
+              fontSize: 13,
+            }}>
+            {PERIODS.map(p => (
+              <option key={p.key} value={p.key}>{p.label}</option>
+            ))}
+          </select>
         </div>
         <TrendChart slots={slots} period={period} series={trendSeries} />
       </Section>
