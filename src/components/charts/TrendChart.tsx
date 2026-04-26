@@ -255,10 +255,17 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
   const change = last.value - first.value
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+    <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0 }}>
         <canvas ref={axisCanvasRef} style={{ display: 'block', flex: '0 0 auto', background: 'var(--surface)' }} />
-        <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', flex: 1, touchAction: 'pan-x' }}>
+        <div ref={scrollRef} style={{
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          flex: '1 1 0',
+          minWidth: 0,
+          maxWidth: '100%',
+          touchAction: 'pan-x',
+        }}>
           <canvas ref={plotCanvasRef} style={{ display: 'block' }} />
         </div>
       </div>
@@ -273,9 +280,17 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
       {series.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 10px', marginTop: 10 }}>
           {series.map((s, i) => (
-            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--muted)' }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color ?? COLORS[i % COLORS.length] }} />
-              <span>{s.name}</span>
+            <div key={s.name} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              fontSize: 11,
+              color: 'var(--muted)',
+              minWidth: 0,
+              maxWidth: '45%',
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color ?? COLORS[i % COLORS.length], flex: '0 0 auto' }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
             </div>
           ))}
         </div>
