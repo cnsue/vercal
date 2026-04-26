@@ -14,7 +14,15 @@ function safeCommit(): string {
 }
 
 const APP_VERSION = pkg.version
-const BUILD_TIME = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+const BUILD_TIME = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+}).format(new Date()).replace(/\//g, '-')
 const BUILD_COMMIT = safeCommit()
 
 export default defineConfig({
