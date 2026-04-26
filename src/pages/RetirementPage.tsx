@@ -25,7 +25,7 @@ export default function RetirementPage() {
 
   const [showDecentEditor, setShowDecentEditor] = useState(false)
   const [showOtherEditor, setShowOtherEditor] = useState(false)
-  const [coverageMode, setCoverageMode] = useState<CoverageMode>('retired')
+  const [coverageMode, setCoverageMode] = useState<CoverageMode>('now')
   const [detailDimId, setDetailDimId] = useState<string | null>(null)
 
   const dividend = useMemo(() => computeDividendSummary(plan.holdings), [plan.holdings])

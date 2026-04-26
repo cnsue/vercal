@@ -25,9 +25,9 @@ type DistMode = 'platform' | 'class'
 type TrendMode = 'total' | 'platform' | 'class'
 
 const TREND_MODES: { key: TrendMode; label: string }[] = [
-  { key: 'total', label: '总览' },
-  { key: 'platform', label: '按平台' },
-  { key: 'class', label: '按类别' },
+  { key: 'total', label: '总览K' },
+  { key: 'platform', label: '平台K' },
+  { key: 'class', label: '类别K' },
 ]
 
 const MAX_TREND_SERIES = 6

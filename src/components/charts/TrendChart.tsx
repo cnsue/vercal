@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { ChartSlot } from '../../types/models'
 import { COLORS } from './DonutChart'
+import { formatCNY } from '../../utils/formatters'
 
 export interface TrendSeries {
   name: string
@@ -57,6 +58,7 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [themeTick, setThemeTick] = useState(0)
   const [containerW, setContainerW] = useState(0)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
   const naturalPlotW = Math.max(0, slots.length * (BAR_W + BAR_GAP) - BAR_GAP)
   const naturalTotalW = naturalPlotW + RIGHT_PAD
@@ -171,17 +173,24 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
             plotCtx.fill()
           })
           plotCtx.restore()
-          return
+        } else {
+          plotCtx.fillStyle = green
+          plotCtx.beginPath()
+          plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
+          plotCtx.fill()
         }
-        plotCtx.fillStyle = green
-        plotCtx.beginPath()
-        plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
-        plotCtx.fill()
       } else {
         plotCtx.fillStyle = empty
         plotCtx.beginPath()
         plotCtx.roundRect(x, plotBottom - 4, barW, 4, 2)
         plotCtx.fill()
+      }
+      if (i === selectedIndex) {
+        plotCtx.strokeStyle = dot
+        plotCtx.lineWidth = 2
+        plotCtx.beginPath()
+        plotCtx.roundRect(x - 2, plotTop + 2, barW + 4, PLOT_H - 4, 6)
+        plotCtx.stroke()
       }
     })
 
@@ -225,7 +234,7 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
       const x = i * step + step / 2
       plotCtx.fillText(slot.label, x, plotBottom + 10)
     })
-  }, [slots, series, plotW, totalH, totalW, period, themeTick, barW, step])
+  }, [slots, series, plotW, totalH, totalW, period, themeTick, barW, step, selectedIndex])
 
   // Scroll to end on mount / period change
   useEffect(() => {
@@ -241,6 +250,16 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
   const dataSlots = slots
     .map((slot, index) => ({ slot, index, value: slotValue(slot, index) }))
     .filter(s => s.slot.snapshot && s.value > 0)
+
+  useEffect(() => {
+    const latestDataSlot = [...slots]
+      .map((slot, index) => ({ slot, index, value: slotValue(slot, index) }))
+      .filter(s => s.slot.snapshot && s.value > 0)
+      .at(-1)
+    setSelectedIndex(latestDataSlot?.index ?? null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slots, series])
+
   if (dataSlots.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)' }}>
@@ -253,6 +272,27 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
   const first = dataSlots[0]
   const last = dataSlots[dataSlots.length - 1]
   const change = last.value - first.value
+  const selected = dataSlots.find(s => s.index === selectedIndex) ?? last
+  const previous = [...dataSlots].reverse().find(s => s.index < selected.index)
+  const selectedChange = previous ? selected.value - previous.value : 0
+  const selectedChangePct = previous && previous.value > 0 ? (selectedChange / previous.value) * 100 : 0
+  const selectedSeries = series
+    .map((s, i) => ({
+      name: s.name,
+      color: s.color ?? COLORS[i % COLORS.length],
+      value: Math.max(0, s.values[selected.index] ?? 0),
+    }))
+    .filter(s => s.value > 0)
+
+  function handlePlotClick(e: MouseEvent<HTMLCanvasElement>) {
+    if (slots.length === 0) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const index = Math.min(slots.length - 1, Math.max(0, Math.floor(x / step)))
+    if (slots[index]?.snapshot && slotValue(slots[index], index) > 0) {
+      setSelectedIndex(index)
+    }
+  }
 
   return (
     <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
@@ -266,7 +306,31 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
           maxWidth: '100%',
           touchAction: 'pan-x',
         }}>
-          <canvas ref={plotCanvasRef} style={{ display: 'block' }} />
+          <canvas
+            ref={plotCanvasRef}
+            onClick={handlePlotClick}
+            style={{ display: 'block', cursor: 'pointer' }}
+          />
+        </div>
+      </div>
+      <div style={{
+        marginTop: 10,
+        padding: '10px 12px',
+        borderRadius: 10,
+        background: 'var(--surface-muted)',
+        border: '1px solid var(--border)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{selected.slot.label}</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-strong)' }}>{formatCNY(selected.value)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+          <span style={{ color: 'var(--muted)' }}>{previous ? '较上一记录' : '暂无上一记录'}</span>
+          <span style={{ color: selectedChange >= 0 ? 'var(--primary-strong)' : 'var(--danger)', fontWeight: 700 }}>
+            {previous
+              ? `${selectedChange >= 0 ? '+' : ''}${formatCNY(selectedChange)} · ${selectedChangePct >= 0 ? '+' : ''}${selectedChangePct.toFixed(2)}%`
+              : '--'}
+          </span>
         </div>
       </div>
       {dataSlots.length > 1 && (
@@ -278,8 +342,9 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
         </div>
       )}
       {series.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 10px', marginTop: 10 }}>
-          {series.map((s, i) => (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 10px' }}>
+            {series.map((s, i) => (
             <div key={s.name} style={{
               display: 'flex',
               alignItems: 'center',
@@ -292,7 +357,21 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
               <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color ?? COLORS[i % COLORS.length], flex: '0 0 auto' }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
             </div>
-          ))}
+            ))}
+          </div>
+          {selectedSeries.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              {selectedSeries.slice(0, 4).map(s => (
+                <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, marginTop: 5 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flex: '0 0 auto' }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                  </span>
+                  <span style={{ color: 'var(--muted)', flex: '0 0 auto' }}>{formatCNY(s.value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

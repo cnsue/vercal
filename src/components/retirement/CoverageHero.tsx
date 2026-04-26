@@ -50,7 +50,7 @@ export default function CoverageHero({
     <div style={{ background, borderRadius: 20, padding: 20, color: '#fff', marginBottom: 14 }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em' }}>退休幸福指数</div>
+        <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em' }}>体面幸福指数</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Mode toggle */}
           {!unset && (
