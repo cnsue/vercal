@@ -401,9 +401,27 @@
           <p class="desc">当前版本已移除个人截图默认值。预计退休年月继续保留为 `YYYYMM` 格式，请按自己的数据填写。</p>
           <div class="grid">
             <label class="field">
+              <span>性别 / 身份</span>
+              <select id="gender"></select>
+              <small>用于套用 2025 渐进式延迟退休年龄规则。</small>
+            </label>
+            <label class="field">
+              <span>出生年月</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <select id="birthYear"></select>
+                <select id="birthMonth"></select>
+              </div>
+              <small>出生年月会自动推算标准退休年龄。</small>
+            </label>
+            <label class="field">
+              <span>弹性退休</span>
+              <select id="retirementOffsetMonths"></select>
+              <small>按标准退休年月在合法区间内提前或延后，当前支持 ±3 年。</small>
+            </label>
+            <label class="field">
               <span>预计退休年月</span>
-              <input id="retirementYm" inputmode="numeric" maxlength="6" value="" placeholder="例如 204512">
-              <small>例如 204512。页面会自动给出按当前日期推算的继续缴费月数参考值。</small>
+              <input id="retirementYm" inputmode="numeric" maxlength="6" value="" readonly>
+              <small id="retirementRuleHint">将根据性别、出生年月和弹性退休规则自动推算。</small>
             </label>
             <label class="field">
               <span>参保地区</span>
@@ -625,7 +643,17 @@
       { key: "chongqing", name: "重庆", averageWage: 7909 }
     ];
 
+    const GENDER_OPTIONS = [
+      { key: "male", label: "男性" },
+      { key: "femaleCadre", label: "女性（干部／管理技术岗）" },
+      { key: "femaleWorker", label: "女性（工人岗）" }
+    ];
+
     const defaults = {
+      gender: "male",
+      birthYear: 1990,
+      birthMonth: 1,
+      retirementOffsetMonths: 0,
       retirementYm: "",
       cityKey: "manual",
       currentAvgWage: "",
@@ -674,6 +702,32 @@
       }).join("");
     }
 
+    function populatePersonalOptions() {
+      getInput("gender").innerHTML = GENDER_OPTIONS
+        .map((gender) => `<option value="${gender.key}">${gender.label}</option>`)
+        .join("");
+
+      const currentYear = new Date().getFullYear();
+      const startYear = currentYear - 75;
+      const endYear = currentYear - 16;
+      getInput("birthYear").innerHTML = Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index)
+        .map((year) => `<option value="${year}">${year} 年</option>`)
+        .join("");
+      getInput("birthMonth").innerHTML = Array.from({ length: 12 }, (_, index) => index + 1)
+        .map((month) => `<option value="${month}">${month} 月</option>`)
+        .join("");
+      getInput("retirementOffsetMonths").innerHTML = Array.from({ length: 73 }, (_, index) => index - 36)
+        .map((offset) => {
+          const label = offset === 0
+            ? "按标准退休"
+            : offset < 0
+              ? `提前 ${Math.abs(offset)} 个月`
+              : `延后 ${offset} 个月`;
+          return `<option value="${offset}">${label}</option>`;
+        })
+        .join("");
+    }
+
     function selectedCity() {
       return CITY_OPTIONS.find((city) => city.key === getInput("cityKey").value) || CITY_OPTIONS[0];
     }
@@ -696,6 +750,64 @@
       syncCityWageHint();
       saveState();
       calculate();
+    }
+
+    function computeStandardRetirement(gender, birthYear, birthMonth) {
+      const birthIdx = birthYear * 12 + (birthMonth - 1);
+      let baseYears;
+      let cutoffIdx;
+      let stepMonths;
+      let capExtra;
+      if (gender === "male") {
+        baseYears = 60;
+        cutoffIdx = 1965 * 12;
+        stepMonths = 4;
+        capExtra = 36;
+      } else if (gender === "femaleCadre") {
+        baseYears = 55;
+        cutoffIdx = 1970 * 12;
+        stepMonths = 4;
+        capExtra = 36;
+      } else {
+        baseYears = 50;
+        cutoffIdx = 1975 * 12;
+        stepMonths = 2;
+        capExtra = 60;
+      }
+
+      let extra = 0;
+      if (birthIdx >= cutoffIdx) {
+        extra = Math.min(Math.floor((birthIdx - cutoffIdx) / stepMonths) + 1, capExtra);
+      }
+      const totalMonths = baseYears * 12 + extra;
+      return {
+        years: Math.floor(totalMonths / 12),
+        months: totalMonths % 12,
+        totalMonths
+      };
+    }
+
+    function syncRetirementEstimate() {
+      const gender = getInput("gender").value || defaults.gender;
+      const birthYear = Math.max(1900, readNumber("birthYear") || defaults.birthYear);
+      const birthMonth = Math.min(12, Math.max(1, readNumber("birthMonth") || defaults.birthMonth));
+      const offset = Math.min(36, Math.max(-36, readNumber("retirementOffsetMonths")));
+      const standard = computeStandardRetirement(gender, birthYear, birthMonth);
+      const actualTotalMonths = standard.totalMonths + offset;
+      const actualYears = Math.floor(actualTotalMonths / 12);
+      const actualExtraMonths = actualTotalMonths % 12;
+      const retirementDate = new Date(birthYear, birthMonth - 1 + actualTotalMonths, 1);
+      const ym = `${retirementDate.getFullYear()}${String(retirementDate.getMonth() + 1).padStart(2, "0")}`;
+      setFieldValue("retirementYm", ym);
+
+      const offsetText = offset === 0
+        ? "按标准退休"
+        : offset < 0
+          ? `弹性提前 ${Math.abs(offset)} 个月`
+          : `弹性延后 ${offset} 个月`;
+      document.getElementById("retirementRuleHint").textContent =
+        `标准退休 ${standard.years} 岁 ${standard.months} 月；${offsetText}后为 ${actualYears} 岁 ${actualExtraMonths} 月，预计 ${ym.slice(0, 4)}-${ym.slice(4)} 退休。`;
+      return ym;
     }
 
     function formatCurrency(value) {
@@ -811,6 +923,9 @@
     function loadState() {
       const raw = localStorage.getItem(storageKey);
       if (!raw) {
+        fieldIds.forEach((id) => {
+          setFieldValue(id, defaults[id]);
+        });
         const savedMode = localStorage.getItem(futurePayModeKey);
         if (savedMode) {
           futurePayMode = savedMode;
@@ -820,6 +935,9 @@
       }
       try {
         const state = JSON.parse(raw);
+        fieldIds.forEach((id) => {
+          setFieldValue(id, defaults[id]);
+        });
         fieldIds.forEach((id) => {
           if (state[id] !== undefined) {
             setFieldValue(id, state[id]);
@@ -841,13 +959,14 @@
         setFieldValue(id, defaults[id]);
       });
       futurePayMode = "manual";
+      syncRetirementEstimate();
       syncCityWageHint();
       syncFuturePayQuickPicks();
       calculate();
     }
 
     function calculate() {
-      const retirementYm = getInput("retirementYm").value;
+      const retirementYm = syncRetirementEstimate();
       const currentAvgWage = readNumber("currentAvgWage");
       const wageGrowthRate = readNumber("wageGrowthRate");
       const bookRate = readNumber("bookRate");
@@ -994,10 +1113,11 @@
       }
     }
 
+    populatePersonalOptions();
     populateCityOptions();
 
     fieldIds.forEach((id) => {
-      if (id === "futurePayMonths" || id === "cityKey") {
+      if (id === "futurePayMonths" || id === "cityKey" || id === "retirementYm") {
         return;
       }
       getInput(id).addEventListener("input", calculate);
@@ -1029,6 +1149,7 @@
     document.getElementById("copySummary").addEventListener("click", copySummary);
 
     loadState();
+    syncRetirementEstimate();
     syncCityWageHint();
     calculate();
   </script>
