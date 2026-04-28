@@ -390,7 +390,7 @@
       <div class="hero-meta">
         <div class="tag">单文件 HTML</div>
         <div class="tag">离线可用</div>
-        <div class="tag">未内置个人数据</div>
+        <div class="tag">内置地区数据</div>
       </div>
     </section>
 
@@ -406,9 +406,14 @@
               <small>例如 204512。页面会自动给出按当前日期推算的继续缴费月数参考值。</small>
             </label>
             <label class="field">
+              <span>参保地区</span>
+              <select id="cityKey"></select>
+              <small id="cityWageHint">选择内置地区后，会自动填入当前在岗职工平均工资；也可以改为手动输入。</small>
+            </label>
+            <label class="field">
               <span>当前在岗职工平均工资（元）</span>
               <input id="currentAvgWage" type="number" min="0" step="0.01" value="" placeholder="例如 10000">
-              <small>请填写你当前参保地口径下的在岗职工平均工资。</small>
+              <small>请填写你当前参保地口径下的在岗职工平均工资；选择内置地区后可继续手动覆盖。</small>
             </label>
           </div>
         </section>
@@ -606,8 +611,23 @@
   <script>
     const storageKey = "retirement-gap-calculator-v2";
     const futurePayModeKey = "retirement-gap-calculator-future-pay-mode-v2";
+    const CITY_OPTIONS = [
+      { key: "manual", name: "手动输入", averageWage: "" },
+      { key: "beijing", name: "北京", averageWage: 11525 },
+      { key: "shanghai", name: "上海", averageWage: 12183 },
+      { key: "shenzhen", name: "深圳", averageWage: 12964 },
+      { key: "guangzhou", name: "广州", averageWage: 11484 },
+      { key: "hangzhou", name: "杭州", averageWage: 8433 },
+      { key: "nanjing", name: "南京", averageWage: 9901 },
+      { key: "chengdu", name: "成都", averageWage: 8823 },
+      { key: "wuhan", name: "武汉", averageWage: 8579 },
+      { key: "xian", name: "西安", averageWage: 7880 },
+      { key: "chongqing", name: "重庆", averageWage: 7909 }
+    ];
+
     const defaults = {
       retirementYm: "",
+      cityKey: "manual",
       currentAvgWage: "",
       wageGrowthRate: 2.00,
       bookRate: 1.62,
@@ -642,6 +662,40 @@
 
     function setFieldValue(id, value) {
       getInput(id).value = typeof value === "number" ? String(value) : value;
+    }
+
+    function populateCityOptions() {
+      const select = getInput("cityKey");
+      select.innerHTML = CITY_OPTIONS.map((city) => {
+        const label = city.averageWage
+          ? `${city.name} · ${Number(city.averageWage).toLocaleString("zh-CN")} 元/月`
+          : city.name;
+        return `<option value="${city.key}">${label}</option>`;
+      }).join("");
+    }
+
+    function selectedCity() {
+      return CITY_OPTIONS.find((city) => city.key === getInput("cityKey").value) || CITY_OPTIONS[0];
+    }
+
+    function syncCityWageHint() {
+      const city = selectedCity();
+      const hint = document.getElementById("cityWageHint");
+      if (!city.averageWage) {
+        hint.textContent = "当前为手动输入模式，请在下方填写参保地口径下的在岗职工平均工资。";
+        return;
+      }
+      hint.textContent = `${city.name} 内置工资口径：${Number(city.averageWage).toLocaleString("zh-CN")} 元/月，可继续手动覆盖。`;
+    }
+
+    function applySelectedCityWage() {
+      const city = selectedCity();
+      if (city.averageWage) {
+        setFieldValue("currentAvgWage", city.averageWage);
+      }
+      syncCityWageHint();
+      saveState();
+      calculate();
     }
 
     function formatCurrency(value) {
@@ -787,6 +841,7 @@
         setFieldValue(id, defaults[id]);
       });
       futurePayMode = "manual";
+      syncCityWageHint();
       syncFuturePayQuickPicks();
       calculate();
     }
@@ -939,13 +994,17 @@
       }
     }
 
+    populateCityOptions();
+
     fieldIds.forEach((id) => {
-      if (id === "futurePayMonths") {
+      if (id === "futurePayMonths" || id === "cityKey") {
         return;
       }
       getInput(id).addEventListener("input", calculate);
       getInput(id).addEventListener("change", calculate);
     });
+
+    getInput("cityKey").addEventListener("change", applySelectedCityWage);
 
     ["input", "change"].forEach((eventName) => {
       getInput("futurePayMonths").addEventListener(eventName, () => {
@@ -970,6 +1029,7 @@
     document.getElementById("copySummary").addEventListener("click", copySummary);
 
     loadState();
+    syncCityWageHint();
     calculate();
   </script>
 </body>
