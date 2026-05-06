@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { Redis } from '@upstash/redis'
 import { createHash } from 'node:crypto'
+import { redisFromEnv } from '../_redis.js'
 import type { ReminderFrequency } from '../../src/types/push.js'
 
 interface PushSub {
@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!['daily', 'weekly', 'off'].includes(frequency as string))
     return res.status(400).json({ error: 'Invalid frequency' })
 
-  const redis = Redis.fromEnv()
+  const redis = redisFromEnv()
   const key = subKey(subscription.endpoint)
   const existing = await redis.hget<StoredSubscription>('push:subs', key)
   const record: StoredSubscription = {

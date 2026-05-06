@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { Redis } from '@upstash/redis'
 import webpush from 'web-push'
+import { redisFromEnv } from './_redis.js'
 import type { StoredSubscription } from './push/subscribe.js'
 
 webpush.setVapidDetails(
@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.headers['authorization'] !== `Bearer ${process.env.CRON_SECRET}`)
     return res.status(401).json({ error: 'Unauthorized' })
 
-  const redis = Redis.fromEnv()
+  const redis = redisFromEnv()
   const allSubs = await redis.hgetall<Record<string, StoredSubscription>>('push:subs')
   if (!allSubs) return res.status(200).json({ sent: 0, skipped: 0, removed: 0 })
 
