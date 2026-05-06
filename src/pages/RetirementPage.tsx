@@ -95,6 +95,7 @@ export default function RetirementPage() {
       pension: coverage.breakdown.pension,
       other: coverage.breakdown.other,
     }
+  const shareModeLabel = coverageMode === 'now' ? '当前覆盖率' : '退休覆盖率'
 
   async function handleShare() {
     const node = shareCardRef.current
@@ -148,6 +149,8 @@ export default function RetirementPage() {
       <div style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }} aria-hidden>
         <CoverageShareCard
           ref={shareCardRef}
+          ratio={coverageMode === 'now' ? coverage.nowRatio : coverage.retiredRatio}
+          modeLabel={shareModeLabel}
           decentMonthly={coverage.decentMonthly}
           familySize={plan.decentStandard.familySize}
           cityTier={plan.decentStandard.cityTier}

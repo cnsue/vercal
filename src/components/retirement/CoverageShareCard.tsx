@@ -6,6 +6,7 @@ import { findDividendStock } from '../../data/dividendStocks'
 import {
   COVERAGE_LEVELS, BUDGET_PRESETS_FAMILY3_TIER1,
   CITY_DIM_MULTIPLIERS, FAMILY_SIZE_MULTIPLIER, CITY_TIER_LABELS, FAMILY_SIZE_LABELS,
+  getCoverageLevel,
 } from '../../types/retirement'
 
 interface IncomeSplit {
@@ -15,6 +16,8 @@ interface IncomeSplit {
 }
 
 export interface CoverageShareCardProps {
+  ratio: number
+  modeLabel: string
   decentMonthly: number
   familySize?: FamilySize
   cityTier?: CityTier
@@ -74,7 +77,9 @@ const HOLDING_LIMIT = 8
 
 const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
   function CoverageShareCard(props, ref) {
-    const { decentMonthly, familySize, cityTier, income, holdings, dimensions } = props
+    const { ratio, modeLabel, decentMonthly, familySize, cityTier, income, holdings, dimensions } = props
+    const coverageLevel = getCoverageLevel(ratio)
+    const ratioPct = Math.round(ratio * 100)
 
     const baselineKnown = !!(familySize && cityTier)
     const totals = baselineKnown
@@ -100,14 +105,17 @@ const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
       >
         {/* Body */}
         <div style={{ padding: '36px 36px 32px' }}>
-          {/* Target standard tier */}
+          {/* Target tier vs current coverage */}
           {targetLevel && (
-            <Section title="🎯 体面标准档">
+            <Section title="🎯 体面目标 vs 当前覆盖">
               <div style={{
                 background: '#f4f1e8', borderLeft: `4px solid ${targetLevel.color}`,
                 borderRadius: 6, padding: '14px 16px',
               }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: targetLevel.color, lineHeight: 1.2 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#999', letterSpacing: 1 }}>
+                  我设的目标
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: targetLevel.color, lineHeight: 1.2, marginTop: 4 }}>
                   {targetLevel.emoji} {targetLevel.label}
                   <span style={{ fontSize: 14, color: '#555', fontWeight: 600, marginLeft: 8 }}>
                     · {targetLevel.slogan}
@@ -116,6 +124,23 @@ const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
                 <div style={{ fontSize: 12, color: '#777', marginTop: 6, lineHeight: 1.5 }}>
                   对标基线：{baselineLabel} ≈ {targetLevelBand(targetLevel, totals)}
                 </div>
+
+                <div style={{ height: 1, background: '#e2dfd2', margin: '14px 0' }} />
+
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#999', letterSpacing: 1 }}>
+                  {modeLabel}
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: coverageLevel?.color ?? '#888', lineHeight: 1.2, marginTop: 4 }}>
+                  {coverageLevel ? `${coverageLevel.emoji} ${coverageLevel.label}` : '🏚️ 未达温饱'}
+                  <span style={{ fontSize: 14, color: '#555', fontWeight: 600, marginLeft: 8 }}>
+                    · 覆盖 {ratioPct}%
+                  </span>
+                </div>
+                {coverageLevel && (
+                  <div style={{ fontSize: 12, color: '#777', marginTop: 6, lineHeight: 1.5 }}>
+                    {coverageLevel.slogan}
+                  </div>
+                )}
               </div>
             </Section>
           )}
