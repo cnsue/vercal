@@ -1,8 +1,8 @@
 import { forwardRef } from 'react'
 import type { DimensionCoverage } from '../../utils/retirementCalc'
-import type { DividendHolding } from '../../types/retirement'
+import type { DividendHolding, CoverageLevel } from '../../types/retirement'
 import { computeHoldingIncome } from '../../utils/retirementCalc'
-import { getCoverageLevel } from '../../types/retirement'
+import { getCoverageLevel, COVERAGE_LEVELS } from '../../types/retirement'
 
 interface IncomeSplit {
   dividend: number
@@ -13,10 +13,47 @@ interface IncomeSplit {
 export interface CoverageShareCardProps {
   ratio: number
   modeLabel: string
+  decentMonthly: number
   income: IncomeSplit
   holdings: DividendHolding[]
   dimensions: DimensionCoverage[]
   appVersion: string
+}
+
+/** 一线·三口家庭各档月度合计（来自 BUDGET_PRESETS_FAMILY3_TIER1 注释） */
+const TIER1_FAMILY3_TOTALS: Record<CoverageLevel['key'], number> = {
+  subsistence: 13150,
+  stable: 22200,
+  decent: 49400,
+  comfortable: 65700,
+  fulfilled: 82900,
+}
+
+/** 用「一线三口」基线给定 monthly 找最近档 */
+function classifyTargetLevel(monthly: number): CoverageLevel | null {
+  if (monthly <= 0) return null
+  let bestKey: CoverageLevel['key'] = 'subsistence'
+  let bestDist = Infinity
+  for (const [key, total] of Object.entries(TIER1_FAMILY3_TOTALS) as [CoverageLevel['key'], number][]) {
+    const dist = Math.abs(total - monthly)
+    if (dist < bestDist) {
+      bestDist = dist
+      bestKey = key
+    }
+  }
+  return COVERAGE_LEVELS.find(l => l.key === bestKey) ?? null
+}
+
+/** 给定档位对应的「一线三口」月度区间，用于分享卡显示 */
+function targetLevelBand(level: CoverageLevel): string {
+  const order: CoverageLevel['key'][] = ['subsistence', 'stable', 'decent', 'comfortable', 'fulfilled']
+  const idx = order.indexOf(level.key)
+  const lo = idx > 0 ? (TIER1_FAMILY3_TOTALS[order[idx - 1]] + TIER1_FAMILY3_TOTALS[level.key]) / 2 : 0
+  const hi = idx < order.length - 1 ? (TIER1_FAMILY3_TOTALS[level.key] + TIER1_FAMILY3_TOTALS[order[idx + 1]]) / 2 : Infinity
+  const fmt = (n: number) => `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)}w`
+  if (idx === 0) return `≤ ${fmt(hi)}/月`
+  if (idx === order.length - 1) return `≥ ${fmt(lo)}/月`
+  return `${fmt(lo)}–${fmt(hi)}/月`
 }
 
 const CARD_WIDTH = 720
@@ -24,12 +61,13 @@ const HOLDING_LIMIT = 8
 
 const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
   function CoverageShareCard(props, ref) {
-    const { ratio, modeLabel, income, holdings, dimensions, appVersion } = props
+    const { ratio, modeLabel, decentMonthly, income, holdings, dimensions, appVersion } = props
     const level = getCoverageLevel(ratio)
     const background = level
       ? level.gradient
       : 'linear-gradient(135deg, #3a3a3a 0%, #555 100%)'
 
+    const targetLevel = classifyTargetLevel(decentMonthly)
     const incomeRows = buildIncomeRows(income)
     const holdingRows = buildHoldingRows(holdings)
 
@@ -74,6 +112,26 @@ const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
 
         {/* Body */}
         <div style={{ padding: '32px 36px 28px' }}>
+          {/* Target standard tier */}
+          {targetLevel && (
+            <Section title="🎯 体面标准档">
+              <div style={{
+                background: '#f4f1e8', borderLeft: `4px solid ${targetLevel.color}`,
+                borderRadius: 6, padding: '14px 16px',
+              }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: targetLevel.color, lineHeight: 1.2 }}>
+                  {targetLevel.emoji} {targetLevel.label}
+                  <span style={{ fontSize: 14, color: '#555', fontWeight: 600, marginLeft: 8 }}>
+                    · {targetLevel.slogan}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: '#777', marginTop: 6, lineHeight: 1.5 }}>
+                  对标基线：一线城市 · 三口家庭 ≈ {targetLevelBand(targetLevel)}
+                </div>
+              </div>
+            </Section>
+          )}
+
           {/* Income composition */}
           {incomeRows.length > 0 && (
             <Section title="📊 收入构成">
