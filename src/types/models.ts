@@ -58,6 +58,8 @@ export interface ChartSlot {
   label: string
   totalValueCNY: number
   snapshot: Snapshot | null
+  /** 当前 slot 没有真实快照、用前一天数据顺延而来时为 true */
+  filled?: boolean
 }
 
 export function effectivePlatformLabel(item: SnapshotItem): string {

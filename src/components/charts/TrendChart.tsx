@@ -294,7 +294,8 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
   const last = dataSlots[dataSlots.length - 1]
   const change = last.value - first.value
   const selected = dataSlots.find(s => s.index === selectedIndex) ?? last
-  const previous = [...dataSlots].reverse().find(s => s.index < selected.index)
+  // 「上一记录」跳过顺延的虚拟点，找到最近一次真实快照
+  const previous = [...dataSlots].reverse().find(s => s.index < selected.index && !s.slot.filled)
   const selectedChange = previous ? selected.value - previous.value : 0
   const selectedChangePct = previous && previous.value > 0 ? (selectedChange / previous.value) * 100 : 0
   const selectedSeries = series
@@ -342,7 +343,14 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
         border: '1px solid var(--border)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{selected.slot.label}</span>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+            {selected.slot.label}
+            {selected.slot.filled && selected.slot.snapshot && (
+              <span style={{ marginLeft: 6, opacity: 0.7 }}>
+                · 顺延自 {selected.slot.snapshot.dateKey.slice(5).replace('-', '/')}
+              </span>
+            )}
+          </span>
           <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-strong)' }}>{formatCNY(selected.value)}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>

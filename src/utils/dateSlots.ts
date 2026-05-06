@@ -43,18 +43,39 @@ export function generateSlots(snapshots: Snapshot[], period: 'day' | 'week' | 'm
   }
 }
 
+/**
+ * 历史日期没有快照时，复用最近一次更早的快照（顺延前一天 → 再前一天）。
+ * 仅作用于 `pastEndIndex` 之前的位置，未来 slot 保持空。
+ */
+function forwardFillPast(slots: ChartSlot[], pastEndIndex: number): ChartSlot[] {
+  let last: Snapshot | null = null
+  return slots.map((slot, i) => {
+    if (i > pastEndIndex) return slot
+    if (slot.snapshot) {
+      last = slot.snapshot
+      return slot
+    }
+    if (last) {
+      return { ...slot, totalValueCNY: last.totalValueCNY, snapshot: last, filled: true }
+    }
+    return slot
+  })
+}
+
 function dailySlots(snapshots: Snapshot[], futureDays: number): ChartSlot[] {
   const sorted = [...snapshots].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
   const firstDay = startOfDay(new Date(sorted[0].snapshotDate))
   const today = startOfDay(new Date())
   const byKey = new Map(snapshots.map(s => [s.dateKey, s]))
-  const total = Math.max(1, Math.round((today.getTime() - firstDay.getTime()) / 86_400_000) + 1 + futureDays)
-  return Array.from({ length: total }, (_, i) => {
+  const pastCount = Math.max(1, Math.round((today.getTime() - firstDay.getTime()) / 86_400_000) + 1)
+  const total = pastCount + futureDays
+  const slots = Array.from({ length: total }, (_, i) => {
     const date = addDays(firstDay, i)
     const key = formatDateKey(date)
     const snap = byKey.get(key) ?? null
     return { id: `d${i}`, label: compactDate(key), totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
   })
+  return forwardFillPast(slots, pastCount - 1)
 }
 
 function weeklySlots(snapshots: Snapshot[]): ChartSlot[] {
@@ -62,7 +83,7 @@ function weeklySlots(snapshots: Snapshot[]): ChartSlot[] {
   const firstWeek = startOfWeek(new Date(sorted[0].snapshotDate))
   const currentWeek = startOfWeek(new Date())
   const count = Math.max(1, Math.round((currentWeek.getTime() - firstWeek.getTime()) / (7 * 86_400_000)) + 1)
-  return Array.from({ length: count }, (_, i) => {
+  const slots = Array.from({ length: count }, (_, i) => {
     const wStart = addDays(firstWeek, i * 7)
     const wEnd = addDays(wStart, 6)
     const snap = sorted.filter(s => {
@@ -72,6 +93,7 @@ function weeklySlots(snapshots: Snapshot[]): ChartSlot[] {
     const label = `${wStart.getMonth() + 1}/${wStart.getDate()}`
     return { id: `w${i}`, label, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
   })
+  return forwardFillPast(slots, slots.length - 1)
 }
 
 function monthlySlots(snapshots: Snapshot[]): ChartSlot[] {
@@ -79,7 +101,7 @@ function monthlySlots(snapshots: Snapshot[]): ChartSlot[] {
   const firstMonth = startOfMonth(new Date(sorted[0].snapshotDate))
   const currentMonth = startOfMonth(new Date())
   const count = Math.max(1, monthDiff(firstMonth, currentMonth) + 1)
-  return Array.from({ length: count }, (_, i) => {
+  const slots = Array.from({ length: count }, (_, i) => {
     const anchor = addMonths(firstMonth, i)
     const mStart = startOfMonth(anchor)
     const mEnd = new Date(mStart.getFullYear(), mStart.getMonth() + 1, 0)
@@ -90,15 +112,17 @@ function monthlySlots(snapshots: Snapshot[]): ChartSlot[] {
     const label = `${mStart.getMonth() + 1}月`
     return { id: `m${i}`, label, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
   })
+  return forwardFillPast(slots, slots.length - 1)
 }
 
 function yearlySlots(snapshots: Snapshot[]): ChartSlot[] {
   const sorted = [...snapshots].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
   const firstYear = new Date(sorted[0].snapshotDate).getFullYear()
   const lastYear = Math.max(new Date().getFullYear(), new Date(sorted[sorted.length - 1].snapshotDate).getFullYear())
-  return Array.from({ length: lastYear - firstYear + 1 }, (_, i) => {
+  const slots = Array.from({ length: lastYear - firstYear + 1 }, (_, i) => {
     const year = firstYear + i
     const snap = sorted.filter(s => new Date(s.snapshotDate).getFullYear() === year).at(-1) ?? null
     return { id: `y${year}`, label: `${year}年`, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
   })
+  return forwardFillPast(slots, slots.length - 1)
 }
