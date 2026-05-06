@@ -107,7 +107,7 @@ export default function RetirementPage() {
       const file = new File([blob], 'coinsight-coverage.png', { type: 'image/png' })
       const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean }
       if (nav.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Coinsight 体面幸福指数' })
+        await navigator.share({ files: [file] })
       } else {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
