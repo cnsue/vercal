@@ -358,8 +358,24 @@ function formatHoldingMeta(asOfYear: string | undefined, dps: number, yieldPct: 
   const parts: string[] = []
   if (dps > 0) {
     const yearLabel = asOfYear ? `${asOfYear.slice(-2)}年` : '近期'
-    parts.push(`${yearLabel}每股 ¥${dps.toFixed(2)}`)
+    parts.push(`${yearLabel}每股 ${vagueDividend(dps)}`)
   }
-  if (yieldPct > 0) parts.push(`股息率 ${yieldPct.toFixed(2)}%`)
+  if (yieldPct > 0) parts.push(`股息率 ${vagueYield(yieldPct)}`)
   return parts.join(' · ')
+}
+
+/** 把每股分红模糊到「X 毛多 / X 块多」级别 */
+function vagueDividend(x: number): string {
+  if (x < 0.1) return '几分钱'
+  if (x < 1) return `${Math.floor(x * 10)} 毛多`
+  if (x < 10) return `${Math.floor(x)} 块多`
+  if (x < 100) return `${Math.floor(x / 10) * 10} 块以上`
+  return '上百块'
+}
+
+/** 把股息率模糊到「X% 多」级别 */
+function vagueYield(x: number): string {
+  if (x < 1) return '不到 1%'
+  if (x < 10) return `${Math.floor(x)}% 多`
+  return '10% 以上'
 }
