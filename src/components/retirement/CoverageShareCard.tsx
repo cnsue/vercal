@@ -2,8 +2,9 @@ import { forwardRef } from 'react'
 import type { DimensionCoverage } from '../../utils/retirementCalc'
 import type { DividendHolding, CoverageLevel, FamilySize, CityTier } from '../../types/retirement'
 import { computeHoldingIncome } from '../../utils/retirementCalc'
+import { findDividendStock } from '../../data/dividendStocks'
 import {
-  getCoverageLevel, COVERAGE_LEVELS, BUDGET_PRESETS_FAMILY3_TIER1,
+  COVERAGE_LEVELS, BUDGET_PRESETS_FAMILY3_TIER1,
   CITY_DIM_MULTIPLIERS, FAMILY_SIZE_MULTIPLIER, CITY_TIER_LABELS, FAMILY_SIZE_LABELS,
 } from '../../types/retirement'
 
@@ -14,15 +15,12 @@ interface IncomeSplit {
 }
 
 export interface CoverageShareCardProps {
-  ratio: number
-  modeLabel: string
   decentMonthly: number
   familySize?: FamilySize
   cityTier?: CityTier
   income: IncomeSplit
   holdings: DividendHolding[]
   dimensions: DimensionCoverage[]
-  appVersion: string
 }
 
 const LEVEL_ORDER: CoverageLevel['key'][] = ['subsistence', 'stable', 'decent', 'comfortable', 'fulfilled']
@@ -76,11 +74,7 @@ const HOLDING_LIMIT = 8
 
 const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
   function CoverageShareCard(props, ref) {
-    const { ratio, modeLabel, decentMonthly, familySize, cityTier, income, holdings, dimensions, appVersion } = props
-    const level = getCoverageLevel(ratio)
-    const background = level
-      ? level.gradient
-      : 'linear-gradient(135deg, #3a3a3a 0%, #555 100%)'
+    const { decentMonthly, familySize, cityTier, income, holdings, dimensions } = props
 
     const baselineKnown = !!(familySize && cityTier)
     const totals = baselineKnown
@@ -104,36 +98,8 @@ const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
           color: '#1c1c1c',
         }}
       >
-        {/* Hero section */}
-        <div style={{ background, padding: '40px 36px 36px', color: '#fff' }}>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              letterSpacing: 2,
-              opacity: 0.9,
-              marginBottom: 24,
-            }}
-          >
-            COINSIGHT · 体面幸福指数
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-            <div style={{ fontSize: 96, lineHeight: 1, fontWeight: 900, letterSpacing: '-0.04em' }}>
-              {Math.round(ratio * 100)}%
-            </div>
-            {level && (
-              <div style={{ fontSize: 30, fontWeight: 800 }}>
-                {level.emoji} {level.label}
-              </div>
-            )}
-          </div>
-          <div style={{ fontSize: 16, opacity: 0.85, marginTop: 12 }}>
-            {modeLabel} · {level?.slogan ?? '设置体面标准开始评估'}
-          </div>
-        </div>
-
         {/* Body */}
-        <div style={{ padding: '32px 36px 28px' }}>
+        <div style={{ padding: '36px 36px 32px' }}>
           {/* Target standard tier */}
           {targetLevel && (
             <Section title="🎯 体面标准档">
@@ -167,7 +133,13 @@ const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
           {holdingRows.length > 0 && (
             <Section title="💼 持仓构成">
               {holdingRows.map(row => (
-                <PercentRow key={row.label} label={row.label} percent={row.percent} barColor="#7a5b9e" />
+                <PercentRow
+                  key={row.label}
+                  label={row.label}
+                  subtitle={row.subtitle}
+                  percent={row.percent}
+                  barColor="#7a5b9e"
+                />
               ))}
             </Section>
           )}
@@ -190,23 +162,6 @@ const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
             </Section>
           )}
         </div>
-
-        {/* Footer */}
-        <div
-          style={{
-            padding: '20px 36px 28px',
-            borderTop: '1px solid #e5e5dd',
-            textAlign: 'center',
-            color: '#666',
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#1a3a2a', letterSpacing: 1 }}>
-            Coinsight
-          </div>
-          <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>
-            每日资产快照 · 退休规划工具 · v{appVersion}
-          </div>
-        </div>
       </div>
     )
   },
@@ -225,45 +180,54 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function PercentRow({ label, percent, barColor }: { label: string; percent: number; barColor: string }) {
+function PercentRow({ label, subtitle, percent, barColor }: {
+  label: string; subtitle?: string; percent: number; barColor: string
+}) {
   const width = Math.max(2, Math.min(percent, 100))
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-      <div
-        style={{
-          width: 110,
-          fontSize: 13,
-          fontWeight: 600,
-          color: '#333',
-          flexShrink: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          flex: 1,
-          height: 18,
-          background: '#eceae2',
-          borderRadius: 4,
-          overflow: 'hidden',
-        }}
-      >
+    <div style={{ marginBottom: subtitle ? 12 : 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div
           style={{
-            width: `${width}%`,
-            height: '100%',
-            background: barColor,
-            borderRadius: 4,
+            width: 110,
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#333',
+            flexShrink: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
-        />
+        >
+          {label}
+        </div>
+        <div
+          style={{
+            flex: 1,
+            height: 18,
+            background: '#eceae2',
+            borderRadius: 4,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              width: `${width}%`,
+              height: '100%',
+              background: barColor,
+              borderRadius: 4,
+            }}
+          />
+        </div>
+        <div style={{ width: 44, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#333' }}>
+          {Math.round(percent)}%
+        </div>
       </div>
-      <div style={{ width: 44, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#333' }}>
-        {Math.round(percent)}%
-      </div>
+      {subtitle && (
+        <div style={{ marginLeft: 122, marginTop: 3, fontSize: 10.5, color: '#888', lineHeight: 1.4 }}>
+          {subtitle}
+        </div>
+      )}
     </div>
   )
 }
@@ -318,7 +282,13 @@ function DimensionMini({ dim }: { dim: DimensionCoverage }) {
   )
 }
 
-function buildIncomeRows(income: IncomeSplit) {
+interface RowItem {
+  label: string
+  percent: number
+  subtitle?: string
+}
+
+function buildIncomeRows(income: IncomeSplit): RowItem[] {
   const total = income.dividend + income.pension + income.other
   if (total <= 0) return []
   const items = [
@@ -329,18 +299,42 @@ function buildIncomeRows(income: IncomeSplit) {
   return items.map(i => ({ label: i.label, percent: (i.value / total) * 100 }))
 }
 
-function buildHoldingRows(holdings: DividendHolding[]) {
+function buildHoldingRows(holdings: DividendHolding[]): RowItem[] {
   if (holdings.length === 0) return []
-  const incomes = holdings.map(h => ({ name: h.stockName, annual: computeHoldingIncome(h).netAnnual }))
+  const incomes = holdings.map(h => {
+    const inc = computeHoldingIncome(h)
+    const ref = findDividendStock(h.stockCode)
+    return {
+      name: h.stockName,
+      annual: inc.netAnnual,
+      yieldPct: inc.yieldPct,
+      dividendPerShare: inc.dividendPerShare,
+      asOfYear: ref?.asOfYear,
+    }
+  })
   const total = incomes.reduce((s, i) => s + i.annual, 0)
   if (total <= 0) return []
   const sorted = [...incomes].sort((a, b) => b.annual - a.annual)
   const top = sorted.slice(0, HOLDING_LIMIT)
   const rest = sorted.slice(HOLDING_LIMIT)
-  const rows = top.map(i => ({ label: i.name, percent: (i.annual / total) * 100 }))
+  const rows: RowItem[] = top.map(i => ({
+    label: i.name,
+    percent: (i.annual / total) * 100,
+    subtitle: formatHoldingMeta(i.asOfYear, i.dividendPerShare, i.yieldPct),
+  }))
   if (rest.length > 0) {
     const restSum = rest.reduce((s, i) => s + i.annual, 0)
     rows.push({ label: `其他 ${rest.length} 项`, percent: (restSum / total) * 100 })
   }
   return rows
+}
+
+function formatHoldingMeta(asOfYear: string | undefined, dps: number, yieldPct: number): string {
+  const parts: string[] = []
+  if (dps > 0) {
+    const yearLabel = asOfYear ? `${asOfYear.slice(-2)}年` : '近期'
+    parts.push(`${yearLabel}每股 ¥${dps.toFixed(2)}`)
+  }
+  if (yieldPct > 0) parts.push(`股息率 ${yieldPct.toFixed(2)}%`)
+  return parts.join(' · ')
 }
