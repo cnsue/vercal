@@ -62,7 +62,7 @@ export default function SettingsPage({ themePreference, onThemePreferenceChange,
           <span style={{ fontSize: 22 }}>🔔</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 15 }}>每日提醒</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>每天 9 点提醒记录资产快照</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>每晚 9 点提醒记录资产快照</div>
           </div>
         </div>
 

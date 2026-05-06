@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRetirementStore } from '../store/useRetirementStore'
 import { useAssetStore } from '../store/useAssetStore'
 import CoverageHero, { type CoverageMode } from '../components/retirement/CoverageHero'
+import CoverageShareCard from '../components/retirement/CoverageShareCard'
 import DimensionDetailSheet from '../components/retirement/DimensionDetailSheet'
 import DividendHoldings from '../components/retirement/DividendHoldings'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
@@ -27,6 +28,8 @@ export default function RetirementPage() {
   const [showOtherEditor, setShowOtherEditor] = useState(false)
   const [coverageMode, setCoverageMode] = useState<CoverageMode>('now')
   const [detailDimId, setDetailDimId] = useState<string | null>(null)
+  const [sharing, setSharing] = useState(false)
+  const shareCardRef = useRef<HTMLDivElement>(null)
 
   const dividend = useMemo(() => computeDividendSummary(plan.holdings), [plan.holdings])
   const pension = useMemo(() => computePensionProjection(plan.pension), [plan.pension])
@@ -81,6 +84,49 @@ export default function RetirementPage() {
   const city = findPensionCity(plan.pension.cityKey)
   const pensionConfigured = pension.totalMonths > 0
 
+  const shareIncome = coverageMode === 'now'
+    ? {
+      dividend: coverage.breakdown.nowDividend,
+      pension: 0,
+      other: coverage.breakdown.other,
+    }
+    : {
+      dividend: coverage.breakdown.dividend,
+      pension: coverage.breakdown.pension,
+      other: coverage.breakdown.other,
+    }
+  const shareModeLabel = coverageMode === 'now' ? '当前覆盖率' : '退休覆盖率'
+
+  async function handleShare() {
+    const node = shareCardRef.current
+    if (!node || sharing) return
+    setSharing(true)
+    try {
+      const { toBlob } = await import('html-to-image')
+      const blob = await toBlob(node, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fafaf7' })
+      if (!blob) throw new Error('生成图片失败')
+      const file = new File([blob], 'coinsight-coverage.png', { type: 'image/png' })
+      const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean }
+      if (nav.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Coinsight 体面幸福指数' })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'coinsight-coverage.png'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (!msg.toLowerCase().includes('abort')) alert(`分享失败：${msg}`)
+    } finally {
+      setSharing(false)
+    }
+  }
+
   return (
     <div style={{ padding: '0 0 16px' }}>
       <CoverageHero
@@ -93,9 +139,24 @@ export default function RetirementPage() {
         onModeChange={setCoverageMode}
         breakdown={coverage.breakdown}
         onEdit={() => setShowDecentEditor(true)}
+        onShare={handleShare}
+        shareDisabled={sharing}
         dimensions={coverage.decentMonthly > 0 ? dimensions : []}
         onDimensionClick={id => setDetailDimId(id)}
       />
+
+      {/* Off-screen share card source */}
+      <div style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }} aria-hidden>
+        <CoverageShareCard
+          ref={shareCardRef}
+          ratio={coverageMode === 'now' ? coverage.nowRatio : coverage.retiredRatio}
+          modeLabel={shareModeLabel}
+          income={shareIncome}
+          holdings={plan.holdings}
+          dimensions={dimensions}
+          appVersion={__APP_VERSION__}
+        />
+      </div>
 
       <ScenarioSelector
         years={pension.yearsToRetire}

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@upstash/redis": "^1.37.0",
+    "html-to-image": "^1.11.13",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "web-push": "^3.6.7",

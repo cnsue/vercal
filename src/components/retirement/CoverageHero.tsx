@@ -21,6 +21,8 @@ interface Props {
   onModeChange: (mode: CoverageMode) => void
   breakdown?: Breakdown
   onEdit?: () => void
+  onShare?: () => void
+  shareDisabled?: boolean
   /** 底部维度圆环列表；传空数组则不渲染底部区域 */
   dimensions?: DimensionCoverage[]
   onDimensionClick?: (id: string) => void
@@ -30,7 +32,7 @@ const MAX_RATIO = 1.6
 
 export default function CoverageHero({
   decentMonthly, nowRatio, retiredRatio, nowMonthly, retiredMonthly, breakdown, onEdit,
-  mode, onModeChange, dimensions = [], onDimensionClick,
+  onShare, shareDisabled, mode, onModeChange, dimensions = [], onDimensionClick,
 }: Props) {
   const unset = decentMonthly <= 0
   const activeRatio = mode === 'now' ? nowRatio : retiredRatio
@@ -74,6 +76,17 @@ export default function CoverageHero({
                 </button>
               ))}
             </div>
+          )}
+          {onShare && !unset && (
+            <button onClick={onShare} disabled={shareDisabled} aria-label="分享指数" style={{
+              background: 'rgba(255,255,255,0.2)', color: '#fff',
+              border: 'none', borderRadius: 12, padding: '3px 10px',
+              fontSize: 11, fontWeight: 700,
+              cursor: shareDisabled ? 'wait' : 'pointer',
+              opacity: shareDisabled ? 0.6 : 1,
+            }}>
+              {shareDisabled ? '生成中…' : '分享 ↗'}
+            </button>
           )}
           {onEdit && (
             <button onClick={onEdit} aria-label="调整体面标准" style={{
