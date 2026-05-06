@@ -152,6 +152,8 @@ export default function RetirementPage() {
           ratio={coverageMode === 'now' ? coverage.nowRatio : coverage.retiredRatio}
           modeLabel={shareModeLabel}
           decentMonthly={coverage.decentMonthly}
+          familySize={plan.decentStandard.familySize}
+          cityTier={plan.decentStandard.cityTier}
           income={shareIncome}
           holdings={plan.holdings}
           dimensions={dimensions}

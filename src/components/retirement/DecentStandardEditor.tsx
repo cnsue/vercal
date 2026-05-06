@@ -32,8 +32,10 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
       setItems(decent.breakdown.length > 0
         ? cloneBreakdown(decent.breakdown)
         : defaultDecentBreakdown())
+      if (decent.familySize) setPresetFamily(decent.familySize)
+      if (decent.cityTier) setPresetCity(decent.cityTier)
     }
-  }, [open, decent.breakdown])
+  }, [open, decent.breakdown, decent.familySize, decent.cityTier])
 
   const total = useMemo(() => sumBreakdown(items), [items])
 
@@ -72,6 +74,8 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
     setDecentStandard({
       monthlyAmount: sumBreakdown(cleaned),
       breakdown: cleaned,
+      familySize: presetFamily,
+      cityTier: presetCity,
     })
     onClose()
   }
@@ -104,7 +108,7 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
             marginBottom: 14, border: '1px solid var(--border)',
           }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 10 }}>
-              从推荐套餐开始
+              从推荐套餐开始 · 家庭/城市选择会用作分享卡对标基线
             </div>
             <PresetRow
               label="家庭"

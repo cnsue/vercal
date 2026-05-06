@@ -1,8 +1,11 @@
 import { forwardRef } from 'react'
 import type { DimensionCoverage } from '../../utils/retirementCalc'
-import type { DividendHolding, CoverageLevel } from '../../types/retirement'
+import type { DividendHolding, CoverageLevel, FamilySize, CityTier } from '../../types/retirement'
 import { computeHoldingIncome } from '../../utils/retirementCalc'
-import { getCoverageLevel, COVERAGE_LEVELS } from '../../types/retirement'
+import {
+  getCoverageLevel, COVERAGE_LEVELS, BUDGET_PRESETS_FAMILY3_TIER1,
+  CITY_DIM_MULTIPLIERS, FAMILY_SIZE_MULTIPLIER, CITY_TIER_LABELS, FAMILY_SIZE_LABELS,
+} from '../../types/retirement'
 
 interface IncomeSplit {
   dividend: number
@@ -14,28 +17,38 @@ export interface CoverageShareCardProps {
   ratio: number
   modeLabel: string
   decentMonthly: number
+  familySize?: FamilySize
+  cityTier?: CityTier
   income: IncomeSplit
   holdings: DividendHolding[]
   dimensions: DimensionCoverage[]
   appVersion: string
 }
 
-/** 一线·三口家庭各档月度合计（来自 BUDGET_PRESETS_FAMILY3_TIER1 注释） */
-const TIER1_FAMILY3_TOTALS: Record<CoverageLevel['key'], number> = {
-  subsistence: 13150,
-  stable: 22200,
-  decent: 49400,
-  comfortable: 65700,
-  fulfilled: 82900,
+const LEVEL_ORDER: CoverageLevel['key'][] = ['subsistence', 'stable', 'decent', 'comfortable', 'fulfilled']
+
+/** 给定家庭规模 + 城市等级，计算各档预算合计 */
+function presetTotals(family: FamilySize, city: CityTier): Record<CoverageLevel['key'], number> {
+  const fMul = FAMILY_SIZE_MULTIPLIER[family]
+  const dimMul = CITY_DIM_MULTIPLIERS[city]
+  const out = {} as Record<CoverageLevel['key'], number>
+  for (const lvl of LEVEL_ORDER) {
+    const base = BUDGET_PRESETS_FAMILY3_TIER1[lvl]
+    let sum = 0
+    for (const dim of Object.keys(base)) {
+      sum += base[dim] * fMul * (dimMul[dim] ?? 1)
+    }
+    out[lvl] = sum
+  }
+  return out
 }
 
-/** 用「一线三口」基线给定 monthly 找最近档 */
-function classifyTargetLevel(monthly: number): CoverageLevel | null {
+function classifyTargetLevel(monthly: number, totals: Record<CoverageLevel['key'], number>): CoverageLevel | null {
   if (monthly <= 0) return null
-  let bestKey: CoverageLevel['key'] = 'subsistence'
+  let bestKey: CoverageLevel['key'] = LEVEL_ORDER[0]
   let bestDist = Infinity
-  for (const [key, total] of Object.entries(TIER1_FAMILY3_TOTALS) as [CoverageLevel['key'], number][]) {
-    const dist = Math.abs(total - monthly)
+  for (const key of LEVEL_ORDER) {
+    const dist = Math.abs(totals[key] - monthly)
     if (dist < bestDist) {
       bestDist = dist
       bestKey = key
@@ -44,15 +57,17 @@ function classifyTargetLevel(monthly: number): CoverageLevel | null {
   return COVERAGE_LEVELS.find(l => l.key === bestKey) ?? null
 }
 
-/** 给定档位对应的「一线三口」月度区间，用于分享卡显示 */
-function targetLevelBand(level: CoverageLevel): string {
-  const order: CoverageLevel['key'][] = ['subsistence', 'stable', 'decent', 'comfortable', 'fulfilled']
-  const idx = order.indexOf(level.key)
-  const lo = idx > 0 ? (TIER1_FAMILY3_TOTALS[order[idx - 1]] + TIER1_FAMILY3_TOTALS[level.key]) / 2 : 0
-  const hi = idx < order.length - 1 ? (TIER1_FAMILY3_TOTALS[level.key] + TIER1_FAMILY3_TOTALS[order[idx + 1]]) / 2 : Infinity
-  const fmt = (n: number) => `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)}w`
+/** 档位对应的月度区间字符串（基于已知 totals） */
+function targetLevelBand(level: CoverageLevel, totals: Record<CoverageLevel['key'], number>): string {
+  const idx = LEVEL_ORDER.indexOf(level.key)
+  const lo = idx > 0 ? (totals[LEVEL_ORDER[idx - 1]] + totals[level.key]) / 2 : 0
+  const hi = idx < LEVEL_ORDER.length - 1 ? (totals[level.key] + totals[LEVEL_ORDER[idx + 1]]) / 2 : Infinity
+  const fmt = (n: number) => {
+    const w = n / 10000
+    return w >= 10 ? `${w.toFixed(0)}w` : `${w.toFixed(1)}w`
+  }
   if (idx === 0) return `≤ ${fmt(hi)}/月`
-  if (idx === order.length - 1) return `≥ ${fmt(lo)}/月`
+  if (idx === LEVEL_ORDER.length - 1) return `≥ ${fmt(lo)}/月`
   return `${fmt(lo)}–${fmt(hi)}/月`
 }
 
@@ -61,13 +76,20 @@ const HOLDING_LIMIT = 8
 
 const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
   function CoverageShareCard(props, ref) {
-    const { ratio, modeLabel, decentMonthly, income, holdings, dimensions, appVersion } = props
+    const { ratio, modeLabel, decentMonthly, familySize, cityTier, income, holdings, dimensions, appVersion } = props
     const level = getCoverageLevel(ratio)
     const background = level
       ? level.gradient
       : 'linear-gradient(135deg, #3a3a3a 0%, #555 100%)'
 
-    const targetLevel = classifyTargetLevel(decentMonthly)
+    const baselineKnown = !!(familySize && cityTier)
+    const totals = baselineKnown
+      ? presetTotals(familySize!, cityTier!)
+      : presetTotals('family3', 'tier1')
+    const targetLevel = classifyTargetLevel(decentMonthly, totals)
+    const baselineLabel = baselineKnown
+      ? `${CITY_TIER_LABELS[cityTier!]}城市 · ${FAMILY_SIZE_LABELS[familySize!]}家庭`
+      : '一线城市 · 三口家庭（默认对标）'
     const incomeRows = buildIncomeRows(income)
     const holdingRows = buildHoldingRows(holdings)
 
@@ -126,7 +148,7 @@ const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
                   </span>
                 </div>
                 <div style={{ fontSize: 12, color: '#777', marginTop: 6, lineHeight: 1.5 }}>
-                  对标基线：一线城市 · 三口家庭 ≈ {targetLevelBand(targetLevel)}
+                  对标基线：{baselineLabel} ≈ {targetLevelBand(targetLevel, totals)}
                 </div>
               </div>
             </Section>

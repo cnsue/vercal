@@ -1,6 +1,12 @@
 import type { Snapshot, ExchangeRate } from '../types/models'
-import type { RetirementPlan, PensionConfig, DecentStandard, DecentBreakdownItem, DecentDimensionKey } from '../types/retirement'
+import type {
+  RetirementPlan, PensionConfig, DecentStandard, DecentBreakdownItem,
+  DecentDimensionKey, FamilySize, CityTier,
+} from '../types/retirement'
 import { DEFAULT_RETIREMENT_PLAN, DEFAULT_PENSION, DECENT_DIMENSIONS, sumBreakdown } from '../types/retirement'
+
+const VALID_FAMILY_SIZES: ReadonlySet<FamilySize> = new Set(['single', 'couple', 'family3', 'family4'])
+const VALID_CITY_TIERS: ReadonlySet<CityTier> = new Set(['tier1', 'newTier1', 'tier23', 'tier45'])
 import { v4 as uuidv4 } from '../utils/uuid'
 import type { MortgageInputs } from '../utils/mortgageCalc'
 import { DEFAULT_MORTGAGE_INPUTS } from '../utils/mortgageCalc'
@@ -126,6 +132,10 @@ function migrateDecentStandard(stored: unknown): DecentStandard {
   const s = stored as Record<string, unknown>
   const rawMonthly = typeof s.monthlyAmount === 'number' && isFinite(s.monthlyAmount) ? Math.max(0, s.monthlyAmount) : 0
   const rawBreakdown = Array.isArray(s.breakdown) ? s.breakdown : []
+  const familySize = typeof s.familySize === 'string' && VALID_FAMILY_SIZES.has(s.familySize as FamilySize)
+    ? (s.familySize as FamilySize) : undefined
+  const cityTier = typeof s.cityTier === 'string' && VALID_CITY_TIERS.has(s.cityTier as CityTier)
+    ? (s.cityTier as CityTier) : undefined
 
   const validKeys = new Set<DecentDimensionKey>(DECENT_DIMENSIONS.map(d => d.key))
   const items: DecentBreakdownItem[] = []
@@ -170,7 +180,7 @@ function migrateDecentStandard(stored: unknown): DecentStandard {
     })
     const customs = items.filter(i => !i.builtinKey)
     const merged = [...orderedBuiltins, ...customs]
-    return { monthlyAmount: sumBreakdown(merged), breakdown: merged }
+    return { monthlyAmount: sumBreakdown(merged), breakdown: merged, familySize, cityTier }
   }
 
   // 老数据仅 monthlyAmount → 按默认权重分摊
@@ -181,7 +191,7 @@ function migrateDecentStandard(stored: unknown): DecentStandard {
       id: d.key, builtinKey: d.key, name: d.label, icon: d.icon,
       monthlyAmount: Math.round(d.defaultMonthly * scale),
     }))
-    return { monthlyAmount: sumBreakdown(breakdown), breakdown }
+    return { monthlyAmount: sumBreakdown(breakdown), breakdown, familySize, cityTier }
   }
 
   // 首次 / 无数据

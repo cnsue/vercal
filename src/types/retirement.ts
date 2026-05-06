@@ -87,6 +87,10 @@ export interface DecentStandard {
   monthlyAmount: number
   /** 维度预算；未设置时为空数组（触发首次向导） */
   breakdown: DecentBreakdownItem[]
+  /** 用户对标的家庭规模（可选；用于分享卡个性化基线） */
+  familySize?: FamilySize
+  /** 用户对标的城市等级（可选；用于分享卡个性化基线） */
+  cityTier?: CityTier
 }
 
 export interface DecentDimensionMeta {
