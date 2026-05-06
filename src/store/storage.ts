@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from '../utils/uuid'
 import type { MortgageInputs } from '../utils/mortgageCalc'
 import { DEFAULT_MORTGAGE_INPUTS } from '../utils/mortgageCalc'
 import type { ThemePreference } from '../types/theme'
+import type { PushPrefs } from '../types/push'
 
 const K = {
   snapshots: 'asset-tracker:snapshots',
@@ -18,6 +19,7 @@ const K = {
   retirementPlan: 'asset-tracker:retirementPlan',
   themePreference: 'asset-tracker:themePreference',
   mortgageInputs: 'asset-tracker:mortgageInputs',
+  pushPrefs: 'asset-tracker:pushPrefs',
 } as const
 
 function get<T>(key: string, fallback: T): T {
@@ -237,6 +239,16 @@ export const StorageService = {
     return { ...DEFAULT_MORTGAGE_INPUTS, ...stored }
   },
   saveMortgageInputs: (v: MortgageInputs): void => set(K.mortgageInputs, v),
+
+  getPushPrefs: (): PushPrefs => {
+    const s = get<Partial<PushPrefs> | null>(K.pushPrefs, null)
+    return {
+      subscribed: s?.subscribed ?? false,
+      frequency: s?.frequency ?? 'daily',
+      endpoint: s?.endpoint ?? null,
+    }
+  },
+  savePushPrefs: (v: PushPrefs): void => set(K.pushPrefs, v),
 
   estimateSizeKB: (): number => {
     let total = 0

@@ -35,6 +35,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['favicon.ico', 'favicon.svg', 'favicon-96x96.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Coinsight',
@@ -52,20 +55,9 @@ export default defineConfig({
           { src: '/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
         ]
       },
-      workbox: {
-        navigateFallback: '/index.html',
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/(openexchangerates\.org|api\.frankfurter\.app)\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'exchange-rate-cache', expiration: { maxAgeSeconds: 3600 } }
-          }
-        ]
-      }
+      },
     })
   ]
 })
