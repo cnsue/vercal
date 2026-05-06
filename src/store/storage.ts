@@ -4,6 +4,7 @@ import type {
   DecentDimensionKey, FamilySize, CityTier,
 } from '../types/retirement'
 import { DEFAULT_RETIREMENT_PLAN, DEFAULT_PENSION, DECENT_DIMENSIONS, sumBreakdown } from '../types/retirement'
+import { markDirty } from './sync'
 
 const VALID_FAMILY_SIZES: ReadonlySet<FamilySize> = new Set(['single', 'couple', 'family3', 'family4'])
 const VALID_CITY_TIERS: ReadonlySet<CityTier> = new Set(['tier1', 'newTier1', 'tier23', 'tier45'])
@@ -28,6 +29,13 @@ const K = {
   pushPrefs: 'asset-tracker:pushPrefs',
 } as const
 
+/** 进入设备同步的 key（推送通知偏好/汇率缓存/banner 状态等设备级数据不同步） */
+const SYNCED_LOCAL_KEYS: ReadonlySet<string> = new Set([
+  K.snapshots, K.annualTarget, K.customPlatforms, K.customClasses,
+  K.hiddenPlatforms, K.hiddenClasses, K.retirementPlan,
+  K.mortgageInputs, K.themePreference,
+])
+
 function get<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
@@ -40,6 +48,7 @@ function get<T>(key: string, fallback: T): T {
 function set(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value))
+    if (SYNCED_LOCAL_KEYS.has(key)) markDirty()
   } catch {
     // localStorage full — silently ignore
   }
