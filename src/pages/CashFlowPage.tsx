@@ -36,8 +36,8 @@ export default function CashFlowPage() {
   const totals = useMemo(() => {
     let income = 0, expense = 0
     for (const e of visibleEvents) {
-      if (e.type === 'income') income += e.amount
-      else expense += e.amount
+      if (e.type === 'income') income += e.amountCNY
+      else expense += e.amountCNY
     }
     return { income, expense, net: income - expense }
   }, [visibleEvents])
@@ -169,7 +169,7 @@ function groupByCategory(events: CashFlowEvent[]): CategoryAgg[] {
     const label = meta?.label ?? e.category
     const icon = meta?.icon ?? (e.type === 'income' ? '✨' : '⚠️')
     const cur = map.get(k) ?? { type: e.type, key: e.category, label, icon, total: 0 }
-    cur.total += e.amount
+    cur.total += e.amountCNY
     map.set(k, cur)
   }
   return [...map.values()].sort((a, b) => b.total - a.total)
@@ -218,6 +218,10 @@ function EventRow({ event, onClick }: { event: CashFlowEvent; onClick: () => voi
         : PLATFORM_LABELS[event.platform as AssetPlatform])
     : null
 
+  const isUSD = event.currency === 'USD'
+  const primary = isUSD ? `$${event.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : formatCNY(event.amount)
+  const secondary = isUSD ? `≈ ${formatCNY(event.amountCNY)}` : null
+
   return (
     <button onClick={onClick} type="button"
       style={{
@@ -238,6 +242,13 @@ function EventRow({ event, onClick }: { event: CashFlowEvent; onClick: () => voi
               fontWeight: 700, letterSpacing: 0.5,
             }}>信用</span>
           )}
+          {isUSD && (
+            <span style={{
+              fontSize: 9, padding: '1px 5px', borderRadius: 4,
+              background: 'var(--button-secondary-bg)', color: 'var(--muted)',
+              fontWeight: 700, letterSpacing: 0.5,
+            }}>USD</span>
+          )}
         </div>
         {(platformLabel || event.note) && (
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -245,9 +256,16 @@ function EventRow({ event, onClick }: { event: CashFlowEvent; onClick: () => voi
           </div>
         )}
       </div>
-      <span style={{ fontSize: 14, fontWeight: 700, color, flexShrink: 0 }}>
-        {sign}{formatCNY(event.amount)}
-      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color }}>
+          {sign}{primary}
+        </span>
+        {secondary && (
+          <span style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>
+            {sign}{secondary.replace('≈ ', '')}
+          </span>
+        )}
+      </div>
     </button>
   )
 }

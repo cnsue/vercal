@@ -6,7 +6,7 @@ import {
   type CashFlowEvent, type CashFlowType, type PaymentMethod,
 } from '../types/cashFlow'
 import { PLATFORM_LABELS, type AssetPlatform } from '../types/models'
-import { formatDateKey } from '../utils/formatters'
+import { formatDateKey, formatCNY } from '../utils/formatters'
 
 interface Props {
   open: boolean
@@ -25,6 +25,7 @@ export default function CashFlowEditor({ open, initial, onClose }: Props) {
   const removeEvent = useCashFlowStore(s => s.removeEvent)
   const customPlatforms = useAssetStore(s => s.customPlatforms)
   const hiddenPlatforms = useAssetStore(s => s.hiddenPlatforms)
+  const exchangeRate = useAssetStore(s => s.exchangeRate)
 
   const [type, setType] = useState<CashFlowType>('expense')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('asset')
@@ -34,6 +35,7 @@ export default function CashFlowEditor({ open, initial, onClose }: Props) {
   const [platform, setPlatform] = useState<AssetPlatform | ''>('')
   const [customPlatformName, setCustomPlatformName] = useState<string>('')
   const [amount, setAmount] = useState<string>('')
+  const [currency, setCurrency] = useState<'CNY' | 'USD'>('CNY')
   const [note, setNote] = useState<string>('')
 
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function CashFlowEditor({ open, initial, onClose }: Props) {
       setPlatform(initial.platform ?? '')
       setCustomPlatformName(initial.customPlatformName ?? '')
       setAmount(initial.amount > 0 ? String(initial.amount) : '')
+      setCurrency(initial.currency ?? 'CNY')
       setNote(initial.note)
     } else {
       setType('expense')
@@ -57,6 +60,7 @@ export default function CashFlowEditor({ open, initial, onClose }: Props) {
       setPlatform('')
       setCustomPlatformName('')
       setAmount('')
+      setCurrency('CNY')
       setNote('')
     }
   }, [open, initial])
@@ -87,15 +91,25 @@ export default function CashFlowEditor({ open, initial, onClose }: Props) {
       alert('请输入正确金额')
       return
     }
+    if (currency === 'USD' && !exchangeRate) {
+      alert('USD 金额需要汇率才能保存。请先在资产页刷新一下汇率。')
+      return
+    }
     if (isCustomCategory && !finalCategoryKey) {
       alert('请输入自定义分类名称')
       return
     }
+    const rounded = Math.round(amt * 100) / 100
+    const cny = currency === 'USD' && exchangeRate
+      ? Math.round(rounded * exchangeRate.rate * 100) / 100
+      : rounded
     const payload = {
       date,
       type,
       paymentMethod: type === 'income' ? 'asset' as PaymentMethod : paymentMethod,
-      amount: Math.round(amt * 100) / 100,
+      amount: rounded,
+      currency,
+      amountCNY: cny,
       category: finalCategoryKey,
       platform: platform || undefined,
       customPlatformName: platform === 'other' && customPlatformName.trim()
@@ -212,12 +226,31 @@ export default function CashFlowEditor({ open, initial, onClose }: Props) {
           </FieldRow>
 
           <FieldRow label="金额">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14, color: 'var(--muted)' }}>¥</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--button-secondary-bg)' }}>
+                {(['CNY', 'USD'] as const).map(c => (
+                  <button key={c} type="button" onClick={() => setCurrency(c)}
+                    style={{
+                      padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      fontSize: 12, fontWeight: 700,
+                      background: currency === c ? 'var(--primary)' : 'transparent',
+                      color: currency === c ? '#fff' : 'var(--button-secondary-text)',
+                    }}>
+                    {c === 'CNY' ? '¥' : '$'}
+                  </button>
+                ))}
+              </div>
               <input type="number" inputMode="decimal" value={amount}
                 onChange={e => setAmount(e.target.value)} placeholder="0.00"
                 style={{ ...inputStyle, flex: 1, textAlign: 'right' }} />
             </div>
+            {currency === 'USD' && (
+              <div style={{ marginTop: 4, fontSize: 11, color: 'var(--muted)', textAlign: 'right' }}>
+                {exchangeRate
+                  ? `≈ ${formatCNY(parseFloat(amount || '0') * exchangeRate.rate)} · 汇率 ${exchangeRate.rate.toFixed(4)}`
+                  : '未获取汇率，去资产页点 ↻ 刷一下'}
+              </div>
+            )}
           </FieldRow>
 
           <FieldRow label="备注（可选）">

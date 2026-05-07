@@ -9,7 +9,9 @@ export interface CashFlowEvent {
   id: string
   date: string                 // 'YYYY-MM-DD'
   type: CashFlowType
-  amount: number               // 元，恒正；正负由 type 决定
+  amount: number               // 原币种金额，恒正；正负由 type 决定
+  currency: 'CNY' | 'USD'
+  amountCNY: number            // 折算到 CNY 后的金额（保存时用当时汇率锁定，用于汇总）
   category: string             // 见 BUILTIN_*_CATEGORIES，也可自定义
   paymentMethod: PaymentMethod // 仅在 type='expense' 时有意义；income 永远 'asset'
   platform?: AssetPlatform

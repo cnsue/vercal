@@ -15,7 +15,18 @@ export const useCashFlowStore = create<CashFlowState>((set, get) => ({
   events: [],
 
   load() {
-    set({ events: StorageService.getCashFlows() })
+    const raw = StorageService.getCashFlows()
+    // 老事件没有 currency / amountCNY，按 CNY 兜底
+    const migrated = raw.map(e => ({
+      ...e,
+      currency: e.currency ?? 'CNY',
+      amountCNY: typeof e.amountCNY === 'number' ? e.amountCNY : e.amount,
+    }))
+    set({ events: migrated })
+    // 把迁移后的写回，省得每次都迁
+    if (migrated.some((m, i) => m !== raw[i])) {
+      StorageService.saveCashFlows(migrated)
+    }
   },
 
   addEvent(input) {
