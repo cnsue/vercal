@@ -10,7 +10,7 @@ import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
 import CashFlowPage from './CashFlowPage'
 import type { AssetSubTab } from '../App'
 import { generateSlots } from '../utils/dateSlots'
-import { analyzePeriod, type PeriodAnalysis } from '../utils/cashFlowAnalysis'
+import { analyzePeriod, toRealPnLSlots, type PeriodAnalysis } from '../utils/cashFlowAnalysis'
 import { formatCNY, formatDateKey, displayDate } from '../utils/formatters'
 import { effectivePlatformLabel, effectiveClassLabel } from '../types/models'
 import type { ChartPeriod, Snapshot } from '../types/models'
@@ -27,6 +27,7 @@ const PERIODS: { key: ChartPeriod; label: string }[] = [
 
 type DistMode = 'platform' | 'class'
 type TrendMode = 'total' | 'platform' | 'class'
+type ChartValueMode = 'book' | 'realPnL'
 
 const TREND_MODES: { key: TrendMode; label: string }[] = [
   { key: 'total', label: '总览' },
@@ -49,6 +50,7 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
   const [period, setPeriod] = useState<ChartPeriod>('day')
   const [trendMode, setTrendMode] = useState<TrendMode>('total')
   const [distMode, setDistMode] = useState<DistMode>('platform')
+  const [chartValueMode, setChartValueMode] = useState<ChartValueMode>('book')
   const [showTargetEditor, setShowTargetEditor] = useState(false)
   const [targetInput, setTargetInput] = useState('')
   const [showDecentEditor, setShowDecentEditor] = useState(false)
@@ -69,9 +71,13 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
   const recordedToday = sorted.some(s => s.dateKey === todayKey)
 
   const slots = useMemo(() => generateSlots(sorted, period), [sorted, period])
+  const displaySlots = useMemo(
+    () => chartValueMode === 'realPnL' ? toRealPnLSlots(slots, cashFlows) : slots,
+    [slots, cashFlows, chartValueMode],
+  )
   const trendSeries = useMemo(
-    () => trendMode === 'total' ? [] : buildTrendSeries(slots, trendMode),
-    [slots, trendMode],
+    () => (trendMode === 'total' || chartValueMode === 'realPnL') ? [] : buildTrendSeries(slots, trendMode),
+    [slots, trendMode, chartValueMode],
   )
   const periodAnalysis = useMemo(
     () => analyzePeriod(slots, cashFlows),
@@ -155,33 +161,52 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
 
       {/* Trend chart */}
       <Section title="资产变化">
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          {(['book', 'realPnL'] as ChartValueMode[]).map(m => (
+            <button key={m} onClick={() => setChartValueMode(m)}
+              style={{
+                flex: 1, padding: '6px 0', borderRadius: 9, border: 'none',
+                cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                background: chartValueMode === m ? 'var(--primary)' : 'var(--button-secondary-bg)',
+                color: chartValueMode === m ? '#fff' : 'var(--button-secondary-text)',
+              }}>
+              {m === 'book' ? '账面值' : '真实盈亏'}
+            </button>
+          ))}
+        </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-          <div style={{
-            display: 'flex',
-            gap: 2,
-            padding: 2,
-            borderRadius: 9,
-            background: 'var(--button-secondary-bg)',
-            flex: 1,
-            minWidth: 0,
-          }}>
-            {TREND_MODES.map(m => (
-              <button key={m.key} onClick={() => setTrendMode(m.key)}
-                style={{
-                  flex: 1,
-                  padding: '5px 0',
-                  borderRadius: 7,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: 12,
-                  background: trendMode === m.key ? 'var(--primary)' : 'transparent',
-                  color: trendMode === m.key ? '#fff' : 'var(--button-secondary-text)',
-                }}>
-                {m.label}
-              </button>
-            ))}
-          </div>
+          {chartValueMode === 'book' ? (
+            <div style={{
+              display: 'flex',
+              gap: 2,
+              padding: 2,
+              borderRadius: 9,
+              background: 'var(--button-secondary-bg)',
+              flex: 1,
+              minWidth: 0,
+            }}>
+              {TREND_MODES.map(m => (
+                <button key={m.key} onClick={() => setTrendMode(m.key)}
+                  style={{
+                    flex: 1,
+                    padding: '5px 0',
+                    borderRadius: 7,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    background: trendMode === m.key ? 'var(--primary)' : 'transparent',
+                    color: trendMode === m.key ? '#fff' : 'var(--button-secondary-text)',
+                  }}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ flex: 1, fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
+              扣除净外部注入后的纯投资盈亏曲线，第一个点为基准 0
+            </div>
+          )}
           <select
             aria-label="资产变化周期"
             value={period}
@@ -202,7 +227,12 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
             ))}
           </select>
         </div>
-        <TrendChart slots={slots} period={period} series={trendSeries} />
+        <TrendChart
+          slots={displaySlots}
+          period={period}
+          series={trendSeries}
+          signed={chartValueMode === 'realPnL'}
+        />
       </Section>
 
       {periodAnalysis && (

@@ -13,6 +13,8 @@ interface Props {
   slots: ChartSlot[]
   period: 'day' | 'week' | 'month' | 'year'
   series?: TrendSeries[]
+  /** 当 slot 值可能为负（真实盈亏曲线）时打开。Y 轴会画零线，bars 从零线上下生长。 */
+  signed?: boolean
 }
 
 const BAR_W = 28
@@ -36,8 +38,10 @@ function showLabel(i: number, total: number, period: string): boolean {
 }
 
 function formatAxisValue(value: number): string {
-  if (value >= 100_000) return `${Math.round(value / 10_000)}万`
-  if (value >= 10_000) return `${(value / 10_000).toFixed(1)}万`
+  const abs = Math.abs(value)
+  const sign = value < 0 ? '-' : ''
+  if (abs >= 100_000) return `${sign}${Math.round(abs / 10_000)}万`
+  if (abs >= 10_000) return `${sign}${(abs / 10_000).toFixed(1)}万`
   return Math.round(value).toLocaleString('zh-CN')
 }
 
@@ -52,7 +56,18 @@ function computeAxisMax(maxValue: number): number {
   return 10 * magnitude
 }
 
-export default function TrendChart({ slots, period, series = [] }: Props) {
+/** 给 signed 模式计算 axis：跨零的合理上下界 */
+function computeSignedAxis(values: number[]): { axisMin: number; axisMax: number } {
+  if (values.length === 0) return { axisMin: 0, axisMax: 1 }
+  const dataMax = Math.max(0, ...values)
+  const dataMin = Math.min(0, ...values)
+  const top = computeAxisMax(dataMax)
+  const bot = -computeAxisMax(Math.abs(dataMin))
+  if (top === 0 && bot === 0) return { axisMin: -1, axisMax: 1 }
+  return { axisMin: bot, axisMax: top }
+}
+
+export default function TrendChart({ slots, period, series = [], signed = false }: Props) {
   const axisCanvasRef = useRef<HTMLCanvasElement>(null)
   const plotCanvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -110,22 +125,37 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
     axisCtx.clearRect(0, 0, AXIS_W, totalH)
     plotCtx.clearRect(0, 0, totalW, totalH)
 
+    const plotTop = TOP_PAD
+    const plotBottom = plotTop + PLOT_H
+
     const seriesTotals = slots.map((slot, i) => (
       series.length > 0
         ? series.reduce((sum, s) => sum + Math.max(0, s.values[i] ?? 0), 0)
         : slot.totalValueCNY
     ))
-    const maxVal = Math.max(...seriesTotals, 1)
-    const axisMax = computeAxisMax(maxVal)
+    const validValues = slots
+      .map((slot, i) => slot.snapshot ? seriesTotals[i] : null)
+      .filter((v): v is number => v !== null)
+    const { axisMin, axisMax } = signed
+      ? computeSignedAxis(validValues)
+      : { axisMin: 0, axisMax: computeAxisMax(Math.max(...seriesTotals, 1)) }
+    const axisRange = axisMax - axisMin
+    const valueToY = (v: number) => {
+      const ratio = (v - axisMin) / axisRange
+      return plotBottom - ratio * PLOT_H
+    }
+    const zeroY = signed ? valueToY(0) : plotBottom
+    const isValidSlot = (slot: ChartSlot, value: number) => (
+      slot.snapshot != null && (signed || value > 0)
+    )
     const green = cssVar('--primary-strong', '#1e6845')
+    const red = cssVar('--danger', '#b54b3c')
     const empty = cssVar('--chart-empty', 'rgba(0,0,0,0.08)')
     const line = cssVar('--chart-line', 'rgba(255,255,255,0.85)')
     const dot = cssVar('--chart-dot', '#fff')
     const label = cssVar('--chart-label', 'rgba(0,0,0,0.45)')
     const grid = cssVar('--border-strong', '#ddd')
     const selectedBg = cssVar('--surface-active', '#e8f5ee')
-    const plotTop = TOP_PAD
-    const plotBottom = plotTop + PLOT_H
 
     // Grid + Y axis
     axisCtx.font = '10px -apple-system, sans-serif'
@@ -133,16 +163,18 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
     axisCtx.textBaseline = 'middle'
     for (let gridStep = 0; gridStep <= GRID_STEPS; gridStep += 1) {
       const ratio = gridStep / GRID_STEPS
-      const y = plotBottom - ratio * PLOT_H
+      const tickValue = axisMin + ratio * axisRange
+      const y = valueToY(tickValue)
+      const isZero = signed && Math.abs(tickValue) < 1e-6
       plotCtx.beginPath()
-      plotCtx.setLineDash(gridStep === 0 ? [] : [3, 3])
+      plotCtx.setLineDash(gridStep === 0 || isZero ? [] : [3, 3])
       plotCtx.moveTo(0, y)
       plotCtx.lineTo(totalW, y)
       plotCtx.strokeStyle = grid
-      plotCtx.lineWidth = 1
+      plotCtx.lineWidth = isZero ? 1.5 : 1
       plotCtx.stroke()
       axisCtx.fillStyle = label
-      axisCtx.fillText(formatAxisValue(axisMax * ratio), AXIS_W - 8, y)
+      axisCtx.fillText(formatAxisValue(tickValue), AXIS_W - 8, y)
     }
     plotCtx.setLineDash([])
     axisCtx.beginPath()
@@ -151,7 +183,7 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
     axisCtx.strokeStyle = grid
     axisCtx.stroke()
 
-    if (selectedIndex !== null && slots[selectedIndex]?.snapshot && (seriesTotals[selectedIndex] ?? 0) > 0) {
+    if (selectedIndex !== null && slots[selectedIndex] && isValidSlot(slots[selectedIndex], seriesTotals[selectedIndex] ?? 0)) {
       const selectedX = selectedIndex * step + step / 2
       const highlightW = Math.max(barW + 10, Math.min(step * 0.82, barW + 18))
       plotCtx.save()
@@ -167,38 +199,53 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
     slots.forEach((slot, i) => {
       const x = i * step + (step - barW) / 2
       const slotTotal = seriesTotals[i] ?? 0
-      if (slot.snapshot && slotTotal > 0) {
-        const h = Math.max(8, PLOT_H * (slotTotal / axisMax))
-        if (series.length > 0) {
-          plotCtx.save()
+      const valid = isValidSlot(slot, slotTotal)
+      if (valid) {
+        const valueY = valueToY(slotTotal)
+        if (signed) {
+          const top = Math.min(zeroY, valueY)
+          const bot = Math.max(zeroY, valueY)
+          const h = Math.max(2, bot - top)
+          plotCtx.fillStyle = slotTotal >= 0 ? green : red
           plotCtx.beginPath()
-          plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
-          plotCtx.clip()
-          let y = plotBottom
-          series.forEach((s, seriesIdx) => {
-            const value = Math.max(0, s.values[i] ?? 0)
-            if (value <= 0) return
-            const segmentH = Math.max(1, h * (value / slotTotal))
-            y -= segmentH
-            plotCtx.fillStyle = s.color ?? COLORS[seriesIdx % COLORS.length]
-            plotCtx.beginPath()
-            plotCtx.rect(x, y, barW, segmentH)
-            plotCtx.fill()
-          })
-          plotCtx.restore()
-        } else {
-          plotCtx.fillStyle = green
-          plotCtx.beginPath()
-          plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
+          plotCtx.roundRect(x, top, barW, h, 3)
           plotCtx.fill()
+        } else {
+          const h = Math.max(8, PLOT_H * (slotTotal / axisMax))
+          if (series.length > 0) {
+            plotCtx.save()
+            plotCtx.beginPath()
+            plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
+            plotCtx.clip()
+            let y = plotBottom
+            series.forEach((s, seriesIdx) => {
+              const value = Math.max(0, s.values[i] ?? 0)
+              if (value <= 0) return
+              const segmentH = Math.max(1, h * (value / slotTotal))
+              y -= segmentH
+              plotCtx.fillStyle = s.color ?? COLORS[seriesIdx % COLORS.length]
+              plotCtx.beginPath()
+              plotCtx.rect(x, y, barW, segmentH)
+              plotCtx.fill()
+            })
+            plotCtx.restore()
+          } else {
+            plotCtx.fillStyle = green
+            plotCtx.beginPath()
+            plotCtx.roundRect(x, plotBottom - h, barW, h, 4)
+            plotCtx.fill()
+          }
         }
         if (i === selectedIndex) {
+          const top = signed ? Math.min(zeroY, valueY) : plotBottom - Math.max(8, PLOT_H * (slotTotal / axisMax))
+          const bot = signed ? Math.max(zeroY, valueY) : plotBottom
+          const h = Math.max(2, bot - top)
           plotCtx.save()
           plotCtx.strokeStyle = dot
           plotCtx.lineWidth = 1.5
           plotCtx.globalAlpha = 0.88
           plotCtx.beginPath()
-          plotCtx.roundRect(x - 1, plotBottom - h - 1, barW + 2, h + 2, 5)
+          plotCtx.roundRect(x - 1, top - 1, barW + 2, h + 2, 5)
           plotCtx.stroke()
           plotCtx.fillStyle = dot
           plotCtx.globalAlpha = 0.95
@@ -210,7 +257,7 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
       } else {
         plotCtx.fillStyle = empty
         plotCtx.beginPath()
-        plotCtx.roundRect(x, plotBottom - 4, barW, 4, 2)
+        plotCtx.roundRect(x, zeroY - 2, barW, 4, 2)
         plotCtx.fill()
       }
     })
@@ -219,11 +266,12 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
     const points = slots
       .map((slot, i) => {
         const slotTotal = seriesTotals[i] ?? 0
-        if (!slot.snapshot || slotTotal <= 0) return null
+        if (!isValidSlot(slot, slotTotal)) return null
         const x = i * step + step / 2
-        const h = Math.max(8, PLOT_H * (slotTotal / axisMax))
-        const barTop = plotBottom - h
-        const y = Math.min(plotBottom - DOT_R - 1, Math.max(plotTop + DOT_R + 1, barTop + h / 2))
+        const valueY = valueToY(slotTotal)
+        const y = signed
+          ? valueY
+          : Math.min(plotBottom - DOT_R - 1, Math.max(plotTop + DOT_R + 1, valueY + (plotBottom - valueY) / 2))
         return { x, y }
       })
       .filter(Boolean) as { x: number; y: number }[]
@@ -255,7 +303,7 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
       const x = i * step + step / 2
       plotCtx.fillText(slot.label, x, plotBottom + 10)
     })
-  }, [slots, series, plotW, totalH, totalW, period, themeTick, barW, step, selectedIndex])
+  }, [slots, series, plotW, totalH, totalW, period, themeTick, barW, step, selectedIndex, signed])
 
   // Scroll to end on mount / period change
   useEffect(() => {
@@ -268,18 +316,21 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
       ? series.reduce((sum, s) => sum + Math.max(0, s.values[index] ?? 0), 0)
       : slot.totalValueCNY
   )
+  const isValid = (slot: ChartSlot, value: number) => (
+    slot.snapshot != null && (signed || value > 0)
+  )
   const dataSlots = slots
     .map((slot, index) => ({ slot, index, value: slotValue(slot, index) }))
-    .filter(s => s.slot.snapshot && s.value > 0)
+    .filter(s => isValid(s.slot, s.value))
 
   useEffect(() => {
     const latestDataSlot = [...slots]
       .map((slot, index) => ({ slot, index, value: slotValue(slot, index) }))
-      .filter(s => s.slot.snapshot && s.value > 0)
+      .filter(s => isValid(s.slot, s.value))
       .at(-1)
     setSelectedIndex(latestDataSlot?.index ?? null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots, series])
+  }, [slots, series, signed])
 
   if (dataSlots.length === 0) {
     return (
@@ -311,7 +362,8 @@ export default function TrendChart({ slots, period, series = [] }: Props) {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const index = Math.min(slots.length - 1, Math.max(0, Math.floor(x / step)))
-    if (slots[index]?.snapshot && slotValue(slots[index], index) > 0) {
+    const slot = slots[index]
+    if (slot && isValid(slot, slotValue(slot, index))) {
       setSelectedIndex(index)
     }
   }

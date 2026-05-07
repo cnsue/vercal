@@ -26,6 +26,38 @@ export interface PeriodAnalysis {
   hasEvents: boolean
 }
 
+/**
+ * 把 chart slots 转成「真实盈亏曲线」：每个 slot 的 totalValueCNY = 当前账面值 - baseValue - 累计净注入(到该 slot)
+ * baseValue 取首个有效 slot 的账面值，第一个有效 slot 始终为 0。
+ * 没数据 / 在第一个有效 slot 之前的 slot：snapshot 置 null（图上不绘点）。
+ */
+export function toRealPnLSlots(slots: ChartSlot[], events: CashFlowEvent[]): ChartSlot[] {
+  const firstIdx = slots.findIndex(s => s.snapshot && s.totalValueCNY > 0)
+  if (firstIdx < 0) return slots
+  const baseValue = slots[firstIdx].totalValueCNY
+  const sortedEvents = [...events].sort((a, b) => a.date.localeCompare(b.date))
+
+  // 累计到每个 slot.endDate（含）的 netContribution
+  const cum: number[] = []
+  let idx = 0, acc = 0
+  for (const slot of slots) {
+    while (idx < sortedEvents.length && sortedEvents[idx].date <= slot.endDate) {
+      acc += netContribution(sortedEvents[idx])
+      idx++
+    }
+    cum.push(acc)
+  }
+  const baseCum = cum[firstIdx]
+
+  return slots.map((slot, i) => {
+    if (i < firstIdx || !slot.snapshot || slot.totalValueCNY <= 0) {
+      return { ...slot, totalValueCNY: 0, snapshot: null }
+    }
+    const realPnL = slot.totalValueCNY - baseValue - (cum[i] - baseCum)
+    return { ...slot, totalValueCNY: realPnL }
+  })
+}
+
 /** 对当前 chart 区间做一次完整分析。返回 null 表示数据不足（少于 2 个有效点）。 */
 export function analyzePeriod(slots: ChartSlot[], events: CashFlowEvent[]): PeriodAnalysis | null {
   const dataSlots = slots.filter(s => s.snapshot && s.totalValueCNY > 0)
