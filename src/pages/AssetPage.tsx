@@ -6,6 +6,8 @@ import AnnualTargetCard from '../components/AnnualTargetCard'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import TrendChart, { type TrendSeries } from '../components/charts/TrendChart'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
+import CashFlowPage from './CashFlowPage'
+import type { AssetSubTab } from '../App'
 import { generateSlots } from '../utils/dateSlots'
 import { formatCNY, formatDateKey, displayDate } from '../utils/formatters'
 import { effectivePlatformLabel, effectiveClassLabel } from '../types/models'
@@ -34,9 +36,11 @@ const MAX_TREND_SERIES = 6
 
 interface Props {
   onOpenEditor: (snap: Snapshot) => void
+  subTab: AssetSubTab
+  onSubTabChange: (next: AssetSubTab) => void
 }
 
-export default function AssetPage({ onOpenEditor }: Props) {
+export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Props) {
   const store = useAssetStore()
   const plan = useRetirementStore(s => s.plan)
   const [period, setPeriod] = useState<ChartPeriod>('day')
@@ -83,6 +87,10 @@ export default function AssetPage({ onOpenEditor }: Props) {
 
   return (
     <div style={{ padding: '0 0 16px' }}>
+      <SubTabBar value={subTab} onChange={onSubTabChange} />
+
+      {subTab === 'cashflow' ? <CashFlowPage /> : (
+      <>
       <HeroCard
         totalValueCNY={latest?.totalValueCNY ?? 0}
         dailyChange={dailyChange}
@@ -257,6 +265,34 @@ export default function AssetPage({ onOpenEditor }: Props) {
           </div>
         </div>
       )}
+      </>
+      )}
+    </div>
+  )
+}
+
+function SubTabBar({ value, onChange }: { value: AssetSubTab; onChange: (v: AssetSubTab) => void }) {
+  const tabs: { key: AssetSubTab; label: string }[] = [
+    { key: 'overview', label: '资产' },
+    { key: 'cashflow', label: '现金流' },
+  ]
+  return (
+    <div style={{
+      display: 'flex', background: 'var(--surface-muted, var(--surface))',
+      borderRadius: 12, padding: 3, marginBottom: 12, gap: 3,
+    }}>
+      {tabs.map(t => (
+        <button key={t.key} type="button" onClick={() => onChange(t.key)}
+          style={{
+            flex: 1, padding: '8px 0', border: 'none', borderRadius: 9,
+            background: value === t.key ? 'var(--surface)' : 'transparent',
+            color: value === t.key ? 'var(--text)' : 'var(--muted)',
+            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            boxShadow: value === t.key ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+          }}>
+          {t.label}
+        </button>
+      ))}
     </div>
   )
 }

@@ -13,6 +13,7 @@ import type { MortgageInputs } from '../utils/mortgageCalc'
 import { DEFAULT_MORTGAGE_INPUTS } from '../utils/mortgageCalc'
 import type { ThemePreference } from '../types/theme'
 import type { PushPrefs } from '../types/push'
+import type { CashFlowEvent } from '../types/cashFlow'
 
 const K = {
   snapshots: 'asset-tracker:snapshots',
@@ -27,12 +28,13 @@ const K = {
   themePreference: 'asset-tracker:themePreference',
   mortgageInputs: 'asset-tracker:mortgageInputs',
   pushPrefs: 'asset-tracker:pushPrefs',
+  cashFlows: 'asset-tracker:cashFlows',
 } as const
 
 /** 进入设备同步的 key（推送通知偏好/汇率缓存/banner 状态等设备级数据不同步） */
 const SYNCED_LOCAL_KEYS: ReadonlySet<string> = new Set([
   K.snapshots, K.annualTarget, K.customPlatforms, K.customClasses,
-  K.hiddenPlatforms, K.hiddenClasses, K.retirementPlan,
+  K.hiddenPlatforms, K.hiddenClasses, K.retirementPlan, K.cashFlows,
   K.mortgageInputs, K.themePreference,
 ])
 
@@ -268,6 +270,9 @@ export const StorageService = {
     }
   },
   savePushPrefs: (v: PushPrefs): void => set(K.pushPrefs, v),
+
+  getCashFlows: (): CashFlowEvent[] => get<CashFlowEvent[]>(K.cashFlows, []),
+  saveCashFlows: (v: CashFlowEvent[]): void => set(K.cashFlows, v),
 
   estimateSizeKB: (): number => {
     let total = 0

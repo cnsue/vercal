@@ -189,6 +189,8 @@ export async function bootstrapStore() {
   // can read it without racing with their own useEffect.
   const { useRetirementStore } = await import('./useRetirementStore')
   useRetirementStore.getState().load()
+  const { useCashFlowStore } = await import('./useCashFlowStore')
+  useCashFlowStore.getState().load()
   const { exchangeRate } = useAssetStore.getState()
   if (!isFresh(exchangeRate)) {
     await store.refreshExchangeRate(true)

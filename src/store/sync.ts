@@ -23,6 +23,7 @@ const SYNCED_KEYS: readonly string[] = [
   'asset-tracker:retirementPlan',
   'asset-tracker:mortgageInputs',
   'asset-tracker:themePreference',
+  'asset-tracker:cashFlows',
 ]
 
 interface RemoteBlob {

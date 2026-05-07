@@ -17,6 +17,7 @@ import type { Snapshot } from './types/models'
 import type { ThemePreference } from './types/theme'
 
 type Tab = 'asset' | 'retirement' | 'tools' | 'settings'
+export type AssetSubTab = 'overview' | 'cashflow'
 
 const TAB_TITLES: Record<Tab, string> = {
   asset: 'Coinsight',
@@ -43,6 +44,7 @@ function subpageTitle(s: Exclude<Subpage, null>): string {
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('asset')
+  const [assetSubTab, setAssetSubTab] = useState<AssetSubTab>('overview')
   const [subpage, setSubpage] = useState<Subpage>(null)
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const [editingSnap, setEditingSnap] = useState<Snapshot | null>(null)
@@ -97,7 +99,7 @@ export default function App() {
   }
 
   const title = subpage ? subpageTitle(subpage) : TAB_TITLES[tab]
-  const showPlusAction = tab === 'asset' && !editingSnap && !subpage
+  const showPlusAction = tab === 'asset' && assetSubTab === 'overview' && !editingSnap && !subpage
   const showBottomTabs = !editingSnap && !subpage
   const isIframeSubpage = subpage?.kind === 'external-tool'
 
@@ -181,7 +183,13 @@ export default function App() {
           renderSubpage(subpage, () => setSubpage(null))
         ) : (
           <>
-            {tab === 'asset' && <AssetPage onOpenEditor={setEditingSnap} />}
+            {tab === 'asset' && (
+              <AssetPage
+                onOpenEditor={setEditingSnap}
+                subTab={assetSubTab}
+                onSubTabChange={setAssetSubTab}
+              />
+            )}
             {tab === 'retirement' && <RetirementPage />}
             {tab === 'tools' && <ToolsPage onNavigate={setSubpage} />}
             {tab === 'settings' && (
