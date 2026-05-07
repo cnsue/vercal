@@ -6,6 +6,11 @@ interface Props {
 
 const TOOLS: { title: string; desc: string; subpage: Exclude<Subpage, null> }[] = [
   {
+    title: '高股息股票数据',
+    desc: '查看内置高股息股票库的分红、参考股息率、长期股息增长假设和近期研报预期。',
+    subpage: { kind: 'dividend-stocks' },
+  },
+  {
     title: '房贷提前还款计算器',
     desc: '对商贷做一次性提前还款，对比"缩短年限"和"减少月供"，看能省多少利息、缩多少时间。支持等额本息与等额本金。',
     subpage: { kind: 'mortgage-prepayment' },

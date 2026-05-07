@@ -7,6 +7,7 @@ import PensionSettingsPage from './components/retirement/PensionSettingsPage'
 import AssetClassSettingsPage from './pages/AssetClassSettingsPage'
 import MortgagePrepaymentPage from './pages/MortgagePrepaymentPage'
 import ExternalToolPage from './pages/ExternalToolPage'
+import DividendStocksPage from './pages/DividendStocksPage'
 import SnapshotEditor from './components/SnapshotEditor'
 import { bootstrapStore } from './store/useAssetStore'
 import { useAssetStore } from './store/useAssetStore'
@@ -30,6 +31,7 @@ export type Subpage =
   | { kind: 'pension-settings' }
   | { kind: 'asset-classes' }
   | { kind: 'mortgage-prepayment' }
+  | { kind: 'dividend-stocks' }
   | { kind: 'external-tool'; title: string; url: string }
   | null
 
@@ -38,6 +40,7 @@ function subpageTitle(s: Exclude<Subpage, null>): string {
     case 'pension-settings': return '养老金信息'
     case 'asset-classes': return '资产类别管理'
     case 'mortgage-prepayment': return '房贷提前还款'
+    case 'dividend-stocks': return '高股息股票数据'
     case 'external-tool': return s.title
   }
 }
@@ -229,6 +232,8 @@ function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void) {
       return <AssetClassSettingsPage />
     case 'mortgage-prepayment':
       return <MortgagePrepaymentPage />
+    case 'dividend-stocks':
+      return <DividendStocksPage />
     case 'external-tool':
       return <ExternalToolPage url={subpage.url} />
   }
