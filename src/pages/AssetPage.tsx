@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAssetStore } from '../store/useAssetStore'
 import { useRetirementStore } from '../store/useRetirementStore'
+import { useCashFlowStore } from '../store/useCashFlowStore'
 import HeroCard from '../components/HeroCard'
 import AnnualTargetCard from '../components/AnnualTargetCard'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
@@ -9,6 +10,7 @@ import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
 import CashFlowPage from './CashFlowPage'
 import type { AssetSubTab } from '../App'
 import { generateSlots } from '../utils/dateSlots'
+import { analyzePeriod, type PeriodAnalysis } from '../utils/cashFlowAnalysis'
 import { formatCNY, formatDateKey, displayDate } from '../utils/formatters'
 import { effectivePlatformLabel, effectiveClassLabel } from '../types/models'
 import type { ChartPeriod, Snapshot } from '../types/models'
@@ -43,6 +45,7 @@ interface Props {
 export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Props) {
   const store = useAssetStore()
   const plan = useRetirementStore(s => s.plan)
+  const cashFlows = useCashFlowStore(s => s.events)
   const [period, setPeriod] = useState<ChartPeriod>('day')
   const [trendMode, setTrendMode] = useState<TrendMode>('total')
   const [distMode, setDistMode] = useState<DistMode>('platform')
@@ -69,6 +72,10 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
   const trendSeries = useMemo(
     () => trendMode === 'total' ? [] : buildTrendSeries(slots, trendMode),
     [slots, trendMode],
+  )
+  const periodAnalysis = useMemo(
+    () => analyzePeriod(slots, cashFlows),
+    [slots, cashFlows],
   )
 
   const distItems = useMemo((): BreakdownItem[] => {
@@ -198,6 +205,11 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
         <TrendChart slots={slots} period={period} series={trendSeries} />
       </Section>
 
+      {periodAnalysis && (
+        <PeriodAnalysisPanel analysis={periodAnalysis}
+          onOpenCashFlow={() => onSubTabChange('cashflow')} />
+      )}
+
       {/* Distribution */}
       {latest && (
         <Section title="资产分布">
@@ -269,6 +281,84 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
       )}
     </div>
   )
+}
+
+function PeriodAnalysisPanel({ analysis, onOpenCashFlow }: {
+  analysis: PeriodAnalysis
+  onOpenCashFlow: () => void
+}) {
+  const realPositive = analysis.realPnL >= 0
+  const realColor = realPositive ? 'var(--primary-strong)' : 'var(--danger)'
+  const fromLabel = formatRange(analysis.fromDate)
+  const toLabel = formatRange(analysis.toDate)
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 16, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ fontSize: 15, fontWeight: 700 }}>📊 区间分析</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{fromLabel} → {toLabel}</div>
+      </div>
+
+      <Stat label="📈 账面变化" value={signed(analysis.bookChange)} color="var(--text)" />
+      <Stat label="📥 净外部注入" value={signed(analysis.netInjection)} color="var(--text)" />
+      {(analysis.income > 0 || analysis.expense > 0) && (
+        <div style={{ paddingLeft: 18, fontSize: 12, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 6 }}>
+          {analysis.income > 0 && <div>· 收入  +{formatCNY(analysis.income)}</div>}
+          {analysis.expense > 0 && <div>· 支出  -{formatCNY(analysis.expense)}</div>}
+        </div>
+      )}
+      <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0' }}>
+        <span style={{ fontSize: 13, fontWeight: 700 }}>💰 真实投资盈亏</span>
+        <span style={{ fontSize: 18, fontWeight: 800, color: realColor, letterSpacing: '-0.02em' }}>
+          {signed(analysis.realPnL)}
+          <span style={{ fontSize: 12, marginLeft: 6, fontWeight: 700 }}>
+            {realPositive ? '+' : ''}{analysis.realPnLPct.toFixed(2)}%
+          </span>
+        </span>
+      </div>
+
+      {!analysis.hasEvents && (
+        <div style={{
+          marginTop: 8, padding: '6px 10px',
+          background: 'var(--warning-bg)', color: 'var(--warning-text)',
+          borderRadius: 8, fontSize: 11, lineHeight: 1.5,
+        }}>
+          ⚠️ 该区间未录入现金流，盈亏 = 账面变化（可能不准确）
+        </div>
+      )}
+
+      <button type="button" onClick={onOpenCashFlow}
+        style={{
+          marginTop: 10, width: '100%', padding: '8px 0',
+          background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)',
+          border: 'none', borderRadius: 9,
+          fontSize: 12, fontWeight: 700, cursor: 'pointer',
+        }}>
+        现金流明细 ›
+      </button>
+    </div>
+  )
+}
+
+function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
+      <span style={{ color: 'var(--muted)' }}>{label}</span>
+      <span style={{ fontWeight: 700, color }}>{value}</span>
+    </div>
+  )
+}
+
+function signed(n: number): string {
+  if (Math.abs(n) < 0.005) return formatCNY(0)
+  return `${n > 0 ? '+' : '-'}${formatCNY(Math.abs(n))}`
+}
+
+function formatRange(date: string): string {
+  const m = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return date
+  return `${parseInt(m[2], 10)}/${parseInt(m[3], 10)}`
 }
 
 function SubTabBar({ value, onChange }: { value: AssetSubTab; onChange: (v: AssetSubTab) => void }) {

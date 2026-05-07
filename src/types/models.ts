@@ -60,6 +60,8 @@ export interface ChartSlot {
   snapshot: Snapshot | null
   /** 当前 slot 没有真实快照、用前一天数据顺延而来时为 true */
   filled?: boolean
+  /** 该 slot 周期的最后一天（YYYY-MM-DD），用作累计现金流注入的截止点 */
+  endDate: string
 }
 
 export function effectivePlatformLabel(item: SnapshotItem): string {

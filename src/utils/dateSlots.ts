@@ -73,7 +73,7 @@ function dailySlots(snapshots: Snapshot[], futureDays: number): ChartSlot[] {
     const date = addDays(firstDay, i)
     const key = formatDateKey(date)
     const snap = byKey.get(key) ?? null
-    return { id: `d${i}`, label: compactDate(key), totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
+    return { id: `d${i}`, label: compactDate(key), totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap, endDate: key }
   })
   return forwardFillPast(slots, pastCount - 1)
 }
@@ -91,7 +91,7 @@ function weeklySlots(snapshots: Snapshot[]): ChartSlot[] {
       return d >= wStart && d <= wEnd
     }).at(-1) ?? null
     const label = `${wStart.getMonth() + 1}/${wStart.getDate()}`
-    return { id: `w${i}`, label, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
+    return { id: `w${i}`, label, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap, endDate: formatDateKey(wEnd) }
   })
   return forwardFillPast(slots, slots.length - 1)
 }
@@ -110,7 +110,7 @@ function monthlySlots(snapshots: Snapshot[]): ChartSlot[] {
       return d >= mStart && d <= mEnd
     }).at(-1) ?? null
     const label = `${mStart.getMonth() + 1}月`
-    return { id: `m${i}`, label, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
+    return { id: `m${i}`, label, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap, endDate: formatDateKey(mEnd) }
   })
   return forwardFillPast(slots, slots.length - 1)
 }
@@ -122,7 +122,7 @@ function yearlySlots(snapshots: Snapshot[]): ChartSlot[] {
   const slots = Array.from({ length: lastYear - firstYear + 1 }, (_, i) => {
     const year = firstYear + i
     const snap = sorted.filter(s => new Date(s.snapshotDate).getFullYear() === year).at(-1) ?? null
-    return { id: `y${year}`, label: `${year}年`, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap }
+    return { id: `y${year}`, label: `${year}年`, totalValueCNY: snap?.totalValueCNY ?? 0, snapshot: snap, endDate: `${year}-12-31` }
   })
   return forwardFillPast(slots, slots.length - 1)
 }
