@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
-import { findDividendStock } from '../../data/dividendStocks'
+import { DIVIDEND_STOCKS, findDividendStock, dividendYieldPct } from '../../data/dividendStocks'
 import { formatCNY } from '../../utils/formatters'
 import type { DividendGrowthScenario } from '../../types/retirement'
 import { DIVIDEND_SCENARIO_LABELS } from '../../types/retirement'
@@ -18,18 +18,34 @@ interface Props {
 }
 
 interface Row {
-  id: string
+  /** 已存在持仓为持仓 id，新增股票为 'new-<code>' */
+  key: string
+  /** 真实持仓 id；新增股票为 undefined（应用时再调 addHolding） */
+  holdingId?: string
+  isNew: boolean
   stockCode: string
   stockName: string
+  /** 已存在持仓的当前股数（current shares）；新股票为 0 */
   baseShares: number
+  /** 已存储的目标股数（targetShares），用于判断"是否已修改" */
+  savedTarget?: number
+  /** 模拟中的当前目标股数（始终为 100 倍数） */
   shares: number
-  dps: number       // 每股年股息（已应用 override）
+  dps: number
   taxRate: number
-  growth: number    // 该股按当前场景的年增长率
+  growth: number
   refPrice: number
 }
 
 const STEP_OPTIONS = [100, 1000]
+
+const LOT = 100
+const ceilLot = (n: number) => Math.ceil(Math.max(0, n) / LOT) * LOT
+const snapLot = (n: number, base: number) => {
+  const safe = Math.max(0, Number.isFinite(n) ? n : 0)
+  if (safe === base) return base
+  return Math.round(safe / LOT) * LOT
+}
 
 export default function TargetSimulator({
   open, onClose, decentMonthly, pensionMonthly, otherMonthly,
@@ -37,17 +53,24 @@ export default function TargetSimulator({
 }: Props) {
   const holdings = useRetirementStore(s => s.plan.holdings)
   const updateHolding = useRetirementStore(s => s.updateHolding)
+  const addHolding = useRetirementStore(s => s.addHolding)
   const [mode, setMode] = useState<CoverageMode>(initialMode)
+  const [showAdd, setShowAdd] = useState(false)
+  const [newCode, setNewCode] = useState('')
 
   const initialRows = useMemo<Row[]>(() => holdings.map(h => {
     const ref = findDividendStock(h.stockCode)
     const dps = h.dividendPerShareOverride ?? ref?.dividendPerShare ?? 0
+    const startTarget = h.targetShares ?? h.shares
     return {
-      id: h.id,
+      key: h.id,
+      holdingId: h.id,
+      isNew: false,
       stockCode: h.stockCode,
       stockName: h.stockName,
       baseShares: h.shares,
-      shares: h.shares,
+      savedTarget: h.targetShares,
+      shares: startTarget,
       dps,
       taxRate: h.taxRate ?? 0,
       growth: ref?.growth?.[scenario] ?? 0,
@@ -61,6 +84,8 @@ export default function TargetSimulator({
     if (open) {
       setRows(initialRows)
       setMode(initialMode)
+      setShowAdd(false)
+      setNewCode('')
     }
   }, [open, initialRows, initialMode])
 
@@ -85,40 +110,84 @@ export default function TargetSimulator({
 
   const extraPrincipal = rows.reduce((s, r) => s + Math.max(0, r.shares - r.baseShares) * r.refPrice, 0)
   const extraAnnual = projectedDividendAnnual - baselineDividendAnnual
-  const dirty = rows.some(r => r.shares !== r.baseShares)
+  const dirty = rows.some(r => r.isNew || r.shares !== (r.savedTarget ?? r.baseShares))
+  const canAutoFill = projectedDividendAnnual > 0 || baselineDividendAnnual > 0
+
+  const availableStocks = DIVIDEND_STOCKS.filter(s => !rows.some(r => r.stockCode === s.code))
 
   function autoFill() {
     const targetDividendMonthly = decentMonthly - otherSourceMonthly
     if (targetDividendMonthly <= 0) {
-      setRows(rs => rs.map(r => ({ ...r, shares: r.baseShares })))
+      // already covered by other sources — pull each row back to baseline
+      setRows(rs => rs.map(r => ({ ...r, shares: r.isNew ? 0 : r.baseShares })))
       return
     }
-    if (baselineDividendAnnual <= 0) return
-    const factor = (targetDividendMonthly * 12) / baselineDividendAnnual
+    const targetAnnual = targetDividendMonthly * 12
+    // 用「当前模拟值」做基础（让新加股票按其当前股数比例参与放大）
+    const currentAnnual = projectedDividendAnnual
+    if (currentAnnual <= 0) return
+    const factor = targetAnnual / currentAnnual
     if (factor <= 1) {
-      setRows(rs => rs.map(r => ({ ...r, shares: r.baseShares })))
+      // 已超过目标，回到基线
+      setRows(rs => rs.map(r => ({ ...r, shares: r.isNew ? r.shares : r.baseShares })))
       return
     }
-    setRows(rs => rs.map(r => ({
-      ...r,
-      shares: Math.max(r.baseShares, Math.ceil(r.baseShares * factor)),
-    })))
+    setRows(rs => rs.map(r => {
+      if (r.shares <= 0) return r
+      return { ...r, shares: ceilLot(r.shares * factor) }
+    }))
   }
 
   function reset() {
-    setRows(rs => rs.map(r => ({ ...r, shares: r.baseShares })))
+    setRows(rs => rs
+      .filter(r => !r.isNew)
+      .map(r => ({ ...r, shares: r.savedTarget ?? r.baseShares })))
   }
 
-  function applyToHoldings() {
+  function applyAll() {
     rows.forEach(r => {
-      if (r.shares !== r.baseShares) updateHolding(r.id, { shares: r.shares })
+      if (r.isNew) {
+        if (r.shares > 0) {
+          addHolding({
+            stockCode: r.stockCode,
+            stockName: r.stockName,
+            shares: 0,
+            targetShares: r.shares,
+          })
+        }
+      } else if (r.holdingId && r.shares !== (r.savedTarget ?? r.baseShares)) {
+        updateHolding(r.holdingId, { targetShares: r.shares })
+      }
     })
     onClose()
   }
 
-  function setShares(id: string, next: number) {
-    const safe = Math.max(0, Math.round(Number.isFinite(next) ? next : 0))
-    setRows(rs => rs.map(r => r.id === id ? { ...r, shares: safe } : r))
+  function setShares(key: string, next: number) {
+    setRows(rs => rs.map(r => r.key === key ? { ...r, shares: snapLot(next, r.baseShares) } : r))
+  }
+
+  function removeRow(key: string) {
+    setRows(rs => rs.filter(r => r.key !== key))
+  }
+
+  function addStock(code: string) {
+    const ref = findDividendStock(code)
+    if (!ref) return
+    const newRow: Row = {
+      key: `new-${code}`,
+      isNew: true,
+      stockCode: ref.code,
+      stockName: ref.name,
+      baseShares: 0,
+      shares: LOT,
+      dps: ref.dividendPerShare,
+      taxRate: 0,
+      growth: ref.growth?.[scenario] ?? 0,
+      refPrice: ref.referencePrice,
+    }
+    setRows(rs => [...rs, newRow])
+    setShowAdd(false)
+    setNewCode('')
   }
 
   if (!open) return null
@@ -144,7 +213,7 @@ export default function TargetSimulator({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em' }}>目标试算</div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-              试着调整持仓股数，看离体面标准还差多少
+              股数按 100 一手；应用后会写入「目标股数」，不影响当前持仓
             </div>
           </div>
           <button onClick={onClose} aria-label="关闭"
@@ -202,47 +271,98 @@ export default function TargetSimulator({
         </div>
 
         {/* Auto-fill / reset */}
-        {rows.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-            <button onClick={autoFill} style={{
-              flex: 2, padding: '9px 10px', borderRadius: 10, border: 'none',
-              background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 700,
-              cursor: baselineDividendAnnual <= 0 ? 'not-allowed' : 'pointer',
-              opacity: baselineDividendAnnual <= 0 ? 0.5 : 1,
-            }} disabled={baselineDividendAnnual <= 0}>
-              ⚖️ 按现有比例自动填补
-            </button>
-            <button onClick={reset} disabled={!dirty} style={{
-              flex: 1, padding: '9px 10px', borderRadius: 10,
-              border: '1px solid var(--border)', background: 'var(--surface)',
-              color: dirty ? 'var(--text-strong)' : 'var(--muted)',
-              fontSize: 12, fontWeight: 700, cursor: dirty ? 'pointer' : 'not-allowed',
-            }}>
-              重置
-            </button>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <button onClick={autoFill} style={{
+            flex: 2, padding: '9px 10px', borderRadius: 10, border: 'none',
+            background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 700,
+            cursor: canAutoFill ? 'pointer' : 'not-allowed',
+            opacity: canAutoFill ? 1 : 0.5,
+          }} disabled={!canAutoFill}>
+            ⚖️ 按现有比例自动填补
+          </button>
+          <button onClick={reset} disabled={!dirty} style={{
+            flex: 1, padding: '9px 10px', borderRadius: 10,
+            border: '1px solid var(--border)', background: 'var(--surface)',
+            color: dirty ? 'var(--text-strong)' : 'var(--muted)',
+            fontSize: 12, fontWeight: 700, cursor: dirty ? 'pointer' : 'not-allowed',
+          }}>
+            重置
+          </button>
+        </div>
 
         {/* Holdings list */}
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0, marginBottom: 10 }}>
-          {rows.length === 0 ? (
+          {rows.length === 0 && !showAdd && (
             <div style={{
               padding: 20, textAlign: 'center', color: 'var(--muted)', fontSize: 13,
-              background: 'var(--surface-muted)', borderRadius: 12,
+              background: 'var(--surface-muted)', borderRadius: 12, marginBottom: 8,
             }}>
-              还没有股息持仓，请先在「股息持仓」中添加再回来试算。
+              还没有任何标的，点下方「＋ 添加股票」开始试算。
             </div>
-          ) : rows.map(r => (
-            <SimulatorRow key={r.id} row={r}
+          )}
+          {rows.map(r => (
+            <SimulatorRow key={r.key} row={r}
               projectedAnnual={projectedAnnual(r)}
               baselineAnnual={baselineAnnual(r)}
               mode={mode}
-              onChange={n => setShares(r.id, n)} />
+              onChange={n => setShares(r.key, n)}
+              onRemove={r.isNew ? () => removeRow(r.key) : undefined} />
           ))}
+
+          {/* Add stock UI */}
+          {showAdd ? (
+            <div style={{
+              marginTop: 4, padding: 12, background: 'var(--surface-muted)', borderRadius: 10,
+              border: '1px dashed var(--border-dashed)',
+            }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>选择新增标的</div>
+              {availableStocks.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--muted)', padding: '4px 0 8px' }}>
+                  内置表里的股票都在试算范围里了 ✓
+                </div>
+              ) : (
+                <select value={newCode} onChange={e => setNewCode(e.target.value)} style={{
+                  width: '100%', padding: '9px 10px', borderRadius: 8,
+                  border: '1px solid var(--input-border)', background: 'var(--input-bg)',
+                  color: 'var(--text)', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box',
+                }}>
+                  <option value="">— 请选择 —</option>
+                  {availableStocks.map(s => (
+                    <option key={s.code} value={s.code}>
+                      {s.name}（{s.code}）· ¥{s.dividendPerShare.toFixed(3)}/股 · 股息率 {dividendYieldPct(s).toFixed(2)}%
+                    </option>
+                  ))}
+                </select>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button onClick={() => { setShowAdd(false); setNewCode('') }} style={{
+                  flex: 1, padding: 9, borderRadius: 8, border: 'none',
+                  background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)',
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                }}>取消</button>
+                <button onClick={() => newCode && addStock(newCode)}
+                  disabled={!newCode || availableStocks.length === 0}
+                  style={{
+                    flex: 2, padding: 9, borderRadius: 8, border: 'none',
+                    background: newCode ? 'var(--primary)' : 'var(--button-secondary-bg)',
+                    color: newCode ? '#fff' : 'var(--muted)',
+                    fontSize: 12, fontWeight: 700, cursor: newCode ? 'pointer' : 'not-allowed',
+                  }}>加入试算</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowAdd(true)} style={{
+              width: '100%', padding: 9, borderRadius: 10,
+              border: '1px dashed var(--border-dashed)', background: 'var(--surface-subtle)',
+              color: 'var(--text-soft)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}>
+              ＋ 添加股票
+            </button>
+          )}
         </div>
 
         {/* Bottom totals */}
-        {rows.length > 0 && dirty && (
+        {dirty && (
           <div style={{
             background: 'var(--surface-muted)', borderRadius: 10, padding: 10, marginBottom: 10,
             fontSize: 12, lineHeight: 1.7,
@@ -267,13 +387,13 @@ export default function TargetSimulator({
           }}>
             关闭
           </button>
-          <button onClick={applyToHoldings} disabled={!dirty} style={{
+          <button onClick={applyAll} disabled={!dirty} style={{
             flex: 2, padding: 12, borderRadius: 10, border: 'none',
             background: dirty ? 'var(--primary)' : 'var(--button-secondary-bg)',
             color: dirty ? '#fff' : 'var(--muted)',
             cursor: dirty ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 14,
           }}>
-            应用到持仓
+            保存为目标股数
           </button>
         </div>
       </div>
@@ -281,16 +401,24 @@ export default function TargetSimulator({
   )
 }
 
-function SimulatorRow({ row, projectedAnnual, baselineAnnual, mode, onChange }: {
+function SimulatorRow({ row, projectedAnnual, baselineAnnual, mode, onChange, onRemove }: {
   row: Row
   projectedAnnual: number
   baselineAnnual: number
   mode: CoverageMode
   onChange: (next: number) => void
+  onRemove?: () => void
 }) {
   const delta = row.shares - row.baseShares
   const extraAnnual = projectedAnnual - baselineAnnual
   const extraCost = Math.max(0, delta) * row.refPrice
+  const [draft, setDraft] = useState<string | null>(null)
+  const inputValue = draft ?? String(row.shares)
+  const commit = () => {
+    if (draft === null) return
+    onChange(parseFloat(draft) || 0)
+    setDraft(null)
+  }
 
   return (
     <div style={{
@@ -298,11 +426,17 @@ function SimulatorRow({ row, projectedAnnual, baselineAnnual, mode, onChange }: 
       background: 'var(--surface)', border: '1px solid var(--border)',
       marginBottom: 8,
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-strong)' }}>
             {row.stockName}
             <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 6, fontWeight: 500 }}>{row.stockCode}</span>
+            {row.isNew && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
+                background: 'var(--primary-soft)', color: 'var(--primary-strong)', marginLeft: 6,
+              }}>新增</span>
+            )}
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
             ¥{row.dps.toFixed(3)}/股
@@ -333,8 +467,10 @@ function SimulatorRow({ row, projectedAnnual, baselineAnnual, mode, onChange }: 
             -{step}
           </button>
         ))}
-        <input type="number" min={0} value={row.shares}
-          onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        <input type="number" min={0} step={LOT} value={inputValue}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
           style={{
             flex: 1, minWidth: 0, padding: '7px 8px', borderRadius: 8,
             border: '1px solid var(--input-border)', background: 'var(--input-bg)',
@@ -351,16 +487,32 @@ function SimulatorRow({ row, projectedAnnual, baselineAnnual, mode, onChange }: 
       </div>
 
       <div style={{
-        display: 'flex', justifyContent: 'space-between',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginTop: 6, fontSize: 11, color: 'var(--muted)',
       }}>
-        <span>原 {row.baseShares.toLocaleString()} 股</span>
-        {delta !== 0 && (
-          <span style={{ color: delta > 0 ? 'var(--primary-strong)' : 'var(--danger)', fontWeight: 600 }}>
-            {delta > 0 ? '+' : ''}{delta.toLocaleString()} 股
-            {extraCost > 0 && <span> · 追加 {formatCNY(extraCost)}</span>}
-          </span>
-        )}
+        <span>
+          {row.isNew
+            ? '当前 0 股'
+            : `当前 ${row.baseShares.toLocaleString()} 股`}
+          {!row.isNew && row.savedTarget !== undefined && row.savedTarget !== row.baseShares && (
+            <span> · 已存目标 {row.savedTarget.toLocaleString()} 股</span>
+          )}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {delta !== 0 && (
+            <span style={{ color: delta > 0 ? 'var(--primary-strong)' : 'var(--danger)', fontWeight: 600 }}>
+              {delta > 0 ? '+' : ''}{delta.toLocaleString()} 股
+              {extraCost > 0 && <span> · 追加 {formatCNY(extraCost)}</span>}
+            </span>
+          )}
+          {onRemove && (
+            <button onClick={onRemove} aria-label="移除"
+              style={{
+                background: 'none', border: 'none', color: 'var(--muted)',
+                fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1,
+              }}>✕</button>
+          )}
+        </span>
       </div>
     </div>
   )

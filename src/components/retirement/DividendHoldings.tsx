@@ -142,21 +142,67 @@ function HoldingRow({ holding, onUpdate, onRemove }: {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)' }}>
-          <span>
-            {holding.shares.toLocaleString()} 股 × ¥{income.dividendPerShare.toFixed(3)}/股
-            {income.yieldPct > 0 && (
-              <span style={{ marginLeft: 6, color: 'var(--primary-strong)', fontWeight: 600 }}>
-                股息率 {income.yieldPct.toFixed(2)}%
-              </span>
-            )}
-          </span>
-          <button onClick={() => { setSharesInput(String(holding.shares)); setDpsInput(String(income.dividendPerShare)); setEditing(true) }}
-            style={{ background: 'none', border: 'none', color: 'var(--primary-strong)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-            编辑
-          </button>
-        </div>
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)' }}>
+            <span>
+              {holding.shares.toLocaleString()} 股 × ¥{income.dividendPerShare.toFixed(3)}/股
+              {income.yieldPct > 0 && (
+                <span style={{ marginLeft: 6, color: 'var(--primary-strong)', fontWeight: 600 }}>
+                  股息率 {income.yieldPct.toFixed(2)}%
+                </span>
+              )}
+            </span>
+            <button onClick={() => { setSharesInput(String(holding.shares)); setDpsInput(String(income.dividendPerShare)); setEditing(true) }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary-strong)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              编辑
+            </button>
+          </div>
+          {holding.targetShares !== undefined && (
+            <TargetBadge
+              shares={holding.shares}
+              targetShares={holding.targetShares}
+              refPrice={findDividendStock(holding.stockCode)?.referencePrice ?? 0}
+              onClear={() => onUpdate({ targetShares: undefined })} />
+          )}
+        </>
       )}
+    </div>
+  )
+}
+
+function TargetBadge({ shares, targetShares, refPrice, onClear }: {
+  shares: number
+  targetShares: number
+  refPrice: number
+  onClear: () => void
+}) {
+  const delta = targetShares - shares
+  const reached = delta <= 0
+  const extraCost = Math.max(0, delta) * refPrice
+
+  return (
+    <div style={{
+      marginTop: 8, padding: '6px 10px', borderRadius: 8,
+      background: reached ? 'var(--success-bg)' : 'var(--warning-bg)',
+      color: reached ? 'var(--success-text)' : 'var(--warning-text)',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+      fontSize: 11, lineHeight: 1.4,
+    }}>
+      <span style={{ minWidth: 0 }}>
+        🎯 目标 <strong>{targetShares.toLocaleString()}</strong> 股
+        {reached ? (
+          <span style={{ marginLeft: 6, fontWeight: 700 }}>· 已达目标</span>
+        ) : (
+          <span style={{ marginLeft: 6 }}>
+            · 还差 <strong>+{delta.toLocaleString()}</strong> 股
+            {extraCost > 0 && <span> · 追加约 {formatCNY(extraCost)}</span>}
+          </span>
+        )}
+      </span>
+      <button onClick={onClear} aria-label="清除目标" style={{
+        background: 'none', border: 'none', color: 'inherit', opacity: 0.7,
+        fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0,
+      }}>✕</button>
     </div>
   )
 }

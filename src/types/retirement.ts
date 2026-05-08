@@ -10,6 +10,8 @@ export interface DividendHolding {
   dividendPerShareOverride?: number
   /** 近似税率；A股持有满1年免税，这里给用户自定义。默认 0。 */
   taxRate?: number
+  /** 用户在「目标试算」中设定的目标股数（手数 = 100 倍数），未设置时不显示与目标的差值 */
+  targetShares?: number
 }
 
 export type Gender = 'male' | 'femaleCadre' | 'femaleWorker'
