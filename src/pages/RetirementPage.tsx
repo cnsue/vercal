@@ -41,7 +41,7 @@ export default function RetirementPage() {
     () => computeCoverage(plan, dividend, pension, projectedDividend),
     [plan, dividend, pension, projectedDividend],
   )
-  const gap = useMemo(() => computeGap(coverage), [coverage])
+  const gap = useMemo(() => computeGap(coverage, coverageMode === 'now' ? 'now' : 'retired'), [coverage, coverageMode])
   const safeMonthly = safeWithdrawMonthly(totalAssets)
   const nowDimensions = useMemo(
     () => computeDimensionCoverage(plan.decentStandard.breakdown, coverage.nowMonthly),
@@ -212,10 +212,10 @@ export default function RetirementPage() {
 
       {/* 缺口分析 / 建议 */}
       {coverage.decentMonthly > 0 && (
-        <Section title="缺口分析与建议">
+        <Section title={`缺口分析与建议（${coverageMode === 'now' ? '当前' : '退休后'}）`}>
           {gap.gapMonthly <= 0 ? (
             <div style={{ padding: 12, background: 'var(--success-bg)', border: '1px solid var(--success-border)', borderRadius: 10, fontSize: 13, color: 'var(--success-text)', fontWeight: 600 }}>
-              当前预估被动收入已覆盖体面标准。可以考虑把多出的现金流用于再投入或调高体面标准。
+              {coverageMode === 'now' ? '当前' : '退休后'}预估被动收入已覆盖体面标准。可以考虑把多出的现金流用于再投入或调高体面标准。
             </div>
           ) : (
             <div>

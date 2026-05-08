@@ -329,8 +329,9 @@ export interface GapAnalysis {
 
 const REFERENCE_YIELD = 0.05
 
-export function computeGap(coverage: CoverageSummary): GapAnalysis {
-  const gapMonthly = Math.max(coverage.decentMonthly - coverage.retiredMonthly, 0)
+export function computeGap(coverage: CoverageSummary, mode: 'now' | 'retired' = 'retired'): GapAnalysis {
+  const currentMonthly = mode === 'now' ? coverage.nowMonthly : coverage.retiredMonthly
+  const gapMonthly = Math.max(coverage.decentMonthly - currentMonthly, 0)
   const gapAnnual = gapMonthly * 12
   return {
     gapMonthly,
