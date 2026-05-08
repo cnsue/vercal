@@ -26,6 +26,8 @@ interface Props {
   /** 底部维度圆环列表；传空数组则不渲染底部区域 */
   dimensions?: DimensionCoverage[]
   onDimensionClick?: (id: string) => void
+  /** 当未达体面（ratio<1）时，提供"目标试算"入口 */
+  onSimulateGoal?: () => void
 }
 
 const MAX_RATIO = 1.6
@@ -33,6 +35,7 @@ const MAX_RATIO = 1.6
 export default function CoverageHero({
   decentMonthly, nowRatio, retiredRatio, nowMonthly, retiredMonthly, breakdown, onEdit,
   onShare, shareDisabled, mode, onModeChange, dimensions = [], onDimensionClick,
+  onSimulateGoal,
 }: Props) {
   const unset = decentMonthly <= 0
   const activeRatio = mode === 'now' ? nowRatio : retiredRatio
@@ -166,12 +169,25 @@ export default function CoverageHero({
             </div>
           </div>
 
-          {/* Next level hint */}
-          <div style={{ marginBottom: 6, marginTop: 6, fontSize: 13, fontWeight: 600, opacity: 0.95 }}>
-            {nextLevel
-              ? `下一站：${nextLevel.emoji} ${nextLevel.label}（还差 ${Math.max(1, Math.round((nextLevel.minRatio - activeRatio) * 100))}%）`
-              : `${level?.emoji ?? '🦋'} ${level?.slogan ?? '人生无憾，心满意足'}`
-            }
+          {/* Next level hint + simulator entry */}
+          <div style={{ marginBottom: 6, marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, opacity: 0.95 }}>
+              {nextLevel
+                ? `下一站：${nextLevel.emoji} ${nextLevel.label}（还差 ${Math.max(1, Math.round((nextLevel.minRatio - activeRatio) * 100))}%）`
+                : `${level?.emoji ?? '🦋'} ${level?.slogan ?? '人生无憾，心满意足'}`
+              }
+            </div>
+            {activeRatio < 1 && onSimulateGoal && (
+              <button onClick={onSimulateGoal} aria-label="目标试算" style={{
+                flexShrink: 0,
+                background: 'rgba(255,255,255,0.22)', color: '#fff',
+                border: '1px solid rgba(255,255,255,0.32)', borderRadius: 12,
+                padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}>
+                🎯 目标试算 ›
+              </button>
+            )}
           </div>
 
           {/* Monthly income / target */}

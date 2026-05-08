@@ -6,6 +6,7 @@ import CoverageShareCard from '../components/retirement/CoverageShareCard'
 import DimensionDetailSheet from '../components/retirement/DimensionDetailSheet'
 import DividendHoldings from '../components/retirement/DividendHoldings'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
+import TargetSimulator from '../components/retirement/TargetSimulator'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
 import { formatCNY } from '../utils/formatters'
 import {
@@ -26,6 +27,7 @@ export default function RetirementPage() {
 
   const [showDecentEditor, setShowDecentEditor] = useState(false)
   const [showOtherEditor, setShowOtherEditor] = useState(false)
+  const [showSimulator, setShowSimulator] = useState(false)
   const [coverageMode, setCoverageMode] = useState<CoverageMode>('now')
   const [detailDimId, setDetailDimId] = useState<string | null>(null)
   const [sharing, setSharing] = useState(false)
@@ -143,6 +145,7 @@ export default function RetirementPage() {
         shareDisabled={sharing}
         dimensions={coverage.decentMonthly > 0 ? dimensions : []}
         onDimensionClick={id => setDetailDimId(id)}
+        onSimulateGoal={() => setShowSimulator(true)}
       />
 
       {/* Off-screen share card source */}
@@ -266,6 +269,16 @@ export default function RetirementPage() {
 
       <DecentStandardEditor open={showDecentEditor} onClose={() => setShowDecentEditor(false)} />
       <OtherIncomeEditor open={showOtherEditor} onClose={() => setShowOtherEditor(false)} />
+      <TargetSimulator
+        open={showSimulator}
+        onClose={() => setShowSimulator(false)}
+        decentMonthly={coverage.decentMonthly}
+        pensionMonthly={coverage.breakdown.pension}
+        otherMonthly={coverage.breakdown.other}
+        yearsToRetire={pension.yearsToRetire}
+        scenario={plan.dividendScenario}
+        initialMode={coverageMode}
+      />
       {detailDimId && (() => {
         const dim = dimensions.find(d => d.id === detailDimId)
         return dim ? <DimensionDetailSheet dim={dim} onClose={() => setDetailDimId(null)} /> : null
