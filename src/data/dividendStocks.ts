@@ -9,9 +9,9 @@
  * referencePrice 为最近可核验收盘价或盘中价，仅用于展示股息率参考，
  * 用户可手动覆盖每股股息。数据请定期（建议每年 4-7 月年报季后）手动更新一次。
  *
- * 数据更新日期：2026-05-07
+ * 数据更新日期：2026-05-08
  */
-export const DIVIDEND_STOCKS_UPDATED_AT = '2026-05-07'
+export const DIVIDEND_STOCKS_UPDATED_AT = '2026-05-08'
 
 export interface DividendResearchForecast {
   year: 2026 | 2027 | 2028
@@ -114,6 +114,15 @@ const BASE_DIVIDEND_STOCKS: DividendStockRef[] = [
     growth: { pessimistic: 0.03, neutral: 0.08, optimistic: 0.13 } },
   { code: '601166', name: '兴业银行',   dividendPerShare: 1.066,  asOfYear: '2025', referencePrice: 18.22, priceAsOf: '2026-04-22', category: '银行',
     growth: { pessimistic: 0.02, neutral: 0.06, optimistic: 0.10 } },
+  { code: '601838', name: '成都银行',   dividendPerShare: 0.921,  asOfYear: '2025*', referencePrice: 18.16, priceAsOf: '2026-04',    category: '银行',
+    disclosureNote: '2025 年度分红方案已董事会通过，拟每 10 股派 9.21 元，尚待股东会审议',
+    growth: { pessimistic: 0.00, neutral: 0.04, optimistic: 0.07 } },
+  { code: '002142', name: '宁波银行',   dividendPerShare: 1.200,  asOfYear: '2025*', referencePrice: 31.42, priceAsOf: '2026-03-09', category: '银行',
+    disclosureNote: '2025 年全年 = 2025 中期 0.30 + 2025 末期 0.90；末期方案已董事会通过，尚待股东会审议',
+    growth: { pessimistic: 0.02, neutral: 0.06, optimistic: 0.09 } },
+  { code: '600919', name: '江苏银行',   dividendPerShare: 0.5641, asOfYear: '2025*', referencePrice: 11.21, priceAsOf: '2026-05-07', category: '银行',
+    disclosureNote: '2025 年全年 = 2025 中期 0.3309 + 2025 末期 0.2332；末期方案已董事会通过，尚待股东会审议',
+    growth: { pessimistic: 0.02, neutral: 0.05, optimistic: 0.08 } },
 
   // 能源 / 公用
   { code: '600900', name: '长江电力',   dividendPerShare: 0.943,  asOfYear: '2025*', referencePrice: 27.13, priceAsOf: '2026-04-21', category: '能源',

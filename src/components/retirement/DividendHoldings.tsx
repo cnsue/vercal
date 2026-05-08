@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
 import { DIVIDEND_STOCKS, findDividendStock, dividendYieldPct } from '../../data/dividendStocks'
-import { computeHoldingIncome } from '../../utils/retirementCalc'
+import { computeHoldingIncome, projectHoldingIncome } from '../../utils/retirementCalc'
 import { formatCNY } from '../../utils/formatters'
-import type { DividendHolding } from '../../types/retirement'
+import { DIVIDEND_SCENARIO_LABELS } from '../../types/retirement'
+import type { DividendGrowthScenario, DividendHolding } from '../../types/retirement'
 
 export default function DividendHoldings() {
   const holdings = useRetirementStore(s => s.plan.holdings)
+  const dividendScenario = useRetirementStore(s => s.plan.dividendScenario)
   const addHolding = useRetirementStore(s => s.addHolding)
   const removeHolding = useRetirementStore(s => s.removeHolding)
   const updateHolding = useRetirementStore(s => s.updateHolding)
@@ -44,6 +46,7 @@ export default function DividendHoldings() {
       )}
 
       {holdings.map(h => <HoldingRow key={h.id} holding={h}
+        scenario={dividendScenario}
         onUpdate={patch => updateHolding(h.id, patch)}
         onRemove={() => removeHolding(h.id)} />)}
 
@@ -93,12 +96,14 @@ export default function DividendHoldings() {
   )
 }
 
-function HoldingRow({ holding, onUpdate, onRemove }: {
+function HoldingRow({ holding, scenario, onUpdate, onRemove }: {
   holding: DividendHolding
+  scenario: DividendGrowthScenario
   onUpdate: (patch: Partial<DividendHolding>) => void
   onRemove: () => void
 }) {
   const income = computeHoldingIncome(holding)
+  const projectedIncome = projectHoldingIncome(holding, scenario, 10)
   const [editing, setEditing] = useState(false)
   const [sharesInput, setSharesInput] = useState(String(holding.shares))
   const [dpsInput, setDpsInput] = useState(String(income.dividendPerShare))
@@ -113,13 +118,18 @@ function HoldingRow({ holding, onUpdate, onRemove }: {
 
   return (
     <div style={{ padding: 12, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-        <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+        <div style={{ minWidth: 0 }}>
           <span style={{ fontWeight: 700, fontSize: 14 }}>{holding.stockName}</span>
           <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 6 }}>{holding.stockCode}</span>
         </div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)' }}>
-          {formatCNY(income.grossAnnual)}/年
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary-strong)' }}>
+            {formatCNY(income.grossAnnual)}/年
+          </div>
+          <div style={{ marginTop: 2, fontSize: 11, fontWeight: 500, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+            10年后({DIVIDEND_SCENARIO_LABELS[scenario]})约 {formatCNY(projectedIncome.grossAnnual)}/年
+          </div>
         </div>
       </div>
 
