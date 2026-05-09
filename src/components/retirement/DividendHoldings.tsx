@@ -3,6 +3,7 @@ import { useRetirementStore } from '../../store/useRetirementStore'
 import { DIVIDEND_STOCKS, findDividendStock, dividendYieldPct } from '../../data/dividendStocks'
 import { computeHoldingIncome, projectHoldingIncomeByResearch } from '../../utils/retirementCalc'
 import { formatCNY } from '../../utils/formatters'
+import DonutChart, { type BreakdownItem } from '../charts/DonutChart'
 import type { DividendHolding } from '../../types/retirement'
 
 export default function DividendHoldings() {
@@ -14,6 +15,7 @@ export default function DividendHoldings() {
   const [showAdd, setShowAdd] = useState(false)
   const [newCode, setNewCode] = useState(DIVIDEND_STOCKS[0].code)
   const [newShares, setNewShares] = useState('')
+  const targetGapItems = buildTargetGapItems(holdings)
 
   function handleAdd() {
     const shares = parseFloat(newShares) || 0
@@ -46,6 +48,15 @@ export default function DividendHoldings() {
       {holdings.map(h => <HoldingRow key={h.id} holding={h}
         onUpdate={patch => updateHolding(h.id, patch)}
         onRemove={() => removeHolding(h.id)} />)}
+
+      {targetGapItems.length > 0 && (
+        <div style={{
+          marginTop: 12, padding: 12, background: 'var(--surface-muted)',
+          border: '1px solid var(--border)', borderRadius: 12,
+        }}>
+          <DonutChart items={targetGapItems} title="各股票目标资金缺口" />
+        </div>
+      )}
 
       {showAdd && (
         <div style={{ marginTop: 12, padding: 12, background: 'var(--surface-muted)', borderRadius: 10 }}>
@@ -91,6 +102,29 @@ export default function DividendHoldings() {
       )}
     </div>
   )
+}
+
+function buildTargetGapItems(holdings: DividendHolding[]): BreakdownItem[] {
+  const gapsByCode = new Map<string, { name: string; value: number }>()
+
+  holdings.forEach(h => {
+    if (h.targetShares === undefined) return
+    const delta = h.targetShares - h.shares
+    const refPrice = findDividendStock(h.stockCode)?.referencePrice ?? 0
+    const value = Math.max(0, delta) * refPrice
+    if (value <= 0) return
+
+    const existing = gapsByCode.get(h.stockCode)
+    if (existing) {
+      existing.value += value
+    } else {
+      gapsByCode.set(h.stockCode, { name: h.stockName, value })
+    }
+  })
+
+  const rows = Array.from(gapsByCode.values()).sort((a, b) => b.value - a.value)
+  const total = rows.reduce((sum, row) => sum + row.value, 0) || 1
+  return rows.map(row => ({ ...row, weight: (row.value / total) * 100 }))
 }
 
 function HoldingRow({ holding, onUpdate, onRemove }: {
