@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import MarkdownText from '../components/MarkdownText'
 import { StorageService } from '../store/storage'
 import { findAIProviderPreset, type AIAnalysisRecord, type AIAnalysisRequest } from '../types/ai'
 import { v4 as uuidv4 } from '../utils/uuid'
@@ -133,10 +134,9 @@ export default function AIAnalysisPage({ request }: Props) {
         {result && (
           <div style={{
             marginTop: 12, padding: 12, borderRadius: 12,
-            background: 'var(--surface-muted)', color: 'var(--text)',
-            fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap',
+            background: 'var(--surface-muted)',
           }}>
-            {result}
+            <MarkdownText content={result} />
           </div>
         )}
       </section>
@@ -168,10 +168,9 @@ export default function AIAnalysisPage({ request }: Props) {
               </div>
             </summary>
             <div style={{
-              marginTop: 10, fontSize: 12, lineHeight: 1.65,
-              color: 'var(--text)', whiteSpace: 'pre-wrap',
+              marginTop: 10,
             }}>
-              {record.result}
+              <MarkdownText content={record.result} compact />
             </div>
           </details>
         ))}
@@ -189,6 +188,7 @@ function buildUserPrompt(title: string, scope: string): string {
     '2. 风险/异常：只写数据支持的发现',
     '3. 可执行动作：优先列数据核验和配置建议',
     '4. 数据完整性：指出缺失、过旧、来源不清或需要人工确认的字段',
+    '请使用 Markdown 格式输出，允许使用三级标题、列表、加粗和行内代码。',
   ].join('\n')
 }
 
