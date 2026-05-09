@@ -1,4 +1,5 @@
 // 养老规划（"岁月"tab）的数据模型
+import type { DividendAssetRef } from '../data/dividendStocks'
 
 /** 单只股息股票持仓 */
 export interface DividendHolding {
@@ -183,6 +184,7 @@ export interface OtherIncome {
 export interface RetirementPlan {
   decentStandard: DecentStandard
   holdings: DividendHolding[]
+  customDividendAssets: DividendAssetRef[]
   pension: PensionConfig
   otherIncomes: OtherIncome[]
   dividendScenario: DividendGrowthScenario
@@ -207,6 +209,7 @@ export const DEFAULT_PENSION: PensionConfig = {
 export const DEFAULT_RETIREMENT_PLAN: RetirementPlan = {
   decentStandard: { monthlyAmount: 0, breakdown: [] },
   holdings: [],
+  customDividendAssets: [],
   pension: DEFAULT_PENSION,
   otherIncomes: [],
   dividendScenario: 'neutral',

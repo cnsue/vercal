@@ -2,7 +2,7 @@ import { forwardRef } from 'react'
 import type { DimensionCoverage } from '../../utils/retirementCalc'
 import type { DividendHolding, CoverageLevel, FamilySize, CityTier } from '../../types/retirement'
 import { computeHoldingIncome } from '../../utils/retirementCalc'
-import { findDividendStock } from '../../data/dividendStocks'
+import { findDividendStock, dividendPerUnitLabel, type DividendAssetRef } from '../../data/dividendStocks'
 import {
   COVERAGE_LEVELS, BUDGET_PRESETS_FAMILY3_TIER1,
   CITY_DIM_MULTIPLIERS, FAMILY_SIZE_MULTIPLIER, CITY_TIER_LABELS, FAMILY_SIZE_LABELS,
@@ -23,6 +23,7 @@ export interface CoverageShareCardProps {
   cityTier?: CityTier
   income: IncomeSplit
   holdings: DividendHolding[]
+  customAssets?: DividendAssetRef[]
   dimensions: DimensionCoverage[]
 }
 
@@ -77,7 +78,7 @@ const HOLDING_LIMIT = 8
 
 const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
   function CoverageShareCard(props, ref) {
-    const { ratio, modeLabel, decentMonthly, familySize, cityTier, income, holdings, dimensions } = props
+    const { ratio, modeLabel, decentMonthly, familySize, cityTier, income, holdings, customAssets = [], dimensions } = props
     const coverageLevel = getCoverageLevel(ratio)
     const ratioPct = Math.round(ratio * 100)
 
@@ -90,7 +91,7 @@ const CoverageShareCard = forwardRef<HTMLDivElement, CoverageShareCardProps>(
       ? `${CITY_TIER_LABELS[cityTier!]}城市 · ${FAMILY_SIZE_LABELS[familySize!]}家庭`
       : '一线城市 · 三口家庭（默认对标）'
     const incomeRows = buildIncomeRows(income)
-    const holdingRows = buildHoldingRows(holdings)
+    const holdingRows = buildHoldingRows(holdings, customAssets)
 
     return (
       <div
@@ -324,17 +325,18 @@ function buildIncomeRows(income: IncomeSplit): RowItem[] {
   return items.map(i => ({ label: i.label, percent: (i.value / total) * 100 }))
 }
 
-function buildHoldingRows(holdings: DividendHolding[]): RowItem[] {
+function buildHoldingRows(holdings: DividendHolding[], customAssets: DividendAssetRef[]): RowItem[] {
   if (holdings.length === 0) return []
   const incomes = holdings.map(h => {
-    const inc = computeHoldingIncome(h)
-    const ref = findDividendStock(h.stockCode)
+    const inc = computeHoldingIncome(h, customAssets)
+    const ref = findDividendStock(h.stockCode, customAssets)
     return {
       name: h.stockName,
       annual: inc.netAnnual,
       yieldPct: inc.yieldPct,
       dividendPerShare: inc.dividendPerShare,
       asOfYear: ref?.asOfYear,
+      perUnitLabel: dividendPerUnitLabel(ref),
     }
   })
   const total = incomes.reduce((s, i) => s + i.annual, 0)
@@ -345,7 +347,7 @@ function buildHoldingRows(holdings: DividendHolding[]): RowItem[] {
   const rows: RowItem[] = top.map(i => ({
     label: i.name,
     percent: (i.annual / total) * 100,
-    subtitle: formatHoldingMeta(i.asOfYear, i.dividendPerShare, i.yieldPct),
+    subtitle: formatHoldingMeta(i.asOfYear, i.dividendPerShare, i.yieldPct, i.perUnitLabel),
   }))
   if (rest.length > 0) {
     const restSum = rest.reduce((s, i) => s + i.annual, 0)
@@ -354,11 +356,11 @@ function buildHoldingRows(holdings: DividendHolding[]): RowItem[] {
   return rows
 }
 
-function formatHoldingMeta(asOfYear: string | undefined, dps: number, yieldPct: number): string {
+function formatHoldingMeta(asOfYear: string | undefined, dps: number, yieldPct: number, perUnitLabel: string): string {
   const parts: string[] = []
   if (dps > 0) {
     const yearLabel = asOfYear ? `${asOfYear.slice(-2)}年` : '近期'
-    parts.push(`${yearLabel}每股 ${vagueDividend(dps)}`)
+    parts.push(`${yearLabel}${perUnitLabel} ${vagueDividend(dps)}`)
   }
   if (yieldPct > 0) parts.push(`股息率 ${vagueYield(yieldPct)}`)
   return parts.join(' · ')

@@ -4,6 +4,7 @@ import type {
   RetirementPlan, DividendHolding, PensionConfig,
   DecentStandard, OtherIncome, DividendGrowthScenario,
 } from '../types/retirement'
+import type { DividendAssetRef } from '../data/dividendStocks'
 import { DEFAULT_RETIREMENT_PLAN } from '../types/retirement'
 import { v4 as uuidv4 } from '../utils/uuid'
 
@@ -17,6 +18,9 @@ interface RetirementState {
   addHolding: (h: Omit<DividendHolding, 'id'>) => void
   updateHolding: (id: string, patch: Partial<DividendHolding>) => void
   removeHolding: (id: string) => void
+  addCustomDividendAsset: (asset: DividendAssetRef) => void
+  updateCustomDividendAsset: (code: string, patch: Partial<DividendAssetRef>) => void
+  removeCustomDividendAsset: (code: string) => void
   addOtherIncome: (o: Omit<OtherIncome, 'id'>) => void
   updateOtherIncome: (id: string, patch: Partial<OtherIncome>) => void
   removeOtherIncome: (id: string) => void
@@ -64,6 +68,35 @@ export const useRetirementStore = create<RetirementState>((set, get) => ({
   removeHolding(id) {
     const plan = get().plan
     set({ plan: persist({ ...plan, holdings: plan.holdings.filter(h => h.id !== id) }) })
+  },
+
+  addCustomDividendAsset(asset) {
+    const plan = get().plan
+    const nextAssets = [
+      asset,
+      ...plan.customDividendAssets.filter(a => a.code !== asset.code),
+    ]
+    set({ plan: persist({ ...plan, customDividendAssets: nextAssets }) })
+  },
+
+  updateCustomDividendAsset(code, patch) {
+    const plan = get().plan
+    set({
+      plan: persist({
+        ...plan,
+        customDividendAssets: plan.customDividendAssets.map(a => (a.code === code ? { ...a, ...patch } : a)),
+      }),
+    })
+  },
+
+  removeCustomDividendAsset(code) {
+    const plan = get().plan
+    set({
+      plan: persist({
+        ...plan,
+        customDividendAssets: plan.customDividendAssets.filter(a => a.code !== code),
+      }),
+    })
   },
 
   addOtherIncome(o) {

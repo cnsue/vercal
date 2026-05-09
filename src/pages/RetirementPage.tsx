@@ -33,11 +33,14 @@ export default function RetirementPage() {
   const [sharing, setSharing] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
 
-  const dividend = useMemo(() => computeDividendSummary(plan.holdings), [plan.holdings])
+  const dividend = useMemo(
+    () => computeDividendSummary(plan.holdings, plan.customDividendAssets),
+    [plan.holdings, plan.customDividendAssets],
+  )
   const pension = useMemo(() => computePensionProjection(plan.pension), [plan.pension])
   const projectedDividend = useMemo(
-    () => projectDividendSummary(plan.holdings, plan.dividendScenario, pension.yearsToRetire),
-    [plan.holdings, plan.dividendScenario, pension.yearsToRetire],
+    () => projectDividendSummary(plan.holdings, plan.dividendScenario, pension.yearsToRetire, plan.customDividendAssets),
+    [plan.holdings, plan.dividendScenario, pension.yearsToRetire, plan.customDividendAssets],
   )
   const coverage = useMemo(
     () => computeCoverage(plan, dividend, pension, projectedDividend),
@@ -163,6 +166,7 @@ export default function RetirementPage() {
           cityTier={plan.decentStandard.cityTier}
           income={shareIncome}
           holdings={plan.holdings}
+          customAssets={plan.customDividendAssets}
           dimensions={dimensions}
         />
       </div>
@@ -172,6 +176,7 @@ export default function RetirementPage() {
         multiplier={dividendMultiplier}
         hasHoldings={plan.holdings.length > 0}
         holdings={plan.holdings}
+        customAssets={plan.customDividendAssets}
       />
 
       {/* 收入构成 */}
@@ -294,14 +299,15 @@ export default function RetirementPage() {
   )
 }
 
-function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
+function ScenarioSelector({ years, multiplier, hasHoldings, holdings, customAssets }: {
   years: number; multiplier: number; hasHoldings: boolean; holdings: DividendHolding[]
+  customAssets: Parameters<typeof findDividendStock>[1]
 }) {
   const current = useRetirementStore(s => s.plan.dividendScenario)
   const setScenario = useRetirementStore(s => s.setDividendScenario)
   const sourceRows = holdings.map(h => {
-    const ref = findDividendStock(h.stockCode)
-    const income = computeHoldingIncome(h)
+    const ref = findDividendStock(h.stockCode, customAssets)
+    const income = computeHoldingIncome(h, customAssets)
     return {
       id: h.id,
       name: h.stockName,
@@ -312,6 +318,7 @@ function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
       dividendPerShare: income.dividendPerShare,
       netAnnual: income.netAnnual,
       growth: ref?.growth?.[current] ?? 0,
+      assetType: ref?.assetType ?? 'stock',
     }
   })
   const totalNetAnnual = sourceRows.reduce((sum, row) => sum + row.netAnnual, 0)
@@ -363,7 +370,7 @@ function ScenarioSelector({ years, multiplier, hasHoldings, holdings }: {
                       {row.name} <span style={{ color: 'var(--muted)', fontWeight: 500 }}>{row.code}</span>
                     </div>
                     <div>
-                      {row.source} · 每股 ¥{row.dividendPerShare.toFixed(3)} · 权重 {(weight * 100).toFixed(1)}%
+                      {row.source} · {row.assetType === 'etf' ? '每份' : '每股'} ¥{row.dividendPerShare.toFixed(3)} · 权重 {(weight * 100).toFixed(1)}%
                     </div>
                   </div>
                   <div style={{ color: 'var(--primary)', fontWeight: 700, whiteSpace: 'nowrap' }}>

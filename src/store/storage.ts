@@ -243,6 +243,7 @@ export const StorageService = {
       decentStandard: migrateDecentStandard(stored.decentStandard),
       pension: migratePension(stored.pension),
       holdings: stored.holdings ?? [],
+      customDividendAssets: stored.customDividendAssets ?? [],
       otherIncomes: stored.otherIncomes ?? [],
     }
   },

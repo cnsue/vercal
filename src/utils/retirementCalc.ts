@@ -3,7 +3,7 @@ import type {
   DecentBreakdownItem, DecentPriority,
 } from '../types/retirement'
 import { DECENT_DIMENSIONS, DEFAULT_CUSTOM_SUGGESTION, CUSTOM_PRIORITY } from '../types/retirement'
-import { findDividendStock } from '../data/dividendStocks'
+import { findDividendStock, type DividendAssetRef } from '../data/dividendStocks'
 import {
   findPensionCity, getPersonalAccountMonths,
 } from '../data/pensionCities'
@@ -19,8 +19,8 @@ export interface HoldingIncome {
   yieldPct: number
 }
 
-export function computeHoldingIncome(h: DividendHolding): HoldingIncome {
-  const ref = findDividendStock(h.stockCode)
+export function computeHoldingIncome(h: DividendHolding, customAssets: DividendAssetRef[] = []): HoldingIncome {
+  const ref = findDividendStock(h.stockCode, customAssets)
   const dps = h.dividendPerShareOverride ?? ref?.dividendPerShare ?? 0
   const grossAnnual = h.shares * dps
   const taxRate = h.taxRate ?? 0
@@ -32,9 +32,14 @@ export function computeHoldingIncome(h: DividendHolding): HoldingIncome {
 }
 
 /** 按场景把该持仓的年股息前瞻推算到未来 N 年后（实际增长口径） */
-export function projectHoldingIncome(h: DividendHolding, scenario: DividendGrowthScenario, yearsForward: number): HoldingIncome {
-  const base = computeHoldingIncome(h)
-  const ref = findDividendStock(h.stockCode)
+export function projectHoldingIncome(
+  h: DividendHolding,
+  scenario: DividendGrowthScenario,
+  yearsForward: number,
+  customAssets: DividendAssetRef[] = [],
+): HoldingIncome {
+  const base = computeHoldingIncome(h, customAssets)
+  const ref = findDividendStock(h.stockCode, customAssets)
   const growth = ref?.growth?.[scenario] ?? 0
   const factor = Math.pow(1 + growth, Math.max(0, yearsForward))
   return {
@@ -53,9 +58,12 @@ export interface ResearchDividendProjection {
 }
 
 /** 用 2026-2028 研报/一致预期归母净利润增速推算短期股息，假设分红率保持不变。 */
-export function projectHoldingIncomeByResearch(h: DividendHolding): ResearchDividendProjection | null {
-  const base = computeHoldingIncome(h)
-  const ref = findDividendStock(h.stockCode)
+export function projectHoldingIncomeByResearch(
+  h: DividendHolding,
+  customAssets: DividendAssetRef[] = [],
+): ResearchDividendProjection | null {
+  const base = computeHoldingIncome(h, customAssets)
+  const ref = findDividendStock(h.stockCode, customAssets)
   const forecasts = ref?.research?.forecasts ?? []
   let factor = 1
   let yearsForward = 0
@@ -89,8 +97,11 @@ export interface DividendSummary {
   perHolding: HoldingIncome[]
 }
 
-export function computeDividendSummary(holdings: DividendHolding[]): DividendSummary {
-  const perHolding = holdings.map(computeHoldingIncome)
+export function computeDividendSummary(
+  holdings: DividendHolding[],
+  customAssets: DividendAssetRef[] = [],
+): DividendSummary {
+  const perHolding = holdings.map(h => computeHoldingIncome(h, customAssets))
   const grossAnnual = perHolding.reduce((s, h) => s + h.grossAnnual, 0)
   const netAnnual = perHolding.reduce((s, h) => s + h.netAnnual, 0)
   const totalReferenceMarketValue = perHolding.reduce((s, h) => s + h.referenceMarketValue, 0)
@@ -104,9 +115,12 @@ export function computeDividendSummary(holdings: DividendHolding[]): DividendSum
 
 /** 按场景 + 年限推算的股息汇总（所有持仓前瞻到 yearsForward 年后） */
 export function projectDividendSummary(
-  holdings: DividendHolding[], scenario: DividendGrowthScenario, yearsForward: number,
+  holdings: DividendHolding[],
+  scenario: DividendGrowthScenario,
+  yearsForward: number,
+  customAssets: DividendAssetRef[] = [],
 ): DividendSummary {
-  const perHolding = holdings.map(h => projectHoldingIncome(h, scenario, yearsForward))
+  const perHolding = holdings.map(h => projectHoldingIncome(h, scenario, yearsForward, customAssets))
   const grossAnnual = perHolding.reduce((s, h) => s + h.grossAnnual, 0)
   const netAnnual = perHolding.reduce((s, h) => s + h.netAnnual, 0)
   const totalReferenceMarketValue = perHolding.reduce((s, h) => s + h.referenceMarketValue, 0)

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
-import { DIVIDEND_STOCKS, findDividendStock, dividendYieldPct } from '../../data/dividendStocks'
+import { findDividendStock, dividendYieldPct, getDividendAssets, dividendUnitLabel } from '../../data/dividendStocks'
 import { formatCNY } from '../../utils/formatters'
 import type { DividendGrowthScenario } from '../../types/retirement'
 import { DIVIDEND_SCENARIO_LABELS } from '../../types/retirement'
@@ -25,6 +25,7 @@ interface Row {
   isNew: boolean
   stockCode: string
   stockName: string
+  unit: string
   /** 已存在持仓的当前股数（current shares）；新股票为 0 */
   baseShares: number
   /** 已存储的目标股数（targetShares），用于判断"是否已修改" */
@@ -52,6 +53,7 @@ export default function TargetSimulator({
   yearsToRetire, scenario, initialMode,
 }: Props) {
   const holdings = useRetirementStore(s => s.plan.holdings)
+  const customAssets = useRetirementStore(s => s.plan.customDividendAssets)
   const updateHolding = useRetirementStore(s => s.updateHolding)
   const addHolding = useRetirementStore(s => s.addHolding)
   const [mode, setMode] = useState<CoverageMode>(initialMode)
@@ -59,7 +61,7 @@ export default function TargetSimulator({
   const [newCode, setNewCode] = useState('')
 
   const initialRows = useMemo<Row[]>(() => holdings.map(h => {
-    const ref = findDividendStock(h.stockCode)
+    const ref = findDividendStock(h.stockCode, customAssets)
     const dps = h.dividendPerShareOverride ?? ref?.dividendPerShare ?? 0
     const startTarget = h.targetShares ?? h.shares
     return {
@@ -68,6 +70,7 @@ export default function TargetSimulator({
       isNew: false,
       stockCode: h.stockCode,
       stockName: h.stockName,
+      unit: dividendUnitLabel(ref),
       baseShares: h.shares,
       savedTarget: h.targetShares,
       shares: startTarget,
@@ -76,7 +79,7 @@ export default function TargetSimulator({
       growth: ref?.growth?.[scenario] ?? 0,
       refPrice: ref?.referencePrice ?? 0,
     }
-  }), [holdings, scenario])
+  }), [holdings, scenario, customAssets])
 
   const [rows, setRows] = useState<Row[]>(initialRows)
 
@@ -113,7 +116,7 @@ export default function TargetSimulator({
   const dirty = rows.some(r => r.isNew || r.shares !== (r.savedTarget ?? r.baseShares))
   const canAutoFill = projectedDividendAnnual > 0 || baselineDividendAnnual > 0
 
-  const availableStocks = DIVIDEND_STOCKS.filter(s => !rows.some(r => r.stockCode === s.code))
+  const availableStocks = getDividendAssets(customAssets).filter(s => !rows.some(r => r.stockCode === s.code))
 
   function autoFill() {
     const targetDividendMonthly = decentMonthly - otherSourceMonthly
@@ -171,13 +174,14 @@ export default function TargetSimulator({
   }
 
   function addStock(code: string) {
-    const ref = findDividendStock(code)
+    const ref = findDividendStock(code, customAssets)
     if (!ref) return
     const newRow: Row = {
       key: `new-${code}`,
       isNew: true,
       stockCode: ref.code,
       stockName: ref.name,
+      unit: dividendUnitLabel(ref),
       baseShares: 0,
       shares: LOT,
       dps: ref.dividendPerShare,
@@ -213,7 +217,7 @@ export default function TargetSimulator({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em' }}>目标试算</div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-              股数按 100 一手；应用后会写入「目标股数」，不影响当前持仓
+              数量按 100 一手/份；应用后会写入「目标数量」，不影响当前持仓
             </div>
           </div>
           <button onClick={onClose} aria-label="关闭"
@@ -297,7 +301,7 @@ export default function TargetSimulator({
               padding: 20, textAlign: 'center', color: 'var(--muted)', fontSize: 13,
               background: 'var(--surface-muted)', borderRadius: 12, marginBottom: 8,
             }}>
-              还没有任何标的，点下方「＋ 添加股票」开始试算。
+              还没有任何标的，点下方「＋ 添加标的」开始试算。
             </div>
           )}
           {rows.map(r => (
@@ -329,7 +333,7 @@ export default function TargetSimulator({
                   <option value="">— 请选择 —</option>
                   {availableStocks.map(s => (
                     <option key={s.code} value={s.code}>
-                      {s.name}（{s.code}）· ¥{s.dividendPerShare.toFixed(3)}/股 · 股息率 {dividendYieldPct(s).toFixed(2)}%
+                      {s.name}（{s.code}）· {s.assetType === 'etf' ? 'ETF' : '股票'} · ¥{s.dividendPerShare.toFixed(3)}/{dividendUnitLabel(s)} · 股息率 {dividendYieldPct(s).toFixed(2)}%
                     </option>
                   ))}
                 </select>
@@ -356,7 +360,7 @@ export default function TargetSimulator({
               border: '1px dashed var(--border-dashed)', background: 'var(--surface-subtle)',
               color: 'var(--text-soft)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
             }}>
-              ＋ 添加股票
+              ＋ 添加标的
             </button>
           )}
         </div>
@@ -393,7 +397,7 @@ export default function TargetSimulator({
             color: dirty ? '#fff' : 'var(--muted)',
             cursor: dirty ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 14,
           }}>
-            保存为目标股数
+            保存为目标数量
           </button>
         </div>
       </div>
@@ -439,7 +443,7 @@ function SimulatorRow({ row, projectedAnnual, baselineAnnual, mode, onChange, on
             )}
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-            ¥{row.dps.toFixed(3)}/股
+            ¥{row.dps.toFixed(3)}/{row.unit}
             {row.refPrice > 0 && <span> · 参考价 ¥{row.refPrice}</span>}
             {mode === 'retired' && row.growth !== 0 && (
               <span> · {(row.growth * 100).toFixed(1)}%/年</span>
@@ -492,16 +496,16 @@ function SimulatorRow({ row, projectedAnnual, baselineAnnual, mode, onChange, on
       }}>
         <span>
           {row.isNew
-            ? '当前 0 股'
-            : `当前 ${row.baseShares.toLocaleString()} 股`}
+            ? `当前 0 ${row.unit}`
+            : `当前 ${row.baseShares.toLocaleString()} ${row.unit}`}
           {!row.isNew && row.savedTarget !== undefined && row.savedTarget !== row.baseShares && (
-            <span> · 已存目标 {row.savedTarget.toLocaleString()} 股</span>
+            <span> · 已存目标 {row.savedTarget.toLocaleString()} {row.unit}</span>
           )}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {delta !== 0 && (
             <span style={{ color: delta > 0 ? 'var(--primary-strong)' : 'var(--danger)', fontWeight: 600 }}>
-              {delta > 0 ? '+' : ''}{delta.toLocaleString()} 股
+              {delta > 0 ? '+' : ''}{delta.toLocaleString()} {row.unit}
               {extraCost > 0 && <span> · 追加 {formatCNY(extraCost)}</span>}
             </span>
           )}

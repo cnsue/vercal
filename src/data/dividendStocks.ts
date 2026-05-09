@@ -32,9 +32,13 @@ export interface DividendStockResearch {
   sourceNote: string
 }
 
-export interface DividendStockRef {
+export type DividendAssetType = 'stock' | 'etf'
+export type DividendAssetCategory = '银行' | '能源' | '基建' | '消费' | '通信' | '红利ETF' | '宽基ETF' | '行业ETF' | '其它'
+
+export interface DividendAssetRef {
   code: string
   name: string
+  assetType: DividendAssetType
   /** 完整年度每股现金分红（税前，元）— 银行股含中期+年度 */
   dividendPerShare: number
   /** 数据覆盖的会计年度；带「*」表示尚有部分未披露，已在 disclosureNote 说明 */
@@ -43,7 +47,13 @@ export interface DividendStockRef {
   referencePrice: number
   /** 参考价取价日期 */
   priceAsOf: string
-  category: '银行' | '能源' | '基建' | '消费' | '通信'
+  category: DividendAssetCategory
+  /** 用户新增标的的数据来源 */
+  sourceProvider?: string
+  /** 来源数据日期 */
+  sourceAsOf?: string
+  /** 来源说明 */
+  sourceNote?: string
   /** 披露状态备注（仅在非完整披露时填写） */
   disclosureNote?: string
   /** 近 3-6 个月研报或一致预期摘要 */
@@ -54,6 +64,8 @@ export interface DividendStockRef {
    */
   growth: { pessimistic: number; neutral: number; optimistic: number }
 }
+
+export type DividendStockRef = DividendAssetRef
 
 function research(
   targetPriceAvg: number,
@@ -98,7 +110,7 @@ const DIVIDEND_STOCK_RESEARCH_BY_CODE: Record<string, DividendStockResearch> = {
   '601728': research(7.81, '2026-04-28', [-6.8, 3.8, 3.8], '同花顺研报预测表与 Investing/Fintel 公开目标价均值；预测已反映增值税税目调整后利润承压'),
 }
 
-const BASE_DIVIDEND_STOCKS: DividendStockRef[] = [
+const BASE_DIVIDEND_STOCKS: Omit<DividendAssetRef, 'assetType'>[] = [
   // 银行股：2025 年中期 + 年度 合计（年度方案已公告，待股东会审议）
   { code: '601398', name: '工商银行',   dividendPerShare: 0.3103, asOfYear: '2025', referencePrice: 7.52,  priceAsOf: '2026-04-22', category: '银行',
     growth: { pessimistic: 0.00, neutral: 0.03, optimistic: 0.05 } },
@@ -175,16 +187,25 @@ export const DIVIDEND_STOCKS: DividendStockRef[] = BASE_DIVIDEND_STOCKS.map(stoc
 
   return {
     ...stock,
+    assetType: 'stock',
     research: researchWithUpside,
   }
 })
 
+export function getDividendAssets(customAssets: DividendAssetRef[] = []): DividendAssetRef[] {
+  const customCodes = new Set(customAssets.map(asset => asset.code))
+  return [
+    ...customAssets,
+    ...DIVIDEND_STOCKS.filter(stock => !customCodes.has(stock.code)),
+  ]
+}
+
 /** 计算某只股票按参考价的年股息率（%） */
-export function dividendYieldPct(ref: DividendStockRef): number {
+export function dividendYieldPct(ref: DividendAssetRef): number {
   return ref.referencePrice > 0 ? (ref.dividendPerShare / ref.referencePrice) * 100 : 0
 }
 
-export function researchUpsidePct(ref: DividendStockRef): number | null {
+export function researchUpsidePct(ref: DividendAssetRef): number | null {
   if (ref.research?.upsidePct !== undefined) return ref.research.upsidePct
   const target = ref.research?.targetPriceAvg
   return target !== undefined && ref.referencePrice > 0
@@ -192,6 +213,14 @@ export function researchUpsidePct(ref: DividendStockRef): number | null {
     : null
 }
 
-export function findDividendStock(code: string): DividendStockRef | undefined {
-  return DIVIDEND_STOCKS.find(s => s.code === code)
+export function findDividendStock(code: string, customAssets: DividendAssetRef[] = []): DividendAssetRef | undefined {
+  return customAssets.find(s => s.code === code) ?? DIVIDEND_STOCKS.find(s => s.code === code)
+}
+
+export function dividendUnitLabel(ref: DividendAssetRef | undefined): string {
+  return ref?.assetType === 'etf' ? '份' : '股'
+}
+
+export function dividendPerUnitLabel(ref: DividendAssetRef | undefined): string {
+  return ref?.assetType === 'etf' ? '每份分派' : '每股分红'
 }
