@@ -74,14 +74,18 @@ export default function RetirementPage() {
     : 1
 
   const incomeItems: BreakdownItem[] = useMemo(() => {
+    const dividendRows = coverageMode === 'now' ? dividend.perHolding : projectedDividend.perHolding
     const items = [
-      { name: '股息', value: coverage.breakdown.dividend * 12 },
-      { name: '养老金', value: coverage.breakdown.pension * 12 },
+      ...dividendRows.map(row => ({
+        name: row.holding.stockName,
+        value: row.netAnnual,
+      })),
+      ...(coverageMode === 'retired' ? [{ name: '养老金', value: coverage.breakdown.pension * 12 }] : []),
       { name: '其他被动', value: coverage.breakdown.other * 12 },
     ].filter(i => i.value > 0)
     const total = items.reduce((s, i) => s + i.value, 0) || 1
     return items.map(i => ({ ...i, weight: (i.value / total) * 100 }))
-  }, [coverage])
+  }, [coverage, coverageMode, dividend.perHolding, projectedDividend.perHolding])
 
   const city = findPensionCity(plan.pension.cityKey)
   const pensionConfigured = pension.totalMonths > 0
@@ -172,8 +176,11 @@ export default function RetirementPage() {
 
       {/* 收入构成 */}
       {incomeItems.length > 0 ? (
-        <Section title="养老现金流构成（年）">
-          <DonutChart items={incomeItems} title="年被动收入来源" />
+        <Section title={`养老现金流构成（年 · ${coverageMode === 'now' ? '当前' : '退休后'}）`}>
+          <DonutChart
+            items={incomeItems}
+            title={coverageMode === 'now' ? '当前年被动收入来源' : '退休后年被动收入来源'}
+          />
         </Section>
       ) : (
         <Section title="养老现金流构成">

@@ -79,12 +79,12 @@ export default function DonutChart({ items, title }: Props) {
     <div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
         <canvas ref={canvasRef} style={{ flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{title}</div>
-          {items.slice(0, 5).map((item, i) => (
-            <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          {items.map((item, i) => (
+            <div key={`${item.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0 }} />
-              <div style={{ fontSize: 12 }}>
+              <div style={{ fontSize: 12, minWidth: 0 }}>
                 <span style={{ fontWeight: 600 }}>{item.name}</span>
                 <span style={{ color: 'var(--muted)', marginLeft: 4 }}>{item.weight.toFixed(1)}%</span>
               </div>
@@ -94,7 +94,7 @@ export default function DonutChart({ items, title }: Props) {
       </div>
       <div style={{ marginTop: 12 }}>
         {items.map((item, i) => (
-          <div key={item.name} style={{ marginBottom: 8 }}>
+          <div key={`${item.name}-${i}`} style={{ marginBottom: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
               <span>{item.name}</span>
               <span style={{ color: 'var(--muted)' }}>{formatCNY(item.value)} · {item.weight.toFixed(1)}%</span>
