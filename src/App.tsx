@@ -18,7 +18,7 @@ import { formatDateKey, displayDate } from './utils/formatters'
 import { usePwaUpdate } from './utils/pwaUpdate'
 import type { Snapshot } from './types/models'
 import type { ThemePreference } from './types/theme'
-import type { AIAnalysisRequest } from './types/ai'
+import type { AIAnalysisAction, AIAnalysisRequest } from './types/ai'
 
 type Tab = 'asset' | 'retirement' | 'tools' | 'settings'
 export type AssetSubTab = 'overview' | 'cashflow'
@@ -40,6 +40,11 @@ export type Subpage =
   | { kind: 'external-tool'; title: string; url: string }
   | null
 
+type RetirementFocusRequest = {
+  focus: 'dividend-holdings' | 'target-simulator' | 'decent-standard'
+  seq: number
+}
+
 function subpageTitle(s: Exclude<Subpage, null>): string {
   switch (s.kind) {
     case 'pension-settings': return '养老金信息'
@@ -56,6 +61,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('asset')
   const [assetSubTab, setAssetSubTab] = useState<AssetSubTab>('overview')
   const [subpage, setSubpage] = useState<Subpage>(null)
+  const [retirementFocus, setRetirementFocus] = useState<RetirementFocusRequest | undefined>()
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const [editingSnap, setEditingSnap] = useState<Snapshot | null>(null)
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => StorageService.getThemePreference())
@@ -106,6 +112,16 @@ export default function App() {
       store.deleteSnapshot(editingSnap.dateKey)
       setEditingSnap(null)
     }
+  }
+
+  function handleAIAction(action: AIAnalysisAction) {
+    if (action.kind === 'pension-settings') {
+      setSubpage({ kind: 'pension-settings' })
+      return
+    }
+    setTab('retirement')
+    setSubpage(null)
+    setRetirementFocus({ focus: action.focus, seq: Date.now() })
   }
 
   const title = subpage ? subpageTitle(subpage) : TAB_TITLES[tab]
@@ -190,7 +206,7 @@ export default function App() {
             />
           </div>
         ) : subpage ? (
-          renderSubpage(subpage, () => setSubpage(null))
+          renderSubpage(subpage, () => setSubpage(null), handleAIAction)
         ) : (
           <>
             {tab === 'asset' && (
@@ -200,7 +216,7 @@ export default function App() {
                 onSubTabChange={setAssetSubTab}
               />
             )}
-            {tab === 'retirement' && <RetirementPage onNavigate={setSubpage} />}
+            {tab === 'retirement' && <RetirementPage onNavigate={setSubpage} focusRequest={retirementFocus} />}
             {tab === 'tools' && <ToolsPage onNavigate={setSubpage} />}
             {tab === 'settings' && (
               <SettingsPage
@@ -231,7 +247,11 @@ export default function App() {
   )
 }
 
-function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void) {
+function renderSubpage(
+  subpage: Exclude<Subpage, null>,
+  back: () => void,
+  onAIAction: (action: AIAnalysisAction) => void,
+) {
   switch (subpage.kind) {
     case 'pension-settings':
       return <PensionSettingsPage onBack={back} />
@@ -244,7 +264,7 @@ function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void) {
     case 'ai-settings':
       return <AISettingsPage />
     case 'ai-analysis':
-      return <AIAnalysisPage request={subpage.request} />
+      return <AIAnalysisPage request={subpage.request} onAction={onAIAction} />
     case 'external-tool':
       return <ExternalToolPage url={subpage.url} />
   }

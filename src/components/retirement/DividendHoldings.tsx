@@ -93,7 +93,7 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
   }
 
   return (
-    <div style={cardStyle}>
+    <div id="dividend-holdings-section" style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ fontSize: 15, fontWeight: 700 }}>股息持仓</div>
         <button onClick={() => setShowAdd(v => !v)} style={addBtn}>

@@ -21,7 +21,10 @@ import type { DividendGrowthScenario, DividendHolding } from '../types/retiremen
 import { DIVIDEND_SCENARIO_LABELS } from '../types/retirement'
 import type { Subpage } from '../App'
 
-export default function RetirementPage({ onNavigate }: { onNavigate: (subpage: Subpage) => void }) {
+export default function RetirementPage({ onNavigate, focusRequest }: {
+  onNavigate: (subpage: Subpage) => void
+  focusRequest?: { focus: 'dividend-holdings' | 'target-simulator' | 'decent-standard'; seq: number }
+}) {
   const plan = useRetirementStore(s => s.plan)
   const snapshots = useAssetStore(s => s.snapshots)
   const totalAssets = snapshots[0]?.totalValueCNY ?? 0
@@ -72,6 +75,21 @@ export default function RetirementPage({ onNavigate }: { onNavigate: (subpage: S
       setDetailDimId(null)
     }
   }, [detailDimId, dimensions])
+
+  useEffect(() => {
+    if (!focusRequest) return
+    if (focusRequest.focus === 'target-simulator') {
+      setShowSimulator(true)
+      return
+    }
+    if (focusRequest.focus === 'decent-standard') {
+      setShowDecentEditor(true)
+      return
+    }
+    window.setTimeout(() => {
+      document.getElementById('dividend-holdings-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }, [focusRequest])
 
   const dividendMultiplier = dividend.netAnnual > 0
     ? projectedDividend.netAnnual / dividend.netAnnual

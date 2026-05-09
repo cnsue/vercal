@@ -34,6 +34,10 @@ export interface AIAnalysisRequest {
   context: unknown
 }
 
+export type AIAnalysisAction =
+  | { kind: 'retirement'; focus: 'dividend-holdings' | 'target-simulator' | 'decent-standard' }
+  | { kind: 'pension-settings' }
+
 export interface AIAnalysisRecord {
   id: string
   title: string
