@@ -7,9 +7,8 @@ import AnnualTargetCard from '../components/AnnualTargetCard'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import TrendChart, { type TrendSeries } from '../components/charts/TrendChart'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
-import AIAnalysisPanel from '../components/AIAnalysisPanel'
 import CashFlowPage from './CashFlowPage'
-import type { AssetSubTab, Subpage } from '../App'
+import type { AssetSubTab } from '../App'
 import { generateSlots } from '../utils/dateSlots'
 import { analyzePeriod, toRealPnLSlots, type PeriodAnalysis } from '../utils/cashFlowAnalysis'
 import { formatCNY, formatDateKey, displayDate } from '../utils/formatters'
@@ -42,10 +41,9 @@ interface Props {
   onOpenEditor: (snap: Snapshot) => void
   subTab: AssetSubTab
   onSubTabChange: (next: AssetSubTab) => void
-  onNavigate: (subpage: Subpage) => void
 }
 
-export default function AssetPage({ onOpenEditor, subTab, onSubTabChange, onNavigate }: Props) {
+export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Props) {
   const store = useAssetStore()
   const plan = useRetirementStore(s => s.plan)
   const cashFlows = useCashFlowStore(s => s.events)
@@ -100,48 +98,11 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange, onNavi
       .map(([name, value]) => ({ name, value, weight: value / total * 100 }))
   }, [latest, distMode])
 
-  const aiContext = useMemo(() => ({
-    snapshotCount: sorted.length,
-    latest: latest ? {
-      dateKey: latest.dateKey,
-      totalValueCNY: latest.totalValueCNY,
-      itemCount: latest.items.length,
-      topItems: [...latest.items]
-        .sort((a, b) => b.valueCNY - a.valueCNY)
-        .slice(0, 12)
-        .map(item => ({
-          platform: effectivePlatformLabel(item),
-          assetClass: effectiveClassLabel(item),
-          label: item.assetLabel,
-          valueCNY: item.valueCNY,
-          note: item.note,
-        })),
-    } : null,
-    previous: previous ? { dateKey: previous.dateKey, totalValueCNY: previous.totalValueCNY } : null,
-    dailyChange,
-    dailyChangePct,
-    annualTarget: store.annualTarget,
-    distributionMode: distMode,
-    distribution: distItems,
-    period,
-    chartValueMode,
-    periodAnalysis,
-    retirementCoverage: {
-      nowRatio: coverage.nowRatio,
-      nowMonthly: coverage.nowMonthly,
-      decentMonthly: coverage.decentMonthly,
-    },
-    recordedToday,
-  }), [
-    sorted.length, latest, previous, dailyChange, dailyChangePct, store.annualTarget,
-    distMode, distItems, period, chartValueMode, periodAnalysis, coverage, recordedToday,
-  ])
-
   return (
     <div style={{ padding: '0 0 16px' }}>
       <SubTabBar value={subTab} onChange={onSubTabChange} />
 
-      {subTab === 'cashflow' ? <CashFlowPage onNavigate={onNavigate} /> : (
+      {subTab === 'cashflow' ? <CashFlowPage /> : (
       <>
       <HeroCard
         totalValueCNY={latest?.totalValueCNY ?? 0}
@@ -153,13 +114,6 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange, onNavi
           unset: coverage.decentMonthly <= 0,
           onClick: () => setShowDecentEditor(true),
         }}
-      />
-
-      <AIAnalysisPanel
-        title="资产总览分析"
-        scope="资产结构、集中度、记录完整性、现金流对资产变化的影响"
-        context={aiContext}
-        onNavigate={onNavigate}
       />
 
       <div style={{ marginBottom: 14 }}>

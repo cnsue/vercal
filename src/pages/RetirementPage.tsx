@@ -8,7 +8,6 @@ import DividendHoldings from '../components/retirement/DividendHoldings'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import TargetSimulator from '../components/retirement/TargetSimulator'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
-import AIAnalysisPanel from '../components/AIAnalysisPanel'
 import { formatCNY } from '../utils/formatters'
 import {
   computeDividendSummary, projectDividendSummary,
@@ -94,57 +93,6 @@ export default function RetirementPage({ onNavigate }: { onNavigate: (subpage: S
 
   const city = findPensionCity(plan.pension.cityKey)
   const pensionConfigured = pension.totalMonths > 0
-  const aiContext = useMemo(() => ({
-    mode: coverageMode,
-    decentMonthly: coverage.decentMonthly,
-    now: {
-      monthly: coverage.nowMonthly,
-      ratio: coverage.nowRatio,
-      dividendMonthly: coverage.breakdown.nowDividend,
-      otherMonthly: coverage.breakdown.other,
-    },
-    retired: {
-      monthly: coverage.retiredMonthly,
-      ratio: coverage.retiredRatio,
-      dividendMonthly: coverage.breakdown.dividend,
-      pensionMonthly: coverage.breakdown.pension,
-      otherMonthly: coverage.breakdown.other,
-    },
-    gap,
-    dividendScenario: plan.dividendScenario,
-    dividendCurrent: {
-      grossAnnual: dividend.grossAnnual,
-      netAnnual: dividend.netAnnual,
-      yieldPct: dividend.totalReferenceMarketValue > 0
-        ? (dividend.grossAnnual / dividend.totalReferenceMarketValue) * 100
-        : 0,
-      perHolding: dividend.perHolding.map(row => ({
-        name: row.holding.stockName,
-        code: row.holding.stockCode,
-        grossAnnual: row.grossAnnual,
-        netAnnual: row.netAnnual,
-        dividendPerShare: row.dividendPerShare,
-        yieldPct: row.yieldPct,
-        targetShares: row.holding.targetShares,
-      })),
-    },
-    dividendRetiredProjection: {
-      yearsToRetire: pension.yearsToRetire,
-      grossAnnual: projectedDividend.grossAnnual,
-      netAnnual: projectedDividend.netAnnual,
-    },
-    pension,
-    dimensions,
-    customDividendAssets: plan.customDividendAssets.map(a => ({
-      code: a.code,
-      name: a.name,
-      assetType: a.assetType,
-      dividendPerShare: a.dividendPerShare,
-      asOfYear: a.asOfYear,
-      sourceProvider: a.sourceProvider,
-      sourceNote: a.sourceNote,
-    })),
-  }), [coverageMode, coverage, gap, plan.dividendScenario, plan.customDividendAssets, dividend, projectedDividend, pension, dimensions])
 
   const shareIncome = coverageMode === 'now'
     ? {
@@ -230,13 +178,6 @@ export default function RetirementPage({ onNavigate }: { onNavigate: (subpage: S
         hasHoldings={plan.holdings.length > 0}
         holdings={plan.holdings}
         customAssets={plan.customDividendAssets}
-      />
-
-      <AIAnalysisPanel
-        title="退休覆盖与股息分析"
-        scope="当前/退休后覆盖率、股息持仓、养老金、目标缺口、数据完整性"
-        context={aiContext}
-        onNavigate={onNavigate}
       />
 
       {/* 收入构成 */}

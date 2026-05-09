@@ -190,7 +190,7 @@ export default function App() {
             />
           </div>
         ) : subpage ? (
-          renderSubpage(subpage, () => setSubpage(null), setSubpage)
+          renderSubpage(subpage, () => setSubpage(null))
         ) : (
           <>
             {tab === 'asset' && (
@@ -198,7 +198,6 @@ export default function App() {
                 onOpenEditor={setEditingSnap}
                 subTab={assetSubTab}
                 onSubTabChange={setAssetSubTab}
-                onNavigate={setSubpage}
               />
             )}
             {tab === 'retirement' && <RetirementPage onNavigate={setSubpage} />}
@@ -232,7 +231,7 @@ export default function App() {
   )
 }
 
-function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void, navigate: (subpage: Subpage) => void) {
+function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void) {
   switch (subpage.kind) {
     case 'pension-settings':
       return <PensionSettingsPage onBack={back} />
@@ -241,7 +240,7 @@ function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void, naviga
     case 'mortgage-prepayment':
       return <MortgagePrepaymentPage />
     case 'dividend-stocks':
-      return <DividendStocksPage onNavigate={navigate} />
+      return <DividendStocksPage />
     case 'ai-settings':
       return <AISettingsPage />
     case 'ai-analysis':
