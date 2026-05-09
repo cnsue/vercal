@@ -45,6 +45,42 @@ export function projectHoldingIncome(h: DividendHolding, scenario: DividendGrowt
   }
 }
 
+export interface ResearchDividendProjection {
+  income: HoldingIncome
+  year: number
+  yearsForward: number
+  cumulativeGrowthPct: number
+}
+
+/** 用 2026-2028 研报/一致预期归母净利润增速推算短期股息，假设分红率保持不变。 */
+export function projectHoldingIncomeByResearch(h: DividendHolding): ResearchDividendProjection | null {
+  const base = computeHoldingIncome(h)
+  const ref = findDividendStock(h.stockCode)
+  const forecasts = ref?.research?.forecasts ?? []
+  let factor = 1
+  let yearsForward = 0
+  let projection: ResearchDividendProjection | null = null
+
+  for (const forecast of forecasts) {
+    if (forecast.growthPct === null || !Number.isFinite(forecast.growthPct)) break
+    factor *= 1 + forecast.growthPct / 100
+    yearsForward += 1
+    projection = {
+      income: {
+        ...base,
+        dividendPerShare: base.dividendPerShare * factor,
+        grossAnnual: base.grossAnnual * factor,
+        netAnnual: base.netAnnual * factor,
+      },
+      year: forecast.year,
+      yearsForward,
+      cumulativeGrowthPct: (factor - 1) * 100,
+    }
+  }
+
+  return projection
+}
+
 export interface DividendSummary {
   grossAnnual: number
   netAnnual: number

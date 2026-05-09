@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
 import { DIVIDEND_STOCKS, findDividendStock, dividendYieldPct } from '../../data/dividendStocks'
-import { computeHoldingIncome, projectHoldingIncome } from '../../utils/retirementCalc'
+import { computeHoldingIncome, projectHoldingIncomeByResearch } from '../../utils/retirementCalc'
 import { formatCNY } from '../../utils/formatters'
-import { DIVIDEND_SCENARIO_LABELS } from '../../types/retirement'
-import type { DividendGrowthScenario, DividendHolding } from '../../types/retirement'
+import type { DividendHolding } from '../../types/retirement'
 
 export default function DividendHoldings() {
   const holdings = useRetirementStore(s => s.plan.holdings)
-  const dividendScenario = useRetirementStore(s => s.plan.dividendScenario)
   const addHolding = useRetirementStore(s => s.addHolding)
   const removeHolding = useRetirementStore(s => s.removeHolding)
   const updateHolding = useRetirementStore(s => s.updateHolding)
@@ -46,7 +44,6 @@ export default function DividendHoldings() {
       )}
 
       {holdings.map(h => <HoldingRow key={h.id} holding={h}
-        scenario={dividendScenario}
         onUpdate={patch => updateHolding(h.id, patch)}
         onRemove={() => removeHolding(h.id)} />)}
 
@@ -96,14 +93,13 @@ export default function DividendHoldings() {
   )
 }
 
-function HoldingRow({ holding, scenario, onUpdate, onRemove }: {
+function HoldingRow({ holding, onUpdate, onRemove }: {
   holding: DividendHolding
-  scenario: DividendGrowthScenario
   onUpdate: (patch: Partial<DividendHolding>) => void
   onRemove: () => void
 }) {
   const income = computeHoldingIncome(holding)
-  const projectedIncome = projectHoldingIncome(holding, scenario, 10)
+  const researchProjection = projectHoldingIncomeByResearch(holding)
   const [editing, setEditing] = useState(false)
   const [sharesInput, setSharesInput] = useState(String(holding.shares))
   const [dpsInput, setDpsInput] = useState(String(income.dividendPerShare))
@@ -128,7 +124,9 @@ function HoldingRow({ holding, scenario, onUpdate, onRemove }: {
             {formatCNY(income.grossAnnual)}/年
           </div>
           <div style={{ marginTop: 2, fontSize: 11, fontWeight: 500, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-            10年后({DIVIDEND_SCENARIO_LABELS[scenario]})约 {formatCNY(projectedIncome.grossAnnual)}/年
+            {researchProjection
+              ? `研报${researchProjection.yearsForward}年后约 ${formatCNY(researchProjection.income.grossAnnual)}/年`
+              : '研报股息预测暂无'}
           </div>
         </div>
       </div>
