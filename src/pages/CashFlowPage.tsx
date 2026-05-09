@@ -7,6 +7,7 @@ import {
 import { PLATFORM_LABELS, type AssetPlatform } from '../types/models'
 import { formatCNY, formatDateKey } from '../utils/formatters'
 import CashFlowEditor from '../components/CashFlowEditor'
+import AIAnalysisPanel from '../components/AIAnalysisPanel'
 
 type RangeKey = 'month' | 'year' | 'all'
 
@@ -45,6 +46,23 @@ export default function CashFlowPage() {
   const byCategory = useMemo(() => groupByCategory(visibleEvents), [visibleEvents])
 
   const grouped = useMemo(() => groupByDate(visibleEvents), [visibleEvents])
+  const aiContext = useMemo(() => ({
+    range,
+    showCreditRepay: showRepay,
+    totalEvents: events.length,
+    visibleEvents: visibleEvents.length,
+    totals,
+    byCategory,
+    recentEvents: visibleEvents.slice(0, 30).map(e => ({
+      date: e.date,
+      type: e.type,
+      category: findCategoryMeta(e.type, e.category)?.label ?? e.category,
+      amountCNY: e.amountCNY,
+      paymentMethod: e.paymentMethod,
+      platform: e.platform,
+      note: e.note,
+    })),
+  }), [range, showRepay, events.length, visibleEvents, totals, byCategory])
 
   function openAdd() {
     setEditing(null)
@@ -86,6 +104,12 @@ export default function CashFlowPage() {
           显示信用卡还款（默认隐藏，避免与信用消费双计）
         </label>
       </div>
+
+      <AIAnalysisPanel
+        title="现金流分析"
+        scope="收入支出趋势、净注入、异常波动、信用卡还款双计风险"
+        context={aiContext}
+      />
 
       {byCategory.length > 0 && (
         <div style={{

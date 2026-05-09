@@ -14,6 +14,8 @@ import { DEFAULT_MORTGAGE_INPUTS } from '../utils/mortgageCalc'
 import type { ThemePreference } from '../types/theme'
 import type { PushPrefs } from '../types/push'
 import type { CashFlowEvent } from '../types/cashFlow'
+import type { AISettings } from '../types/ai'
+import { DEFAULT_AI_SETTINGS, findAIProviderPreset } from '../types/ai'
 
 const K = {
   snapshots: 'asset-tracker:snapshots',
@@ -29,6 +31,7 @@ const K = {
   mortgageInputs: 'asset-tracker:mortgageInputs',
   pushPrefs: 'asset-tracker:pushPrefs',
   cashFlows: 'asset-tracker:cashFlows',
+  aiSettings: 'asset-tracker:aiSettings',
 } as const
 
 /** 进入设备同步的 key（推送通知偏好/汇率缓存/banner 状态等设备级数据不同步） */
@@ -274,6 +277,20 @@ export const StorageService = {
 
   getCashFlows: (): CashFlowEvent[] => get<CashFlowEvent[]>(K.cashFlows, []),
   saveCashFlows: (v: CashFlowEvent[]): void => set(K.cashFlows, v),
+
+  getAISettings: (): AISettings => {
+    const stored = get<Partial<AISettings> | null>(K.aiSettings, null)
+    if (!stored) return DEFAULT_AI_SETTINGS
+    const preset = findAIProviderPreset(stored.provider ?? DEFAULT_AI_SETTINGS.provider)
+    return {
+      provider: stored.provider ?? DEFAULT_AI_SETTINGS.provider,
+      protocol: stored.protocol ?? preset.protocol,
+      apiKey: stored.apiKey ?? '',
+      baseUrl: stored.baseUrl ?? preset.baseUrl,
+      model: stored.model ?? preset.model,
+    }
+  },
+  saveAISettings: (v: AISettings): void => set(K.aiSettings, v),
 
   estimateSizeKB: (): number => {
     let total = 0

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
 import {
   DIVIDEND_STOCKS,
@@ -14,6 +14,7 @@ import {
 import { computeHoldingIncome, projectHoldingIncomeByResearch } from '../../utils/retirementCalc'
 import { formatCNY } from '../../utils/formatters'
 import DonutChart, { type BreakdownItem } from '../charts/DonutChart'
+import AIAnalysisPanel from '../AIAnalysisPanel'
 import type { DividendHolding } from '../../types/retirement'
 
 const ASSET_CATEGORIES: DividendAssetCategory[] = ['银行', '能源', '基建', '消费', '通信', '红利ETF', '宽基ETF', '行业ETF', '其它']
@@ -29,7 +30,7 @@ interface AssetCandidate {
 type AssetDraft = Pick<
   DividendAssetRef,
   'code' | 'name' | 'assetType' | 'category' | 'referencePrice' | 'priceAsOf' |
-  'dividendPerShare' | 'asOfYear' | 'sourceProvider' | 'sourceAsOf' | 'sourceNote' | 'growth'
+  'dividendPerShare' | 'asOfYear' | 'sourceProvider' | 'sourceAsOf' | 'sourceNote' | 'fieldSources' | 'growth'
 >
 
 export default function DividendHoldings() {
@@ -47,6 +48,35 @@ export default function DividendHoldings() {
   const [newCode, setNewCode] = useState(DIVIDEND_STOCKS[0].code)
   const [newShares, setNewShares] = useState('')
   const targetGapItems = buildTargetGapItems(holdings, customAssets)
+  const aiContext = useMemo(() => ({
+    holdings: holdings.map(h => {
+      const ref = findDividendStock(h.stockCode, customAssets)
+      const income = computeHoldingIncome(h, customAssets)
+      return {
+        name: h.stockName,
+        code: h.stockCode,
+        assetType: ref?.assetType ?? 'stock',
+        shares: h.shares,
+        targetShares: h.targetShares,
+        dividendPerShare: income.dividendPerShare,
+        grossAnnual: income.grossAnnual,
+        netAnnual: income.netAnnual,
+        yieldPct: income.yieldPct,
+        referenceMarketValue: income.referenceMarketValue,
+        sourceProvider: ref?.sourceProvider ?? '内置表',
+        sourceAsOf: ref?.sourceAsOf,
+        sourceNote: ref?.sourceNote,
+        disclosureNote: ref?.disclosureNote,
+        hasResearch: Boolean(ref?.research),
+      }
+    }),
+    targetGaps: targetGapItems,
+    customAssets,
+    totals: {
+      grossAnnual: holdings.reduce((s, h) => s + computeHoldingIncome(h, customAssets).grossAnnual, 0),
+      netAnnual: holdings.reduce((s, h) => s + computeHoldingIncome(h, customAssets).netAnnual, 0),
+    },
+  }), [holdings, customAssets, targetGapItems])
 
   function handleAdd() {
     const shares = parseFloat(newShares) || 0
@@ -75,6 +105,13 @@ export default function DividendHoldings() {
           还没添加持仓。点击右上角添加一只高股息股票或 ETF。
         </div>
       )}
+
+      <AIAnalysisPanel
+        title="股息持仓分析"
+        scope="组合股息、单标的贡献、目标资金缺口、分红/分派数据完整性"
+        context={aiContext}
+        compact
+      />
 
       {targetGapItems.length > 0 && (
         <div style={{
@@ -337,6 +374,7 @@ function AssetSearchBox({ onSave }: { onSave: (asset: DividendAssetRef) => void 
       sourceProvider: draft.sourceProvider || '用户确认',
       sourceAsOf: draft.sourceAsOf || new Date().toISOString().slice(0, 10),
       sourceNote: draft.sourceNote,
+      fieldSources: draft.fieldSources,
       growth: {
         pessimistic: Number(draft.growth.pessimistic) || 0,
         neutral: Number(draft.growth.neutral) || 0,
@@ -407,10 +445,13 @@ function AssetSearchBox({ onSave }: { onSave: (asset: DividendAssetRef) => void 
             <DraftNumber label="参考价（接口获取）" value={draft.referencePrice} onChange={v => updateDraft('referencePrice', v)} />
             <DraftText label="价格日期（接口获取）" value={draft.priceAsOf} onChange={v => updateDraft('priceAsOf', v)} />
           </div>
+          <FieldSourceLine label="参考价" source={draft.fieldSources?.referencePrice} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <DraftNumber label={`${draft.assetType === 'etf' ? '每份分派' : '每股股息'}（手填确认）`} value={draft.dividendPerShare} onChange={v => updateDraft('dividendPerShare', v)} />
+            <DraftNumber label={`${draft.assetType === 'etf' ? '每份分派' : '每股股息'}（${draft.fieldSources?.dividendPerShare?.kind === 'api' ? '接口预填' : '手填确认'}）`} value={draft.dividendPerShare} onChange={v => updateDraft('dividendPerShare', v)} />
             <DraftText label="分红/分派口径" value={draft.asOfYear} onChange={v => updateDraft('asOfYear', v)} />
           </div>
+          <FieldSourceLine label={draft.assetType === 'etf' ? '每份分派' : '每股股息'} source={draft.fieldSources?.dividendPerShare} />
+          <FieldSourceLine label="口径" source={draft.fieldSources?.asOfYear} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             <DraftNumber label="悲观增长" value={draft.growth.pessimistic * 100} onChange={v => updateDraft('growth', { ...draft.growth, pessimistic: v / 100 })} />
             <DraftNumber label="中立增长" value={draft.growth.neutral * 100} onChange={v => updateDraft('growth', { ...draft.growth, neutral: v / 100 })} />
@@ -482,12 +523,25 @@ function normalizeDraft(raw: Partial<AssetDraft>): AssetDraft {
     sourceProvider: raw.sourceProvider ?? '确定性接口',
     sourceAsOf: raw.sourceAsOf ?? new Date().toISOString().slice(0, 10),
     sourceNote: raw.sourceNote,
+    fieldSources: raw.fieldSources,
     growth: raw.growth ?? {
       pessimistic: 0,
       neutral: assetType === 'etf' ? 0 : 0.03,
       optimistic: assetType === 'etf' ? 0.02 : 0.05,
     },
   }
+}
+
+function FieldSourceLine({ label, source }: {
+  label: string
+  source: NonNullable<DividendAssetRef['fieldSources']>[keyof NonNullable<DividendAssetRef['fieldSources']>] | undefined
+}) {
+  return (
+    <div style={{ fontSize: 10.5, color: 'var(--muted)', lineHeight: 1.4 }}>
+      {label}：{source?.kind === 'api' ? '接口获取' : '需确认/用户手填'}
+      {source?.sourceNote ? ` · ${source.sourceNote}` : ''}
+    </div>
+  )
 }
 
 function DraftText({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {

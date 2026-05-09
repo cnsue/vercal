@@ -1,30 +1,65 @@
 import { useMemo, useState } from 'react'
 import {
-  DIVIDEND_STOCKS,
   DIVIDEND_STOCKS_UPDATED_AT,
   dividendYieldPct,
+  dividendPerUnitLabel,
+  getDividendAssets,
   researchUpsidePct,
-  type DividendStockRef,
+  type DividendAssetCategory,
+  type DividendAssetFieldSource,
+  type DividendAssetRef,
 } from '../data/dividendStocks'
+import { useRetirementStore } from '../store/useRetirementStore'
+import AIAnalysisPanel from '../components/AIAnalysisPanel'
 
-const CATEGORY_OPTIONS = ['全部', '银行', '能源', '基建', '消费', '通信'] as const
-type CategoryFilter = typeof CATEGORY_OPTIONS[number]
+const CATEGORY_OPTIONS = ['全部', '银行', '能源', '基建', '消费', '通信', '红利ETF', '宽基ETF', '行业ETF', '其它'] as const
+type CategoryFilter = '全部' | DividendAssetCategory
 
 export default function DividendStocksPage() {
+  const customAssets = useRetirementStore(s => s.plan.customDividendAssets)
+  const customCodes = useMemo(() => new Set(customAssets.map(a => a.code)), [customAssets])
+  const assets = useMemo(() => getDividendAssets(customAssets), [customAssets])
   const [category, setCategory] = useState<CategoryFilter>('全部')
 
-  const filteredStocks = useMemo(() => {
+  const filteredAssets = useMemo(() => {
     return category === '全部'
-      ? DIVIDEND_STOCKS
-      : DIVIDEND_STOCKS.filter(stock => stock.category === category)
-  }, [category])
+      ? assets
+      : assets.filter(stock => stock.category === category)
+  }, [assets, category])
 
   const averageYield = useMemo(() => {
-    if (DIVIDEND_STOCKS.length === 0) return 0
-    return DIVIDEND_STOCKS.reduce((sum, stock) => sum + dividendYieldPct(stock), 0) / DIVIDEND_STOCKS.length
-  }, [])
+    if (assets.length === 0) return 0
+    return assets.reduce((sum, stock) => sum + dividendYieldPct(stock), 0) / assets.length
+  }, [assets])
 
-  const researchedCount = DIVIDEND_STOCKS.filter(stock => stock.research).length
+  const researchedCount = assets.filter(stock => stock.research).length
+  const stockCount = assets.filter(a => a.assetType === 'stock').length
+  const etfCount = assets.filter(a => a.assetType === 'etf').length
+  const aiContext = useMemo(() => ({
+    updatedAt: DIVIDEND_STOCKS_UPDATED_AT,
+    totalAssets: assets.length,
+    stockCount,
+    etfCount,
+    researchedCount,
+    customCount: customAssets.length,
+    assets: assets.map(a => ({
+      code: a.code,
+      name: a.name,
+      assetType: a.assetType,
+      category: a.category,
+      dividendPerShare: a.dividendPerShare,
+      asOfYear: a.asOfYear,
+      referencePrice: a.referencePrice,
+      priceAsOf: a.priceAsOf,
+      yieldPct: dividendYieldPct(a),
+      sourceProvider: a.sourceProvider ?? '内置表',
+      sourceAsOf: a.sourceAsOf,
+      sourceNote: a.sourceNote,
+      disclosureNote: a.disclosureNote,
+      fieldSources: a.fieldSources,
+      hasResearch: Boolean(a.research),
+    })),
+  }), [assets, stockCount, etfCount, researchedCount, customAssets.length])
 
   return (
     <div style={{ paddingBottom: 20 }}>
@@ -36,14 +71,25 @@ export default function DividendStocksPage() {
           数据更新 {DIVIDEND_STOCKS_UPDATED_AT}
         </div>
         <div style={{ fontSize: 22, fontWeight: 850, color: 'var(--text-strong)', marginBottom: 12 }}>
-          高股息股票库
+          高股息标的库
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          <SummaryCell label="覆盖股票" value={`${DIVIDEND_STOCKS.length}`} />
+          <SummaryCell label="覆盖标的" value={`${assets.length}`} />
           <SummaryCell label="平均股息率" value={formatPct(averageYield)} />
           <SummaryCell label="研报覆盖" value={`${researchedCount}`} />
         </div>
+        <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <SummaryCell label="股票" value={`${stockCount}`} />
+          <SummaryCell label="ETF" value={`${etfCount}`} />
+          <SummaryCell label="本地自定义" value={`${customAssets.length}`} />
+        </div>
       </section>
+
+      <AIAnalysisPanel
+        title="高股息标的库分析"
+        scope="内置与本地自定义标的数据完整性、可疑口径、ETF 分派字段、研报覆盖"
+        context={aiContext}
+      />
 
       <div style={{
         display: 'flex', gap: 6, overflowX: 'auto', padding: '0 0 10px',
@@ -70,16 +116,17 @@ export default function DividendStocksPage() {
         ))}
       </div>
 
-      {filteredStocks.map(stock => (
-        <StockCard key={stock.code} stock={stock} />
+      {filteredAssets.map(stock => (
+        <StockCard key={stock.code} stock={stock} isCustom={customCodes.has(stock.code)} />
       ))}
     </div>
   )
 }
 
-function StockCard({ stock }: { stock: DividendStockRef }) {
+function StockCard({ stock, isCustom }: { stock: DividendAssetRef; isCustom: boolean }) {
   const yieldPct = dividendYieldPct(stock)
   const upsidePct = researchUpsidePct(stock)
+  const perUnitLabel = dividendPerUnitLabel(stock)
 
   return (
     <article style={{
@@ -97,9 +144,17 @@ function StockCard({ stock }: { stock: DividendStockRef }) {
             }}>
               {stock.category}
             </span>
+            {isCustom && (
+              <span style={{
+                fontSize: 11, fontWeight: 800, color: 'var(--button-secondary-text)',
+                background: 'var(--button-secondary-bg)', borderRadius: 999, padding: '2px 7px',
+              }}>
+                本地自定义
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-            {stock.code} · {stock.asOfYear} 分红口径 · 现价日期 {stock.priceAsOf}
+            {stock.code} · {stock.assetType === 'etf' ? 'ETF' : '股票'} · {stock.asOfYear} 口径 · 现价日期 {stock.priceAsOf}
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -111,7 +166,7 @@ function StockCard({ stock }: { stock: DividendStockRef }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-        <MetricBox label="每股分红" value={`¥${stock.dividendPerShare.toFixed(3)}`} />
+        <MetricBox label={perUnitLabel} value={`¥${stock.dividendPerShare.toFixed(3)}`} />
         <MetricBox label="参考价" value={`¥${stock.referencePrice.toFixed(2)}`} />
         <MetricBox
           label="目标空间"
@@ -132,6 +187,21 @@ function StockCard({ stock }: { stock: DividendStockRef }) {
 
       <ResearchBlock stock={stock} />
 
+      {(stock.sourceProvider || stock.sourceNote || stock.fieldSources) && (
+        <div style={{
+          marginTop: 10, fontSize: 11, lineHeight: 1.55, color: 'var(--muted)',
+          background: 'var(--surface-muted)', borderRadius: 10, padding: '8px 10px',
+        }}>
+          <div>来源：{stock.sourceProvider ?? '内置表'}{stock.sourceAsOf ? ` · ${stock.sourceAsOf}` : ''}</div>
+          {stock.sourceNote && <div>{stock.sourceNote}</div>}
+          {stock.fieldSources && (
+            <div style={{ marginTop: 4 }}>
+              字段：参考价 {fieldKind(stock.fieldSources.referencePrice)} · {perUnitLabel} {fieldKind(stock.fieldSources.dividendPerShare)} · 口径 {fieldKind(stock.fieldSources.asOfYear)}
+            </div>
+          )}
+        </div>
+      )}
+
       {stock.disclosureNote && (
         <div style={{
           marginTop: 10, fontSize: 11, lineHeight: 1.55, color: 'var(--warning-text)',
@@ -145,7 +215,7 @@ function StockCard({ stock }: { stock: DividendStockRef }) {
   )
 }
 
-function ResearchBlock({ stock }: { stock: DividendStockRef }) {
+function ResearchBlock({ stock }: { stock: DividendAssetRef }) {
   const research = stock.research
 
   if (!research) {
@@ -190,6 +260,11 @@ function ResearchBlock({ stock }: { stock: DividendStockRef }) {
       </div>
     </div>
   )
+}
+
+function fieldKind(source: DividendAssetFieldSource | undefined): string {
+  if (!source) return '未标明'
+  return source.kind === 'api' ? '接口获取' : '用户手填'
 }
 
 function SummaryCell({ label, value }: { label: string; value: string }) {

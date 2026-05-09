@@ -34,6 +34,15 @@ export interface DividendStockResearch {
 
 export type DividendAssetType = 'stock' | 'etf'
 export type DividendAssetCategory = '银行' | '能源' | '基建' | '消费' | '通信' | '红利ETF' | '宽基ETF' | '行业ETF' | '其它'
+export type DividendAssetFieldKey = 'referencePrice' | 'dividendPerShare' | 'asOfYear'
+
+export interface DividendAssetFieldSource {
+  kind: 'api' | 'user'
+  provider: string
+  sourceAsOf: string
+  sourceNote: string
+  confidence?: 'high' | 'medium' | 'low'
+}
 
 export interface DividendAssetRef {
   code: string
@@ -54,6 +63,8 @@ export interface DividendAssetRef {
   sourceAsOf?: string
   /** 来源说明 */
   sourceNote?: string
+  /** 单个字段的来源，主要用于用户新增标的 */
+  fieldSources?: Partial<Record<DividendAssetFieldKey, DividendAssetFieldSource>>
   /** 披露状态备注（仅在非完整披露时填写） */
   disclosureNote?: string
   /** 近 3-6 个月研报或一致预期摘要 */

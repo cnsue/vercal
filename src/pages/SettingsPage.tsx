@@ -32,6 +32,12 @@ export default function SettingsPage({ themePreference, onThemePreferenceChange,
         subtitle="管理平台和资产类别（可隐藏内置项 / 增删自定义）"
         onClick={() => onNavigate({ kind: 'asset-classes' })}
       />
+      <EntryRow
+        icon="🤖"
+        title="AI 设置"
+        subtitle="自填 API Key、选择 provider 和 model，本机保存不参与同步"
+        onClick={() => onNavigate({ kind: 'ai-settings' })}
+      />
       <div style={{
         background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16,
         padding: 16, marginBottom: 12,

@@ -1,4 +1,9 @@
-import type { DividendAssetCategory, DividendAssetRef, DividendAssetType } from '../../src/data/dividendStocks.js'
+import type {
+  DividendAssetCategory,
+  DividendAssetFieldSource,
+  DividendAssetRef,
+  DividendAssetType,
+} from '../../src/data/dividendStocks.js'
 
 export interface AssetCandidate {
   code: string
@@ -64,6 +69,26 @@ export function quotePrice(raw: EastmoneyQuote): number {
   return value / 100
 }
 
+export function apiFieldSource(sourceNote: string, confidence: DividendAssetFieldSource['confidence'] = 'medium'): DividendAssetFieldSource {
+  return {
+    kind: 'api',
+    provider: SOURCE_PROVIDER,
+    sourceAsOf: today(),
+    sourceNote,
+    confidence,
+  }
+}
+
+export function userFieldSource(sourceNote: string): DividendAssetFieldSource {
+  return {
+    kind: 'user',
+    provider: '用户确认',
+    sourceAsOf: today(),
+    sourceNote,
+    confidence: 'low',
+  }
+}
+
 export function toCandidate(raw: Record<string, unknown>): AssetCandidate | null {
   const codeValue = raw.Code ?? raw.code ?? raw.SecurityCode ?? raw.SECURITY_CODE ?? raw.QuoteCode ?? raw.quoteCode
   const nameValue = raw.Name ?? raw.name ?? raw.SecurityName ?? raw.SECURITY_NAME ?? raw.ShortName ?? raw.shortName
@@ -118,6 +143,13 @@ export function makeAssetRef(input: {
     sourceProvider: SOURCE_PROVIDER,
     sourceAsOf,
     sourceNote: `${input.name} ${input.code} 的名称、类型和参考价来自确定性行情接口；分红/分派金额与增长假设需用户核对后保存。`,
+    fieldSources: {
+      referencePrice: input.price > 0
+        ? apiFieldSource('参考价来自东方财富行情快照', 'high')
+        : userFieldSource('接口未返回有效参考价，需要用户确认'),
+      dividendPerShare: userFieldSource('接口暂未解析到分红/分派金额，需要用户确认'),
+      asOfYear: userFieldSource('分红/分派口径需要用户确认'),
+    },
     growth: {
       pessimistic: 0,
       neutral: input.assetType === 'etf' ? 0 : 0.03,
