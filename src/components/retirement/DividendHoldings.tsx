@@ -45,18 +45,18 @@ export default function DividendHoldings() {
         </div>
       )}
 
-      {holdings.map(h => <HoldingRow key={h.id} holding={h}
-        onUpdate={patch => updateHolding(h.id, patch)}
-        onRemove={() => removeHolding(h.id)} />)}
-
       {targetGapItems.length > 0 && (
         <div style={{
-          marginTop: 12, padding: 12, background: 'var(--surface-muted)',
+          marginBottom: 12, padding: 12, background: 'var(--surface-muted)',
           border: '1px solid var(--border)', borderRadius: 12,
         }}>
           <DonutChart items={targetGapItems} title="各股票目标资金缺口" />
         </div>
       )}
+
+      {holdings.map(h => <HoldingRow key={h.id} holding={h}
+        onUpdate={patch => updateHolding(h.id, patch)}
+        onRemove={() => removeHolding(h.id)} />)}
 
       {showAdd && (
         <div style={{ marginTop: 12, padding: 12, background: 'var(--surface-muted)', borderRadius: 10 }}>
