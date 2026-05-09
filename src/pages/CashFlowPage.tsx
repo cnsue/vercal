@@ -8,6 +8,7 @@ import { PLATFORM_LABELS, type AssetPlatform } from '../types/models'
 import { formatCNY, formatDateKey } from '../utils/formatters'
 import CashFlowEditor from '../components/CashFlowEditor'
 import AIAnalysisPanel from '../components/AIAnalysisPanel'
+import type { Subpage } from '../App'
 
 type RangeKey = 'month' | 'year' | 'all'
 
@@ -15,7 +16,7 @@ const RANGE_LABELS: Record<RangeKey, string> = {
   month: '本月', year: '本年', all: '累计',
 }
 
-export default function CashFlowPage() {
+export default function CashFlowPage({ onNavigate }: { onNavigate: (subpage: Subpage) => void }) {
   const events = useCashFlowStore(s => s.events)
   const load = useCashFlowStore(s => s.load)
 
@@ -109,6 +110,7 @@ export default function CashFlowPage() {
         title="现金流分析"
         scope="收入支出趋势、净注入、异常波动、信用卡还款双计风险"
         context={aiContext}
+        onNavigate={onNavigate}
       />
 
       {byCategory.length > 0 && (

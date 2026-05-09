@@ -14,7 +14,7 @@ import { DEFAULT_MORTGAGE_INPUTS } from '../utils/mortgageCalc'
 import type { ThemePreference } from '../types/theme'
 import type { PushPrefs } from '../types/push'
 import type { CashFlowEvent } from '../types/cashFlow'
-import type { AISettings } from '../types/ai'
+import type { AIAnalysisRecord, AISettings } from '../types/ai'
 import { DEFAULT_AI_SETTINGS, findAIProviderPreset } from '../types/ai'
 
 const K = {
@@ -32,6 +32,7 @@ const K = {
   pushPrefs: 'asset-tracker:pushPrefs',
   cashFlows: 'asset-tracker:cashFlows',
   aiSettings: 'asset-tracker:aiSettings',
+  aiAnalysisHistory: 'asset-tracker:aiAnalysisHistory',
 } as const
 
 /** 进入设备同步的 key（推送通知偏好/汇率缓存/banner 状态等设备级数据不同步） */
@@ -291,6 +292,9 @@ export const StorageService = {
     }
   },
   saveAISettings: (v: AISettings): void => set(K.aiSettings, v),
+
+  getAIAnalysisHistory: (): AIAnalysisRecord[] => get<AIAnalysisRecord[]>(K.aiAnalysisHistory, []),
+  saveAIAnalysisHistory: (v: AIAnalysisRecord[]): void => set(K.aiAnalysisHistory, v.slice(0, 50)),
 
   estimateSizeKB: (): number => {
     let total = 0

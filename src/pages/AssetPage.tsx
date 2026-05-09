@@ -9,7 +9,7 @@ import TrendChart, { type TrendSeries } from '../components/charts/TrendChart'
 import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
 import AIAnalysisPanel from '../components/AIAnalysisPanel'
 import CashFlowPage from './CashFlowPage'
-import type { AssetSubTab } from '../App'
+import type { AssetSubTab, Subpage } from '../App'
 import { generateSlots } from '../utils/dateSlots'
 import { analyzePeriod, toRealPnLSlots, type PeriodAnalysis } from '../utils/cashFlowAnalysis'
 import { formatCNY, formatDateKey, displayDate } from '../utils/formatters'
@@ -42,9 +42,10 @@ interface Props {
   onOpenEditor: (snap: Snapshot) => void
   subTab: AssetSubTab
   onSubTabChange: (next: AssetSubTab) => void
+  onNavigate: (subpage: Subpage) => void
 }
 
-export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Props) {
+export default function AssetPage({ onOpenEditor, subTab, onSubTabChange, onNavigate }: Props) {
   const store = useAssetStore()
   const plan = useRetirementStore(s => s.plan)
   const cashFlows = useCashFlowStore(s => s.events)
@@ -140,7 +141,7 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
     <div style={{ padding: '0 0 16px' }}>
       <SubTabBar value={subTab} onChange={onSubTabChange} />
 
-      {subTab === 'cashflow' ? <CashFlowPage /> : (
+      {subTab === 'cashflow' ? <CashFlowPage onNavigate={onNavigate} /> : (
       <>
       <HeroCard
         totalValueCNY={latest?.totalValueCNY ?? 0}
@@ -158,6 +159,7 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
         title="资产总览分析"
         scope="资产结构、集中度、记录完整性、现金流对资产变化的影响"
         context={aiContext}
+        onNavigate={onNavigate}
       />
 
       <div style={{ marginBottom: 14 }}>

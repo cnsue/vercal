@@ -16,6 +16,7 @@ import { formatCNY } from '../../utils/formatters'
 import DonutChart, { type BreakdownItem } from '../charts/DonutChart'
 import AIAnalysisPanel from '../AIAnalysisPanel'
 import type { DividendHolding } from '../../types/retirement'
+import type { Subpage } from '../../App'
 
 const ASSET_CATEGORIES: DividendAssetCategory[] = ['银行', '能源', '基建', '消费', '通信', '红利ETF', '宽基ETF', '行业ETF', '其它']
 
@@ -33,7 +34,7 @@ type AssetDraft = Pick<
   'dividendPerShare' | 'asOfYear' | 'sourceProvider' | 'sourceAsOf' | 'sourceNote' | 'fieldSources' | 'growth'
 >
 
-export default function DividendHoldings() {
+export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage: Subpage) => void }) {
   const holdings = useRetirementStore(s => s.plan.holdings)
   const customAssets = useRetirementStore(s => s.plan.customDividendAssets)
   const addHolding = useRetirementStore(s => s.addHolding)
@@ -111,6 +112,7 @@ export default function DividendHoldings() {
         scope="组合股息、单标的贡献、目标资金缺口、分红/分派数据完整性"
         context={aiContext}
         compact
+        onNavigate={onNavigate}
       />
 
       {targetGapItems.length > 0 && (

@@ -28,6 +28,23 @@ export interface AISettings {
   model: string
 }
 
+export interface AIAnalysisRequest {
+  title: string
+  scope: string
+  context: unknown
+}
+
+export interface AIAnalysisRecord {
+  id: string
+  title: string
+  scope: string
+  provider: AIProviderKey
+  providerLabel: string
+  model: string
+  createdAt: string
+  result: string
+}
+
 export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
     key: 'qwen',

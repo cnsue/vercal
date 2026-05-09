@@ -20,8 +20,9 @@ import { findPensionCity } from '../data/pensionCities'
 import { findDividendStock } from '../data/dividendStocks'
 import type { DividendGrowthScenario, DividendHolding } from '../types/retirement'
 import { DIVIDEND_SCENARIO_LABELS } from '../types/retirement'
+import type { Subpage } from '../App'
 
-export default function RetirementPage() {
+export default function RetirementPage({ onNavigate }: { onNavigate: (subpage: Subpage) => void }) {
   const plan = useRetirementStore(s => s.plan)
   const snapshots = useAssetStore(s => s.snapshots)
   const totalAssets = snapshots[0]?.totalValueCNY ?? 0
@@ -235,6 +236,7 @@ export default function RetirementPage() {
         title="退休覆盖与股息分析"
         scope="当前/退休后覆盖率、股息持仓、养老金、目标缺口、数据完整性"
         context={aiContext}
+        onNavigate={onNavigate}
       />
 
       {/* 收入构成 */}
@@ -254,7 +256,7 @@ export default function RetirementPage() {
       )}
 
       {/* 股息持仓 */}
-      <DividendHoldings />
+      <DividendHoldings onNavigate={onNavigate} />
 
       {/* 养老金预估 */}
       <Section title="养老金预估">

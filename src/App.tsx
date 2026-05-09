@@ -9,6 +9,7 @@ import MortgagePrepaymentPage from './pages/MortgagePrepaymentPage'
 import ExternalToolPage from './pages/ExternalToolPage'
 import DividendStocksPage from './pages/DividendStocksPage'
 import AISettingsPage from './pages/AISettingsPage'
+import AIAnalysisPage from './pages/AIAnalysisPage'
 import SnapshotEditor from './components/SnapshotEditor'
 import { bootstrapStore } from './store/useAssetStore'
 import { useAssetStore } from './store/useAssetStore'
@@ -17,6 +18,7 @@ import { formatDateKey, displayDate } from './utils/formatters'
 import { usePwaUpdate } from './utils/pwaUpdate'
 import type { Snapshot } from './types/models'
 import type { ThemePreference } from './types/theme'
+import type { AIAnalysisRequest } from './types/ai'
 
 type Tab = 'asset' | 'retirement' | 'tools' | 'settings'
 export type AssetSubTab = 'overview' | 'cashflow'
@@ -34,6 +36,7 @@ export type Subpage =
   | { kind: 'mortgage-prepayment' }
   | { kind: 'dividend-stocks' }
   | { kind: 'ai-settings' }
+  | { kind: 'ai-analysis'; request: AIAnalysisRequest }
   | { kind: 'external-tool'; title: string; url: string }
   | null
 
@@ -44,6 +47,7 @@ function subpageTitle(s: Exclude<Subpage, null>): string {
     case 'mortgage-prepayment': return '房贷提前还款'
     case 'dividend-stocks': return '高股息股票数据'
     case 'ai-settings': return 'AI 设置'
+    case 'ai-analysis': return s.request.title
     case 'external-tool': return s.title
   }
 }
@@ -186,7 +190,7 @@ export default function App() {
             />
           </div>
         ) : subpage ? (
-          renderSubpage(subpage, () => setSubpage(null))
+          renderSubpage(subpage, () => setSubpage(null), setSubpage)
         ) : (
           <>
             {tab === 'asset' && (
@@ -194,9 +198,10 @@ export default function App() {
                 onOpenEditor={setEditingSnap}
                 subTab={assetSubTab}
                 onSubTabChange={setAssetSubTab}
+                onNavigate={setSubpage}
               />
             )}
-            {tab === 'retirement' && <RetirementPage />}
+            {tab === 'retirement' && <RetirementPage onNavigate={setSubpage} />}
             {tab === 'tools' && <ToolsPage onNavigate={setSubpage} />}
             {tab === 'settings' && (
               <SettingsPage
@@ -227,7 +232,7 @@ export default function App() {
   )
 }
 
-function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void) {
+function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void, navigate: (subpage: Subpage) => void) {
   switch (subpage.kind) {
     case 'pension-settings':
       return <PensionSettingsPage onBack={back} />
@@ -236,9 +241,11 @@ function renderSubpage(subpage: Exclude<Subpage, null>, back: () => void) {
     case 'mortgage-prepayment':
       return <MortgagePrepaymentPage />
     case 'dividend-stocks':
-      return <DividendStocksPage />
+      return <DividendStocksPage onNavigate={navigate} />
     case 'ai-settings':
       return <AISettingsPage />
+    case 'ai-analysis':
+      return <AIAnalysisPage request={subpage.request} />
     case 'external-tool':
       return <ExternalToolPage url={subpage.url} />
   }

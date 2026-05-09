@@ -11,11 +11,12 @@ import {
 } from '../data/dividendStocks'
 import { useRetirementStore } from '../store/useRetirementStore'
 import AIAnalysisPanel from '../components/AIAnalysisPanel'
+import type { Subpage } from '../App'
 
 const CATEGORY_OPTIONS = ['全部', '银行', '能源', '基建', '消费', '通信', '红利ETF', '宽基ETF', '行业ETF', '其它'] as const
 type CategoryFilter = '全部' | DividendAssetCategory
 
-export default function DividendStocksPage() {
+export default function DividendStocksPage({ onNavigate }: { onNavigate: (subpage: Subpage) => void }) {
   const customAssets = useRetirementStore(s => s.plan.customDividendAssets)
   const customCodes = useMemo(() => new Set(customAssets.map(a => a.code)), [customAssets])
   const assets = useMemo(() => getDividendAssets(customAssets), [customAssets])
@@ -89,6 +90,7 @@ export default function DividendStocksPage() {
         title="高股息标的库分析"
         scope="内置与本地自定义标的数据完整性、可疑口径、ETF 分派字段、研报覆盖"
         context={aiContext}
+        onNavigate={onNavigate}
       />
 
       <div style={{
