@@ -11,7 +11,11 @@ import {
   type DividendAssetRef,
   type DividendAssetType,
 } from '../../data/dividendStocks'
-import { computeHoldingIncome, projectHoldingIncomeByResearch } from '../../utils/retirementCalc'
+import {
+  computeHoldingIncome, projectHoldingIncomeByResearch,
+  computePensionProjection, projectDividendSummary,
+} from '../../utils/retirementCalc'
+import { DIVIDEND_SCENARIO_LABELS } from '../../types/retirement'
 import { formatCNY } from '../../utils/formatters'
 import DonutChart, { type BreakdownItem } from '../charts/DonutChart'
 import AIAnalysisPanel from '../AIAnalysisPanel'
@@ -19,6 +23,12 @@ import type { DividendHolding } from '../../types/retirement'
 import type { Subpage } from '../../App'
 
 const ASSET_CATEGORIES: DividendAssetCategory[] = ['银行', '能源', '基建', '消费', '通信', '红利ETF', '宽基ETF', '行业ETF', '其它']
+
+function round(n: number, digits = 2): number {
+  if (!Number.isFinite(n)) return 0
+  const f = Math.pow(10, digits)
+  return Math.round(n * f) / f
+}
 
 interface AssetCandidate {
   code: string
@@ -49,35 +59,113 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
   const [newCode, setNewCode] = useState(DIVIDEND_STOCKS[0].code)
   const [newShares, setNewShares] = useState('')
   const targetGapItems = buildTargetGapItems(holdings, customAssets)
-  const aiContext = useMemo(() => ({
-    holdings: holdings.map(h => {
+
+  const pension = useRetirementStore(s => s.plan.pension)
+  const dividendScenario = useRetirementStore(s => s.plan.dividendScenario)
+  const decentMonthlyTarget = useRetirementStore(s => s.plan.decentStandard.monthlyAmount)
+
+  const aiContext = useMemo(() => {
+    const pensionProj = computePensionProjection(pension)
+    const yearsToRetire = pensionProj.yearsToRetire
+    const retiredSummary = yearsToRetire > 0
+      ? projectDividendSummary(holdings, dividendScenario, yearsToRetire, customAssets)
+      : null
+
+    const enriched = holdings.map(h => {
       const ref = findDividendStock(h.stockCode, customAssets)
       const income = computeHoldingIncome(h, customAssets)
+      const research = ref?.research
+      const researchProjection = projectHoldingIncomeByResearch(h, customAssets)
       return {
         name: h.stockName,
         code: h.stockCode,
         assetType: ref?.assetType ?? 'stock',
+        category: ref?.category ?? '其它',
         shares: h.shares,
         targetShares: h.targetShares,
-        dividendPerShare: income.dividendPerShare,
-        grossAnnual: income.grossAnnual,
-        netAnnual: income.netAnnual,
-        yieldPct: income.yieldPct,
-        referenceMarketValue: income.referenceMarketValue,
+        dividendPerShare: round(income.dividendPerShare, 4),
+        grossAnnual: round(income.grossAnnual, 2),
+        netAnnual: round(income.netAnnual, 2),
+        yieldPct: round(income.yieldPct, 2),
+        referenceMarketValue: round(income.referenceMarketValue, 2),
+        growth: ref?.growth ?? null,
+        research: research ? {
+          targetPriceAvg: research.targetPriceAvg,
+          targetPriceAsOf: research.targetPriceAsOf,
+          upsidePct: research.upsidePct,
+          forecasts: research.forecasts.filter(f => f.growthPct !== null),
+          sourceNote: research.sourceNote,
+        } : null,
+        researchProjectedNetAnnual: researchProjection
+          ? round(researchProjection.income.netAnnual, 2)
+          : null,
+        researchYearsForward: researchProjection?.yearsForward ?? null,
         sourceProvider: ref?.sourceProvider ?? '内置表',
         sourceAsOf: ref?.sourceAsOf,
         sourceNote: ref?.sourceNote,
         disclosureNote: ref?.disclosureNote,
-        hasResearch: Boolean(ref?.research),
       }
-    }),
-    targetGaps: targetGapItems,
-    customAssets,
-    totals: {
-      grossAnnual: holdings.reduce((s, h) => s + computeHoldingIncome(h, customAssets).grossAnnual, 0),
-      netAnnual: holdings.reduce((s, h) => s + computeHoldingIncome(h, customAssets).netAnnual, 0),
-    },
-  }), [holdings, customAssets, targetGapItems])
+    })
+
+    const totalMV = enriched.reduce((s, r) => s + r.referenceMarketValue, 0)
+    const grossAnnual = enriched.reduce((s, r) => s + r.grossAnnual, 0)
+    const netAnnual = enriched.reduce((s, r) => s + r.netAnnual, 0)
+    const weightedYieldPct = totalMV > 0
+      ? enriched.reduce((s, r) => s + r.yieldPct * r.referenceMarketValue, 0) / totalMV
+      : 0
+
+    const withWeights = enriched.map(r => ({
+      ...r,
+      weightPct: totalMV > 0 ? round((r.referenceMarketValue / totalMV) * 100, 2) : 0,
+    }))
+
+    const bySingleStock = withWeights
+      .map(r => ({ name: r.name, code: r.code, category: r.category, weightPct: r.weightPct }))
+      .sort((a, b) => b.weightPct - a.weightPct)
+
+    const catMap = new Map<string, { mv: number; count: number }>()
+    for (const r of withWeights) {
+      const cur = catMap.get(r.category) ?? { mv: 0, count: 0 }
+      cur.mv += r.referenceMarketValue
+      cur.count += 1
+      catMap.set(r.category, cur)
+    }
+    const byCategory = Array.from(catMap.entries())
+      .map(([category, v]) => ({
+        category,
+        weightPct: totalMV > 0 ? round((v.mv / totalMV) * 100, 2) : 0,
+        count: v.count,
+      }))
+      .sort((a, b) => b.weightPct - a.weightPct)
+
+    return {
+      goal: '伪财富自由 + 养老 · 现金流为主、增长为辅、回撤可控',
+      decentMonthlyTarget,
+      dividendScenario,
+      dividendScenarioLabel: DIVIDEND_SCENARIO_LABELS[dividendScenario],
+      yearsToRetire: round(yearsToRetire, 2),
+      pensionMonthly: round(pensionProj.monthlyTotal, 2),
+      holdings: withWeights,
+      concentration: {
+        totalReferenceMarketValue: round(totalMV, 2),
+        topStock: bySingleStock[0] ?? null,
+        topCategory: byCategory[0] ?? null,
+        bySingleStock,
+        byCategory,
+      },
+      totals: {
+        grossAnnual: round(grossAnnual, 2),
+        netAnnual: round(netAnnual, 2),
+        netMonthly: round(netAnnual / 12, 2),
+        weightedYieldPct: round(weightedYieldPct, 2),
+        totalReferenceMarketValue: round(totalMV, 2),
+        retiredProjectedNetMonthly: retiredSummary
+          ? round(retiredSummary.netMonthly, 2) : null,
+      },
+      targetGaps: targetGapItems,
+      customAssets,
+    }
+  }, [holdings, customAssets, targetGapItems, pension, dividendScenario, decentMonthlyTarget])
 
   function handleAdd() {
     const shares = parseFloat(newShares) || 0
@@ -109,7 +197,7 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
 
       <AIAnalysisPanel
         title="股息持仓分析"
-        scope="组合股息、单标的贡献、目标资金缺口、分红/分派数据完整性"
+        scope="组合股息现金流与税后净额；单标的贡献度与股息可持续性；研报盈利预期与目标价空间；单标 / 行业（银行 / 能源 / 基建 / 消费 / 通信 / ETF）集中度与回撤防御；体面标准与 targetShares 缺口的优先级排序；分红 / 分派 / 来源数据的完整性"
         context={aiContext}
         compact
         onNavigate={onNavigate}
