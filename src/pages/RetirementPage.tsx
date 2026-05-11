@@ -214,6 +214,9 @@ export default function RetirementPage({ onNavigate, focusRequest }: {
       {/* 收入构成 */}
       {incomeItems.length > 0 || dividend.perHolding.some(h => h.holding.shares > 0) ? (
         <Section title={`养老现金流构成（${coverageMode === 'now' ? '当前' : '退休后'}）`}>
+          <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 12 }}>
+            股息率非固定，建议每季度结合最新研报刷新预期股息数据
+          </div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
             {(['income', 'value'] as const).map(tab => (
               <button key={tab} onClick={() => setChartTab(tab)}
