@@ -528,3 +528,100 @@ const inputStyle: React.CSSProperties = {
   width: '100%', padding: '12px 14px', borderRadius: 10,
   border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 16, boxSizing: 'border-box', fontFamily: 'inherit',
 }
+
+function HoldingsDetail({ perHolding, totalAssets, customAssets }: {
+  perHolding: HoldingIncome[]
+  totalAssets: number
+  customAssets: DividendAssetRef[]
+}) {
+  if (perHolding.length === 0) return null
+  const totalMV = perHolding.reduce((s, h) => s + h.referenceMarketValue, 0)
+  const totalNetAnnual = perHolding.reduce((s, h) => s + h.netAnnual, 0)
+  const overallYield = totalMV > 0 ? (totalNetAnnual / totalMV) * 100 : 0
+
+  return (
+    <div style={{ marginTop: 18, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>个股持仓</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 14 }}>
+        <SummaryMini label="持仓参考市值" value={formatCNY(totalMV)} />
+        <SummaryMini label="年股息合计" value={formatCNY(totalNetAnnual)} />
+        {totalAssets > 0 && (
+          <SummaryMini label="占总资产" value={`${((totalMV / totalAssets) * 100).toFixed(1)}%`} />
+        )}
+        <SummaryMini label="综合股息率" value={`${overallYield.toFixed(2)}%`} />
+      </div>
+      {perHolding.map((h, i) => (
+        <HoldingDetailRow
+          key={h.holding.id}
+          item={h}
+          totalMV={totalMV}
+          totalAssets={totalAssets}
+          colorIdx={i}
+          customAssets={customAssets}
+        />
+      ))}
+    </div>
+  )
+}
+
+function HoldingDetailRow({ item, totalMV, totalAssets, colorIdx, customAssets }: {
+  item: HoldingIncome
+  totalMV: number
+  totalAssets: number
+  colorIdx: number
+  customAssets: DividendAssetRef[]
+}) {
+  const ref = findDividendStock(item.holding.stockCode, customAssets)
+  const unitLabel = ref?.assetType === 'etf' ? '份' : '股'
+  const mvPct = totalMV > 0 ? (item.referenceMarketValue / totalMV) * 100 : 0
+  const assetPct = totalAssets > 0 ? (item.referenceMarketValue / totalAssets) * 100 : null
+  const color = COLORS[colorIdx % COLORS.length]
+
+  return (
+    <div style={{ padding: '10px 0', borderTop: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-strong)' }}>
+              {item.holding.stockName}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--muted)' }}>{item.holding.stockCode}</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 14, lineHeight: 1.7 }}>
+            {item.holding.shares.toLocaleString()} {unitLabel}
+            {item.referenceMarketValue > 0 && ` · ${formatCNY(item.referenceMarketValue)}`}
+            {assetPct !== null && ` · 占总资产 ${assetPct.toFixed(2)}%`}
+          </div>
+          <div style={{ marginLeft: 14, marginTop: 5, height: 3, background: 'var(--progress-bg)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: `${Math.max(2, mvPct)}%`, height: '100%', background: color, borderRadius: 2 }} />
+          </div>
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          {item.yieldPct > 0 && (
+            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary-strong)' }}>
+              {item.yieldPct.toFixed(2)}%
+            </div>
+          )}
+          {item.netAnnual > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+              {formatCNY(item.netAnnual)}/年
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+            占持仓 {mvPct.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SummaryMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ background: 'var(--surface-muted)', borderRadius: 10, padding: '8px 10px' }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-strong)' }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{label}</div>
+    </div>
+  )
+}
