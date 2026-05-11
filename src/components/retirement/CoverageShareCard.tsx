@@ -326,8 +326,9 @@ function buildIncomeRows(income: IncomeSplit): RowItem[] {
 }
 
 function buildHoldingRows(holdings: DividendHolding[], customAssets: DividendAssetRef[]): RowItem[] {
-  if (holdings.length === 0) return []
-  const incomes = holdings.map(h => {
+  const activeHoldings = holdings.filter(h => h.shares > 0)
+  if (activeHoldings.length === 0) return []
+  const incomes = activeHoldings.map(h => {
     const inc = computeHoldingIncome(h, customAssets)
     const ref = findDividendStock(h.stockCode, customAssets)
     return {
