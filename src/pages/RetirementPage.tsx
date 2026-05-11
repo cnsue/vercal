@@ -7,7 +7,7 @@ import DimensionDetailSheet from '../components/retirement/DimensionDetailSheet'
 import DividendHoldings from '../components/retirement/DividendHoldings'
 import DecentStandardEditor from '../components/retirement/DecentStandardEditor'
 import TargetSimulator from '../components/retirement/TargetSimulator'
-import DonutChart, { type BreakdownItem } from '../components/charts/DonutChart'
+import DonutChart, { type BreakdownItem, COLORS } from '../components/charts/DonutChart'
 import { formatCNY } from '../utils/formatters'
 import {
   computeDividendSummary, projectDividendSummary,
