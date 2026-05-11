@@ -187,6 +187,47 @@ const BASE_DIVIDEND_STOCKS: Omit<DividendAssetRef, 'assetType'>[] = [
     growth: { pessimistic: 0.00, neutral: 0.03, optimistic: 0.05 } },
 ]
 
+// ETF 数据口径：dividendPerShare 为「完整会计年度每份现金分派（税前，元）」
+// ETF 参考价取自天天基金网净值（2026-05-08），分派历史来自天天基金网分红公告
+const DIVIDEND_ETFS: DividendAssetRef[] = [
+  // 红利ETF
+  { code: '510880', name: '红利ETF', assetType: 'etf', category: '红利ETF',
+    dividendPerShare: 0.143, asOfYear: '2025', referencePrice: 3.258, priceAsOf: '2026-05-08',
+    sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
+    sourceNote: '跟踪上证红利指数（华泰柏瑞）；2025年度每份0.143，2026-01-26发放',
+    growth: { pessimistic: 0.00, neutral: 0.03, optimistic: 0.06 } },
+  { code: '515180', name: '红利ETF易方达', assetType: 'etf', category: '红利ETF',
+    dividendPerShare: 0.061, asOfYear: '2025', referencePrice: 1.440, priceAsOf: '2026-05-08',
+    sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
+    sourceNote: '跟踪中证红利指数（易方达）；每年10月分派，2025-10-24发放0.061元',
+    growth: { pessimistic: 0.00, neutral: 0.03, optimistic: 0.06 } },
+  { code: '159905', name: '红利ETF工银', assetType: 'etf', category: '红利ETF',
+    dividendPerShare: 0.306, asOfYear: '2024', referencePrice: 1.836, priceAsOf: '2026-05-08',
+    sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
+    sourceNote: '跟踪深证红利价格指数（工银）；每季度分派，2024年9-12月4次合计',
+    disclosureNote: '2024年分派含较大资本利得成分，历史偏高；2025年分派方案截至2026-05尚未披露',
+    growth: { pessimistic: 0.00, neutral: 0.04, optimistic: 0.07 } },
+  { code: '513950', name: '恒生红利ETF', assetType: 'etf', category: '红利ETF',
+    dividendPerShare: 0.063, asOfYear: '2025', referencePrice: 1.398, priceAsOf: '2026-05-08',
+    sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
+    sourceNote: '跟踪恒生港股通红利低波动指数（富国）；2025年共6次分派合计0.063元',
+    growth: { pessimistic: -0.02, neutral: 0.03, optimistic: 0.07 } },
+
+  // 宽基ETF
+  { code: '510300', name: '沪深300ETF', assetType: 'etf', category: '宽基ETF',
+    dividendPerShare: 0.211, asOfYear: '2025', referencePrice: 4.888, priceAsOf: '2026-05-08',
+    sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
+    sourceNote: '跟踪沪深300指数（华泰柏瑞）；2025年两次：2025-06（0.088元）+ 2026-01（0.123元）',
+    growth: { pessimistic: 0.00, neutral: 0.05, optimistic: 0.09 } },
+
+  // 行业ETF
+  { code: '515220', name: '煤炭ETF', assetType: 'etf', category: '行业ETF',
+    dividendPerShare: 0.040, asOfYear: '2025', referencePrice: 1.245, priceAsOf: '2026-05-08',
+    sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
+    sourceNote: '跟踪中证煤炭指数（国泰）；每年12月分派，2025-12-29发放0.040元',
+    growth: { pessimistic: -0.15, neutral: -0.03, optimistic: 0.08 } },
+]
+
 export const DIVIDEND_STOCKS: DividendStockRef[] = BASE_DIVIDEND_STOCKS.map(stock => {
   const researchRef = DIVIDEND_STOCK_RESEARCH_BY_CODE[stock.code] ?? stock.research
   const researchWithUpside = researchRef && researchRef.targetPriceAvg !== undefined && stock.referencePrice > 0
