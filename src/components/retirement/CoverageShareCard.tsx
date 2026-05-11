@@ -246,7 +246,7 @@ function PercentRow({ label, subtitle, percent, barColor }: {
           />
         </div>
         <div style={{ width: 44, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#333' }}>
-          {Math.round(percent)}%
+          {percent < 1 ? percent.toFixed(1) : Math.round(percent)}%
         </div>
       </div>
       {subtitle && (
