@@ -212,7 +212,7 @@ const DIVIDEND_ETFS: DividendAssetRef[] = [
     sourceNote: '跟踪深证红利价格指数（工银）；每季度分派，2024年9-12月4次合计',
     disclosureNote: '2024年分派含较大资本利得成分，历史偏高；2025年分派方案截至2026-05尚未披露',
     growth: { pessimistic: 0.00, neutral: 0.04, optimistic: 0.07 } },
-  { code: '513950', name: '恒生红利ETF', assetType: 'etf', category: '红利ETF',
+  { code: '513950', name: '恒生红利ETF', assetType: 'etf', category: '红利ETF', featured: true,
     dividendPerShare: 0.063, asOfYear: '2025', referencePrice: 1.398, priceAsOf: '2026-05-08',
     sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
     sourceNote: '跟踪恒生港股通红利低波动指数（富国）；2025年共6次分派合计0.063元',
