@@ -212,11 +212,44 @@ export default function RetirementPage({ onNavigate, focusRequest }: {
       />
 
       {/* 收入构成 */}
-      {incomeItems.length > 0 ? (
-        <Section title={`养老现金流构成（年 · ${coverageMode === 'now' ? '当前' : '退休后'}）`}>
-          <DonutChart
-            items={incomeItems}
-            title={coverageMode === 'now' ? '当前年被动收入来源' : '退休后年被动收入来源'}
+      {incomeItems.length > 0 || dividend.perHolding.some(h => h.holding.shares > 0) ? (
+        <Section title={`养老现金流构成（${coverageMode === 'now' ? '当前' : '退休后'}）`}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            {(['income', 'value'] as const).map(tab => (
+              <button key={tab} onClick={() => setChartTab(tab)}
+                style={{
+                  padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 700,
+                  background: chartTab === tab ? 'var(--primary)' : 'var(--button-secondary-bg)',
+                  color: chartTab === tab ? '#fff' : 'var(--button-secondary-text)',
+                }}>
+                {tab === 'income' ? '年现金流' : '持仓市值'}
+              </button>
+            ))}
+          </div>
+          {chartTab === 'income' && incomeItems.length > 0 && (
+            <DonutChart
+              items={incomeItems}
+              title={coverageMode === 'now' ? '当前年被动收入来源' : '退休后年被动收入来源'}
+            />
+          )}
+          {chartTab === 'income' && incomeItems.length === 0 && (
+            <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
+              配置养老金或其他被动收入后显示
+            </div>
+          )}
+          {chartTab === 'value' && holdingValueItems.length > 0 && (
+            <DonutChart items={holdingValueItems} title="持仓参考市值构成" />
+          )}
+          {chartTab === 'value' && holdingValueItems.length === 0 && (
+            <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
+              暂无持仓市值数据
+            </div>
+          )}
+          <HoldingsDetail
+            perHolding={dividend.perHolding.filter(h => h.holding.shares > 0)}
+            totalAssets={totalAssets}
+            customAssets={plan.customDividendAssets}
           />
         </Section>
       ) : (
