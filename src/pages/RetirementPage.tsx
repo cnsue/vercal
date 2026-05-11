@@ -34,6 +34,7 @@ export default function RetirementPage({ onNavigate, focusRequest }: {
   const [showOtherEditor, setShowOtherEditor] = useState(false)
   const [showSimulator, setShowSimulator] = useState(false)
   const [coverageMode, setCoverageMode] = useState<CoverageMode>('now')
+  const [chartTab, setChartTab] = useState<'income' | 'value'>('income')
   const [detailDimId, setDetailDimId] = useState<string | null>(null)
   const [sharing, setSharing] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
