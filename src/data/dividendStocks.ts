@@ -268,7 +268,7 @@ export function researchUpsidePct(ref: DividendAssetRef): number | null {
 }
 
 export function findDividendStock(code: string, customAssets: DividendAssetRef[] = []): DividendAssetRef | undefined {
-  return customAssets.find(s => s.code === code) ?? DIVIDEND_STOCKS.find(s => s.code === code)
+  return customAssets.find(s => s.code === code) ?? DIVIDEND_BUILTIN_ASSETS.find(s => s.code === code)
 }
 
 export function dividendUnitLabel(ref: DividendAssetRef | undefined): string {
