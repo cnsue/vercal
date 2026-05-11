@@ -14,9 +14,10 @@ import {
   computePensionProjection, computeCoverage,
   computeGap, computeHoldingIncome, safeWithdrawMonthly,
   computeDimensionCoverage,
+  type HoldingIncome,
 } from '../utils/retirementCalc'
 import { findPensionCity } from '../data/pensionCities'
-import { findDividendStock } from '../data/dividendStocks'
+import { findDividendStock, type DividendAssetRef } from '../data/dividendStocks'
 import type { DividendGrowthScenario, DividendHolding } from '../types/retirement'
 import { DIVIDEND_SCENARIO_LABELS } from '../types/retirement'
 import type { Subpage } from '../App'
