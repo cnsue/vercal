@@ -1,4 +1,5 @@
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useMemo, useState, useEffect, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { useRetirementStore } from '../../store/useRetirementStore'
 import {
   DIVIDEND_STOCKS,
@@ -216,60 +217,22 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
         onUpdate={patch => updateHolding(h.id, patch)}
         onRemove={() => removeHolding(h.id)} />)}
 
-      {showAdd && (
-        <div style={{ marginTop: 12, padding: 12, background: 'var(--surface-muted)', borderRadius: 10 }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>选择标的</div>
-          <select value={newCode} onChange={e => setNewCode(e.target.value)} style={inputStyle}>
-            {assets.map(s => {
-              const unit = dividendUnitLabel(s)
-              return (
-                <option key={s.code} value={s.code}>
-                  {s.name}（{s.code}）· {s.assetType === 'etf' ? 'ETF' : '股票'} · ¥{s.dividendPerShare.toFixed(3)}/{unit} · 股息率 {dividendYieldPct(s).toFixed(2)}%
-                </option>
-              )
-            })}
-          </select>
-          {(() => {
-            const ref = findDividendStock(newCode, customAssets)
-            if (!ref) return null
-            return (
-              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
-                数据口径：{ref.asOfYear} · 参考价 ¥{ref.referencePrice}（{ref.priceAsOf}）
-                {ref.sourceProvider && (
-                  <div>来源：{ref.sourceProvider}{ref.sourceAsOf ? ` · ${ref.sourceAsOf}` : ''}</div>
-                )}
-                {ref.sourceNote && <div>{ref.sourceNote}</div>}
-                {ref.disclosureNote && (
-                  <div style={{ marginTop: 4, color: 'var(--warning-text)' }}>⚠️ {ref.disclosureNote}</div>
-                )}
-              </div>
-            )
-          })()}
-          <div style={{ fontSize: 12, color: 'var(--muted)', margin: '10px 0 6px' }}>
-            持有数量（{dividendUnitLabel(findDividendStock(newCode, customAssets))}）
-          </div>
-          <input type="number" placeholder="例如 1000" value={newShares}
-            onChange={e => setNewShares(e.target.value)} style={inputStyle} />
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button onClick={() => setShowAdd(false)} style={{ ...btn, flex: 1, background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)' }}>取消</button>
-            <button onClick={handleAdd} style={{ ...btn, flex: 2, background: 'var(--primary)', color: '#fff' }}>添加持仓</button>
-          </div>
-
-          <AssetSearchBox
-            onSave={asset => {
-              addCustomDividendAsset(asset)
-              setNewCode(asset.code)
-            }}
-          />
-          {customAssets.length > 0 && (
-            <CustomAssetList
-              assets={customAssets}
-              holdings={holdings}
-              onUpdate={updateCustomDividendAsset}
-              onRemove={removeCustomDividendAsset}
-            />
-          )}
-        </div>
+      {showAdd && createPortal(
+        <AddHoldingSheet
+          assets={assets}
+          customAssets={customAssets}
+          holdings={holdings}
+          newCode={newCode}
+          newShares={newShares}
+          onCodeChange={setNewCode}
+          onSharesChange={setNewShares}
+          onAdd={handleAdd}
+          onClose={() => { setShowAdd(false); setNewShares('') }}
+          onSaveCustomAsset={asset => { addCustomDividendAsset(asset); setNewCode(asset.code) }}
+          onUpdateCustomAsset={updateCustomDividendAsset}
+          onRemoveCustomAsset={removeCustomDividendAsset}
+        />,
+        document.body,
       )}
 
       {holdings.length > 0 && (
@@ -282,6 +245,96 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function AddHoldingSheet({
+  assets, customAssets, holdings, newCode, newShares,
+  onCodeChange, onSharesChange, onAdd, onClose,
+  onSaveCustomAsset, onUpdateCustomAsset, onRemoveCustomAsset,
+}: {
+  assets: DividendAssetRef[]
+  customAssets: DividendAssetRef[]
+  holdings: DividendHolding[]
+  newCode: string
+  newShares: string
+  onCodeChange: (v: string) => void
+  onSharesChange: (v: string) => void
+  onAdd: () => void
+  onClose: () => void
+  onSaveCustomAsset: (a: DividendAssetRef) => void
+  onUpdateCustomAsset: (code: string, patch: Partial<DividendAssetRef>) => void
+  onRemoveCustomAsset: (code: string) => void
+}) {
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
+  const ref = findDividendStock(newCode, customAssets)
+
+  return (
+    <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div style={sheetStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>添加持仓</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: 'var(--muted)', cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}>×</button>
+        </div>
+
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>选择标的</div>
+        <select value={newCode} onChange={e => onCodeChange(e.target.value)} style={inputStyle}>
+          {assets.map(s => {
+            const unit = dividendUnitLabel(s)
+            return (
+              <option key={s.code} value={s.code}>
+                {s.name}（{s.code}）· {s.assetType === 'etf' ? 'ETF' : '股票'} · ¥{s.dividendPerShare.toFixed(3)}/{unit} · 股息率 {dividendYieldPct(s).toFixed(2)}%
+              </option>
+            )
+          })}
+        </select>
+
+        {ref && (
+          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+            数据口径：{ref.asOfYear} · 参考价 ¥{ref.referencePrice}（{ref.priceAsOf}）
+            {ref.sourceProvider && (
+              <div>来源：{ref.sourceProvider}{ref.sourceAsOf ? ` · ${ref.sourceAsOf}` : ''}</div>
+            )}
+            {ref.sourceNote && <div>{ref.sourceNote}</div>}
+            {ref.disclosureNote && (
+              <div style={{ marginTop: 4, color: 'var(--warning-text)' }}>⚠️ {ref.disclosureNote}</div>
+            )}
+          </div>
+        )}
+
+        <div style={{ fontSize: 12, color: 'var(--muted)', margin: '10px 0 6px' }}>
+          持有数量（{dividendUnitLabel(findDividendStock(newCode, customAssets))}）
+        </div>
+        <input
+          type="number" placeholder="例如 1000" value={newShares}
+          onChange={e => onSharesChange(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') onAdd() }}
+          style={inputStyle}
+          autoFocus
+        />
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          <button onClick={onClose} style={{ ...btn, flex: 1, background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)' }}>取消</button>
+          <button onClick={onAdd} style={{ ...btn, flex: 2, background: 'var(--primary)', color: '#fff' }}>添加持仓</button>
+        </div>
+
+        <AssetSearchBox onSave={onSaveCustomAsset} />
+
+        {customAssets.length > 0 && (
+          <CustomAssetList
+            assets={customAssets}
+            holdings={holdings}
+            onUpdate={onUpdateCustomAsset}
+            onRemove={onRemoveCustomAsset}
+          />
+        )}
+      </div>
     </div>
   )
 }
@@ -707,4 +760,14 @@ const btn: CSSProperties = {
 }
 const draftLabel: CSSProperties = {
   fontSize: 11, color: 'var(--muted)', marginBottom: 3,
+}
+const overlayStyle: CSSProperties = {
+  position: 'fixed', inset: 0, zIndex: 1000,
+  background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end',
+}
+const sheetStyle: CSSProperties = {
+  width: '100%', maxHeight: '90dvh', overflowY: 'auto',
+  background: 'var(--surface)', borderRadius: '20px 20px 0 0',
+  padding: '20px 16px calc(20px + env(safe-area-inset-bottom))',
+  boxSizing: 'border-box',
 }
