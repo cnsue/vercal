@@ -111,6 +111,14 @@ function StockCard({ stock, isCustom }: { stock: DividendAssetRef; isCustom: boo
             }}>
               {stock.category}
             </span>
+            {stock.featured && (
+              <span style={{
+                fontSize: 11, fontWeight: 800, color: '#fff',
+                background: 'var(--warning-text)', borderRadius: 999, padding: '2px 7px',
+              }}>
+                ★ 重点推荐
+              </span>
+            )}
             {isCustom && (
               <span style={{
                 fontSize: 11, fontWeight: 800, color: 'var(--button-secondary-text)',
