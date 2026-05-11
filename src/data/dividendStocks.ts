@@ -244,11 +244,13 @@ export const DIVIDEND_STOCKS: DividendStockRef[] = BASE_DIVIDEND_STOCKS.map(stoc
   }
 })
 
+export const DIVIDEND_BUILTIN_ASSETS: DividendAssetRef[] = [...DIVIDEND_STOCKS, ...DIVIDEND_ETFS]
+
 export function getDividendAssets(customAssets: DividendAssetRef[] = []): DividendAssetRef[] {
   const customCodes = new Set(customAssets.map(asset => asset.code))
   return [
     ...customAssets,
-    ...DIVIDEND_STOCKS.filter(stock => !customCodes.has(stock.code)),
+    ...DIVIDEND_BUILTIN_ASSETS.filter(a => !customCodes.has(a.code)),
   ]
 }
 
