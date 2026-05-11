@@ -1,27 +1,28 @@
-import { useMemo, useState, useEffect, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { useRetirementStore } from '../../store/useRetirementStore'
+import type { Subpage } from '../../App'
 import {
   DIVIDEND_STOCKS,
-  findDividendStock,
-  dividendYieldPct,
-  getDividendAssets,
-  dividendUnitLabel,
   dividendPerUnitLabel,
+  dividendUnitLabel,
+  dividendYieldPct,
+  findDividendStock,
+  getDividendAssets,
   type DividendAssetCategory,
   type DividendAssetRef,
   type DividendAssetType,
 } from '../../data/dividendStocks'
-import {
-  computeHoldingIncome, projectHoldingIncomeByResearch,
-  computePensionProjection, projectDividendSummary,
-} from '../../utils/retirementCalc'
+import { useRetirementStore } from '../../store/useRetirementStore'
+import type { DividendHolding } from '../../types/retirement'
 import { DIVIDEND_SCENARIO_LABELS } from '../../types/retirement'
 import { formatCNY } from '../../utils/formatters'
-import DonutChart, { type BreakdownItem } from '../charts/DonutChart'
+import {
+  computeHoldingIncome,
+  computePensionProjection, projectDividendSummary,
+  projectHoldingIncomeByResearch,
+} from '../../utils/retirementCalc'
 import AIAnalysisPanel from '../AIAnalysisPanel'
-import type { DividendHolding } from '../../types/retirement'
-import type { Subpage } from '../../App'
+import DonutChart, { type BreakdownItem } from '../charts/DonutChart'
 
 const ASSET_CATEGORIES: DividendAssetCategory[] = ['银行', '能源', '基建', '消费', '通信', '红利ETF', '宽基ETF', '行业ETF', '其它']
 
@@ -140,7 +141,7 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
       .sort((a, b) => b.weightPct - a.weightPct)
 
     return {
-      goal: '伪财富自由 + 养老 · 现金流为主、增长为辅、回撤可控',
+      goal: '财富自由 + 养老 · 现金流为主、增长为辅、回撤可控',
       decentMonthlyTarget,
       dividendScenario,
       dividendScenarioLabel: DIVIDEND_SCENARIO_LABELS[dividendScenario],
