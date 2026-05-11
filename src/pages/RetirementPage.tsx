@@ -111,6 +111,17 @@ export default function RetirementPage({ onNavigate, focusRequest }: {
     return items.map(i => ({ ...i, weight: (i.value / total) * 100 }))
   }, [coverage, coverageMode, dividend.perHolding, projectedDividend.perHolding])
 
+  const holdingValueItems: BreakdownItem[] = useMemo(() => {
+    const rows = dividend.perHolding.filter(h => h.holding.shares > 0 && h.referenceMarketValue > 0)
+    if (rows.length === 0) return []
+    const total = rows.reduce((s, h) => s + h.referenceMarketValue, 0) || 1
+    return rows.map(h => ({
+      name: h.holding.stockName,
+      value: h.referenceMarketValue,
+      weight: (h.referenceMarketValue / total) * 100,
+    }))
+  }, [dividend.perHolding])
+
   const city = findPensionCity(plan.pension.cityKey)
   const pensionConfigured = pension.totalMonths > 0
 
