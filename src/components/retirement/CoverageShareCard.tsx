@@ -360,7 +360,7 @@ function buildHoldingRows(holdings: DividendHolding[], customAssets: DividendAss
 function formatHoldingMeta(asOfYear: string | undefined, dps: number, yieldPct: number, perUnitLabel: string): string {
   const parts: string[] = []
   if (dps > 0) {
-    const yearLabel = asOfYear ? `${asOfYear.slice(-2)}年` : '近期'
+    const yearLabel = asOfYear ? `${asOfYear.replace(/\D/g, '').slice(-2)}年` : '近期'
     parts.push(`${yearLabel}${perUnitLabel} ${vagueDividend(dps)}`)
   }
   if (yieldPct > 0) parts.push(`股息率 ${vagueYield(yieldPct)}`)
