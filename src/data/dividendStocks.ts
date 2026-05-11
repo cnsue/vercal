@@ -69,6 +69,8 @@ export interface DividendAssetRef {
   disclosureNote?: string
   /** 近 3-6 个月研报或一致预期摘要 */
   research?: DividendStockResearch
+  /** 重点推荐标的 */
+  featured?: boolean
   /**
    * 每年现金分红的三档增长率估计（实际 = 去除通胀的"实际增长"口径）。
    * 基于该股近 5-10 年历史分红 CAGR 与行业周期性粗估，用于退休后覆盖率的前瞻推算。

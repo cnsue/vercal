@@ -1,0 +1,985 @@
+{
+  "updatedAt": "2026-05-08",
+  "exportedAt": "2026-05-11",
+  "total": 33,
+  "stocks": 23,
+  "etfs": 10,
+  "assets": [
+    {
+      "code": "601398",
+      "name": "工商银行",
+      "dividendPerShare": 0.3103,
+      "asOfYear": "2025",
+      "referencePrice": 7.52,
+      "priceAsOf": "2026-04-22",
+      "category": "银行",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.03,
+        "optimistic": 0.05
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 8.84,
+        "targetPriceAsOf": "2026-04-10",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 2.2
+          },
+          {
+            "year": 2027,
+            "growthPct": 3.6
+          },
+          {
+            "year": 2028,
+            "growthPct": null
+          }
+        ],
+        "sourceNote": "同花顺 6 个月内机构盈利预测与富途/Investing 目标价；公开均值暂未提供 2028 归母净利预测",
+        "upsidePct": 17.55319148936171
+      }
+    },
+    {
+      "code": "601939",
+      "name": "建设银行",
+      "dividendPerShare": 0.3887,
+      "asOfYear": "2025",
+      "referencePrice": 9.85,
+      "priceAsOf": "2026-04-21",
+      "category": "银行",
+      "growth": {
+        "pessimistic": 0.01,
+        "neutral": 0.04,
+        "optimistic": 0.06
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 10.57,
+        "targetPriceAsOf": "2026-03-20",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 3.5
+          },
+          {
+            "year": 2027,
+            "growthPct": 3.5
+          },
+          {
+            "year": 2028,
+            "growthPct": 4.5
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测表与 Investing 目标价均值",
+        "upsidePct": 7.309644670050767
+      }
+    },
+    {
+      "code": "601288",
+      "name": "农业银行",
+      "dividendPerShare": 0.2495,
+      "asOfYear": "2025",
+      "referencePrice": 7.19,
+      "priceAsOf": "2026-04-20",
+      "category": "银行",
+      "growth": {
+        "pessimistic": 0.02,
+        "neutral": 0.05,
+        "optimistic": 0.08
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 7.79,
+        "targetPriceAsOf": "2026-04-17",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 3.8
+          },
+          {
+            "year": 2027,
+            "growthPct": 4.2
+          },
+          {
+            "year": 2028,
+            "growthPct": 5.9
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测均值与富途目标价均值",
+        "upsidePct": 8.344923504867866
+      }
+    },
+    {
+      "code": "601988",
+      "name": "中国银行",
+      "dividendPerShare": 0.2263,
+      "asOfYear": "2025",
+      "referencePrice": 5.93,
+      "priceAsOf": "2026-04-21",
+      "category": "银行",
+      "growth": {
+        "pessimistic": 0.01,
+        "neutral": 0.04,
+        "optimistic": 0.06
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 6.34,
+        "targetPriceAsOf": "2026-04-29",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 5.8
+          },
+          {
+            "year": 2027,
+            "growthPct": 4.8
+          },
+          {
+            "year": 2028,
+            "growthPct": 5
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测表与 Investing 目标价均值",
+        "upsidePct": 6.9139966273187206
+      }
+    },
+    {
+      "code": "601328",
+      "name": "交通银行",
+      "dividendPerShare": 0.3247,
+      "asOfYear": "2025",
+      "referencePrice": 7.16,
+      "priceAsOf": "2026-04",
+      "category": "银行",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.03,
+        "optimistic": 0.05
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 8.07,
+        "targetPriceAsOf": "2026-05-05",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 2.7
+          },
+          {
+            "year": 2027,
+            "growthPct": 3.1
+          },
+          {
+            "year": 2028,
+            "growthPct": 4.2
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测均值与 Investing 目标价均值",
+        "upsidePct": 12.709497206703912
+      }
+    },
+    {
+      "code": "600036",
+      "name": "招商银行",
+      "dividendPerShare": 2.016,
+      "asOfYear": "2025",
+      "referencePrice": 39.9,
+      "priceAsOf": "2026-04-15",
+      "category": "银行",
+      "growth": {
+        "pessimistic": 0.03,
+        "neutral": 0.08,
+        "optimistic": 0.13
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 52.2,
+        "targetPriceAsOf": "2026-04-16",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 2.9
+          },
+          {
+            "year": 2027,
+            "growthPct": 4.5
+          },
+          {
+            "year": 2028,
+            "growthPct": 5.7
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测均值与 Investing 目标价均值",
+        "upsidePct": 30.82706766917294
+      }
+    },
+    {
+      "code": "601166",
+      "name": "兴业银行",
+      "dividendPerShare": 1.066,
+      "asOfYear": "2025",
+      "referencePrice": 18.22,
+      "priceAsOf": "2026-04-22",
+      "category": "银行",
+      "growth": {
+        "pessimistic": 0.02,
+        "neutral": 0.06,
+        "optimistic": 0.1
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 24.84,
+        "targetPriceAsOf": "2026-03-28",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 2.8
+          },
+          {
+            "year": 2027,
+            "growthPct": 4
+          },
+          {
+            "year": 2028,
+            "growthPct": 4.3
+          }
+        ],
+        "sourceNote": "同花顺与华泰证券 2026-2028 盈利预测摘录；目标价采用华泰证券 A 股目标价",
+        "upsidePct": 36.33369923161362
+      }
+    },
+    {
+      "code": "601838",
+      "name": "成都银行",
+      "dividendPerShare": 0.921,
+      "asOfYear": "2025*",
+      "referencePrice": 18.16,
+      "priceAsOf": "2026-04",
+      "category": "银行",
+      "disclosureNote": "2025 年度分红方案已董事会通过，拟每 10 股派 9.21 元，尚待股东会审议",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.04,
+        "optimistic": 0.07
+      },
+      "assetType": "stock"
+    },
+    {
+      "code": "002142",
+      "name": "宁波银行",
+      "dividendPerShare": 1.2,
+      "asOfYear": "2025*",
+      "referencePrice": 31.42,
+      "priceAsOf": "2026-03-09",
+      "category": "银行",
+      "disclosureNote": "2025 年全年 = 2025 中期 0.30 + 2025 末期 0.90；末期方案已董事会通过，尚待股东会审议",
+      "growth": {
+        "pessimistic": 0.02,
+        "neutral": 0.06,
+        "optimistic": 0.09
+      },
+      "assetType": "stock"
+    },
+    {
+      "code": "600919",
+      "name": "江苏银行",
+      "dividendPerShare": 0.5641,
+      "asOfYear": "2025*",
+      "referencePrice": 11.21,
+      "priceAsOf": "2026-05-07",
+      "category": "银行",
+      "disclosureNote": "2025 年全年 = 2025 中期 0.3309 + 2025 末期 0.2332；末期方案已董事会通过，尚待股东会审议",
+      "growth": {
+        "pessimistic": 0.02,
+        "neutral": 0.05,
+        "optimistic": 0.08
+      },
+      "assetType": "stock"
+    },
+    {
+      "code": "600900",
+      "name": "长江电力",
+      "dividendPerShare": 0.943,
+      "asOfYear": "2025*",
+      "referencePrice": 27.13,
+      "priceAsOf": "2026-04-21",
+      "category": "能源",
+      "disclosureNote": "2025 年度末期分红方案尚在征求意见阶段，当前值 = 2025 中期 0.21 + 2024 末期 0.733 估算",
+      "growth": {
+        "pessimistic": 0.03,
+        "neutral": 0.07,
+        "optimistic": 0.1
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 33.86,
+        "targetPriceAsOf": "2026-04-17",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 4.2
+          },
+          {
+            "year": 2027,
+            "growthPct": 4
+          },
+          {
+            "year": 2028,
+            "growthPct": null
+          }
+        ],
+        "sourceNote": "同花顺 6 个月内机构预测与富途目标价均值；公开均值暂未提供 2028 归母净利预测",
+        "upsidePct": 24.806487283450057
+      }
+    },
+    {
+      "code": "601006",
+      "name": "大秦铁路",
+      "dividendPerShare": 0.269,
+      "asOfYear": "2024",
+      "referencePrice": 5.33,
+      "priceAsOf": "2026-04-02",
+      "category": "基建",
+      "disclosureNote": "2025 年报截至 2026-04 未披露末期方案，暂用 2024 年全年合计（中期 0.129 + 末期 0.140）",
+      "growth": {
+        "pessimistic": -0.03,
+        "neutral": 0,
+        "optimistic": 0.03
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 6.92,
+        "targetPriceAsOf": "2026-03-23",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 5
+          },
+          {
+            "year": 2027,
+            "growthPct": 3.8
+          },
+          {
+            "year": 2028,
+            "growthPct": null
+          }
+        ],
+        "sourceNote": "华泰证券 2026-2027 归母净利预测与目标价；公开研报暂未提供 2028 归母净利预测",
+        "upsidePct": 29.831144465290805
+      }
+    },
+    {
+      "code": "601088",
+      "name": "中国神华",
+      "dividendPerShare": 2.01,
+      "asOfYear": "2025",
+      "referencePrice": 45.23,
+      "priceAsOf": "2026-04-20",
+      "category": "能源",
+      "growth": {
+        "pessimistic": -0.05,
+        "neutral": 0.03,
+        "optimistic": 0.1
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 49.7,
+        "targetPriceAsOf": "2026-04-15",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 10.8
+          },
+          {
+            "year": 2027,
+            "growthPct": 3.6
+          },
+          {
+            "year": 2028,
+            "growthPct": 3.2
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测表与富途目标价均值",
+        "upsidePct": 9.882821136413899
+      }
+    },
+    {
+      "code": "600028",
+      "name": "中国石化",
+      "dividendPerShare": 0.2,
+      "asOfYear": "2025",
+      "referencePrice": 5.44,
+      "priceAsOf": "2026-04-22",
+      "category": "能源",
+      "growth": {
+        "pessimistic": -0.03,
+        "neutral": 0.02,
+        "optimistic": 0.05
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 6.51,
+        "targetPriceAsOf": "2026-03-23",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 49.1
+          },
+          {
+            "year": 2027,
+            "growthPct": 15
+          },
+          {
+            "year": 2028,
+            "growthPct": 16.4
+          }
+        ],
+        "sourceNote": "同花顺/Simply Wall St 2026-2028 盈利预测与 Fintel 目标价均值",
+        "upsidePct": 19.669117647058812
+      }
+    },
+    {
+      "code": "601857",
+      "name": "中国石油",
+      "dividendPerShare": 0.47,
+      "asOfYear": "2025",
+      "referencePrice": 11.45,
+      "priceAsOf": "2026-04-22",
+      "category": "能源",
+      "growth": {
+        "pessimistic": -0.02,
+        "neutral": 0.03,
+        "optimistic": 0.08
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 15.02,
+        "targetPriceAsOf": "2026-04-07",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 13.8
+          },
+          {
+            "year": 2027,
+            "growthPct": 0.7
+          },
+          {
+            "year": 2028,
+            "growthPct": 5.1
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测表；目标价采用华泰证券与中银国际研究目标价均值",
+        "upsidePct": 31.179039301310045
+      }
+    },
+    {
+      "code": "601919",
+      "name": "中远海控",
+      "dividendPerShare": 1,
+      "asOfYear": "2025*",
+      "referencePrice": 14.1,
+      "priceAsOf": "2026-05-06",
+      "category": "基建",
+      "disclosureNote": "2025 年全年 = 2025 中期 0.56 + 2025 末期 0.44；末期方案已董事会通过，尚待股东会审议",
+      "growth": {
+        "pessimistic": -0.2,
+        "neutral": 0,
+        "optimistic": 0.15
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 17.36,
+        "targetPriceAsOf": "2026-04-17",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": -17.9
+          },
+          {
+            "year": 2027,
+            "growthPct": -11.3
+          },
+          {
+            "year": 2028,
+            "growthPct": 3.3
+          }
+        ],
+        "sourceNote": "同花顺/富途/Investing 公开一致预期与研报摘录；航运盈利对运价和红海绕行假设敏感",
+        "upsidePct": 23.120567375886523
+      }
+    },
+    {
+      "code": "600188",
+      "name": "兖矿能源",
+      "dividendPerShare": 0.5,
+      "asOfYear": "2025",
+      "referencePrice": 19.52,
+      "priceAsOf": "2026-04-21",
+      "category": "能源",
+      "growth": {
+        "pessimistic": -0.15,
+        "neutral": 0,
+        "optimistic": 0.1
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 20.67,
+        "targetPriceAsOf": "2026-04-18",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 81.9
+          },
+          {
+            "year": 2027,
+            "growthPct": 6.5
+          },
+          {
+            "year": 2028,
+            "growthPct": 18.9
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测均值与 Fintel 目标价均值",
+        "upsidePct": 5.891393442622961
+      }
+    },
+    {
+      "code": "600377",
+      "name": "宁沪高速",
+      "dividendPerShare": 0.49,
+      "asOfYear": "2025",
+      "referencePrice": 12.04,
+      "priceAsOf": "2026-04-21",
+      "category": "基建",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.03,
+        "optimistic": 0.05
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 13.48,
+        "targetPriceAsOf": "2026-05-01",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 8.2
+          },
+          {
+            "year": 2027,
+            "growthPct": 4.2
+          },
+          {
+            "year": 2028,
+            "growthPct": 2.2
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测均值与 Investing 目标价均值",
+        "upsidePct": 11.960132890365461
+      }
+    },
+    {
+      "code": "000651",
+      "name": "格力电器",
+      "dividendPerShare": 3,
+      "asOfYear": "2024",
+      "referencePrice": 36.91,
+      "priceAsOf": "2026-04-21",
+      "category": "消费",
+      "disclosureNote": "2025 年度末期方案尚未披露，暂用 2024 年全年合计（中期 1.00 + 末期 2.00）",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.05,
+        "optimistic": 0.1
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 46.27,
+        "targetPriceAsOf": "2026-04-30",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 5.8
+          },
+          {
+            "year": 2027,
+            "growthPct": 11
+          },
+          {
+            "year": 2028,
+            "growthPct": 10.7
+          }
+        ],
+        "sourceNote": "山西证券 2026-2028 归母净利预测与 Investing 目标价均值",
+        "upsidePct": 25.358981305879187
+      }
+    },
+    {
+      "code": "000333",
+      "name": "美的集团",
+      "dividendPerShare": 4.3,
+      "asOfYear": "2025",
+      "referencePrice": 79.5,
+      "priceAsOf": "2026-04-22",
+      "category": "消费",
+      "growth": {
+        "pessimistic": 0.03,
+        "neutral": 0.08,
+        "optimistic": 0.12
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 92.72,
+        "targetPriceAsOf": "2026-04-16",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 7.5
+          },
+          {
+            "year": 2027,
+            "growthPct": 8.5
+          },
+          {
+            "year": 2028,
+            "growthPct": 8.3
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测表与 Investing 目标价均值",
+        "upsidePct": 16.628930817610062
+      }
+    },
+    {
+      "code": "000858",
+      "name": "五粮液",
+      "dividendPerShare": 5.156,
+      "asOfYear": "2025*",
+      "referencePrice": 92.26,
+      "priceAsOf": "2026-05-06",
+      "category": "消费",
+      "disclosureNote": "2025 年全年 = 2025 中期 2.578 + 2025 末期 2.578；末期方案已董事会通过，尚待股东会审议",
+      "growth": {
+        "pessimistic": -0.02,
+        "neutral": 0.04,
+        "optimistic": 0.08
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 111.55,
+        "targetPriceAsOf": "2026-05-06",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 57
+          },
+          {
+            "year": 2027,
+            "growthPct": 7.2
+          },
+          {
+            "year": 2028,
+            "growthPct": 7.6
+          }
+        ],
+        "sourceNote": "中邮证券 2026-2028 归母净利润预测；目标价采用 Investing 公开一致预期均值",
+        "upsidePct": 20.908302623021886
+      }
+    },
+    {
+      "code": "600941",
+      "name": "中国移动",
+      "dividendPerShare": 4.79,
+      "asOfYear": "2025*",
+      "referencePrice": 96.66,
+      "priceAsOf": "2026-04-21",
+      "category": "通信",
+      "disclosureNote": "2025 末期 A 股人民币派发金额待后续公告，当前值按 HKD→CNY≈0.91 临时折算",
+      "growth": {
+        "pessimistic": 0.02,
+        "neutral": 0.05,
+        "optimistic": 0.08
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 116.93,
+        "targetPriceAsOf": "2026-04-16",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": 4.6
+          },
+          {
+            "year": 2027,
+            "growthPct": 3.5
+          },
+          {
+            "year": 2028,
+            "growthPct": -4.7
+          }
+        ],
+        "sourceNote": "同花顺 2026-2028 机构预测均值与 Fintel 目标价均值；2028 均值受样本机构数下降影响较大",
+        "upsidePct": 20.970411752534666
+      }
+    },
+    {
+      "code": "601728",
+      "name": "中国电信",
+      "dividendPerShare": 0.272,
+      "asOfYear": "2025*",
+      "referencePrice": 5.95,
+      "priceAsOf": "2026-05-06",
+      "category": "通信",
+      "disclosureNote": "2025 年全年 = 2025 中期 0.1812 + 2025 末期 0.0908；末期方案已董事会通过，尚待股东会审议",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.03,
+        "optimistic": 0.05
+      },
+      "assetType": "stock",
+      "research": {
+        "metric": "归母净利润",
+        "reportWindow": "近3-6个月",
+        "targetPriceAvg": 7.81,
+        "targetPriceAsOf": "2026-04-28",
+        "forecasts": [
+          {
+            "year": 2026,
+            "growthPct": -6.8
+          },
+          {
+            "year": 2027,
+            "growthPct": 3.8
+          },
+          {
+            "year": 2028,
+            "growthPct": 3.8
+          }
+        ],
+        "sourceNote": "同花顺研报预测表与 Investing/Fintel 公开目标价均值；预测已反映增值税税目调整后利润承压",
+        "upsidePct": 31.26050420168066
+      }
+    },
+    {
+      "code": "510880",
+      "name": "红利ETF",
+      "assetType": "etf",
+      "category": "红利ETF",
+      "dividendPerShare": 0.143,
+      "asOfYear": "2025",
+      "referencePrice": 3.258,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪上证红利指数（华泰柏瑞）；2025年度每份0.143，2026-01-26发放",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.03,
+        "optimistic": 0.06
+      }
+    },
+    {
+      "code": "515180",
+      "name": "红利ETF易方达",
+      "assetType": "etf",
+      "category": "红利ETF",
+      "dividendPerShare": 0.061,
+      "asOfYear": "2025",
+      "referencePrice": 1.44,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪中证红利指数（易方达）；每年10月分派，2025-10-24发放0.061元",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.03,
+        "optimistic": 0.06
+      }
+    },
+    {
+      "code": "159905",
+      "name": "红利ETF工银",
+      "assetType": "etf",
+      "category": "红利ETF",
+      "dividendPerShare": 0.306,
+      "asOfYear": "2024",
+      "referencePrice": 1.836,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪深证红利价格指数（工银）；每季度分派，2024年9-12月4次合计",
+      "disclosureNote": "2024年分派含较大资本利得成分，历史偏高；2025年分派方案截至2026-05尚未披露",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.04,
+        "optimistic": 0.07
+      }
+    },
+    {
+      "code": "513950",
+      "name": "恒生红利ETF",
+      "assetType": "etf",
+      "category": "红利ETF",
+      "dividendPerShare": 0.063,
+      "asOfYear": "2025",
+      "referencePrice": 1.398,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪恒生港股通红利低波动指数（富国）；2025年共6次分派合计0.063元",
+      "growth": {
+        "pessimistic": -0.02,
+        "neutral": 0.03,
+        "optimistic": 0.07
+      }
+    },
+    {
+      "code": "563020",
+      "name": "红利低波ETF易方达",
+      "assetType": "etf",
+      "category": "红利ETF",
+      "dividendPerShare": 0.043,
+      "asOfYear": "2025",
+      "referencePrice": 1.183,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪中证红利低波动指数（易方达）；每季度分派，2025年4次合计0.043元",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.03,
+        "optimistic": 0.06
+      }
+    },
+    {
+      "code": "159307",
+      "name": "红利低波100ETF博时",
+      "assetType": "etf",
+      "category": "红利ETF",
+      "dividendPerShare": 0.05,
+      "asOfYear": "2025",
+      "referencePrice": 1.066,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪中证红利低波动100指数（博时）；每季度分派，2025年4次合计0.050元",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.03,
+        "optimistic": 0.06
+      }
+    },
+    {
+      "code": "159545",
+      "name": "恒生红利低波ETF",
+      "assetType": "etf",
+      "category": "红利ETF",
+      "dividendPerShare": 0.048,
+      "asOfYear": "2025",
+      "referencePrice": 1.453,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪恒生港股通高息低波动指数（易方达）；每季度分派，2025年4次合计0.048元；2026-02另派0.015元",
+      "growth": {
+        "pessimistic": -0.02,
+        "neutral": 0.03,
+        "optimistic": 0.07
+      }
+    },
+    {
+      "code": "159569",
+      "name": "港股红利低波ETF景顺",
+      "assetType": "etf",
+      "category": "红利ETF",
+      "dividendPerShare": 0.067,
+      "asOfYear": "2025",
+      "referencePrice": 1.47,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪国证港股通红利低波动指数（景顺长城）；成立于2024-08，2025年分两次：2025-06（0.039元）+2025-12（0.028元）",
+      "growth": {
+        "pessimistic": -0.02,
+        "neutral": 0.03,
+        "optimistic": 0.07
+      }
+    },
+    {
+      "code": "510300",
+      "name": "沪深300ETF",
+      "assetType": "etf",
+      "category": "宽基ETF",
+      "dividendPerShare": 0.211,
+      "asOfYear": "2025",
+      "referencePrice": 4.888,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪沪深300指数（华泰柏瑞）；2025年两次：2025-06（0.088元）+ 2026-01（0.123元）",
+      "growth": {
+        "pessimistic": 0,
+        "neutral": 0.05,
+        "optimistic": 0.09
+      }
+    },
+    {
+      "code": "515220",
+      "name": "煤炭ETF",
+      "assetType": "etf",
+      "category": "行业ETF",
+      "dividendPerShare": 0.04,
+      "asOfYear": "2025",
+      "referencePrice": 1.245,
+      "priceAsOf": "2026-05-08",
+      "sourceProvider": "天天基金网",
+      "sourceAsOf": "2026-05-08",
+      "sourceNote": "跟踪中证煤炭指数（国泰）；每年12月分派，2025-12-29发放0.040元",
+      "growth": {
+        "pessimistic": -0.15,
+        "neutral": -0.03,
+        "optimistic": 0.08
+      }
+    }
+  ]
+}
