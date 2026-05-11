@@ -201,7 +201,7 @@ const DIVIDEND_ETFS: DividendAssetRef[] = [
     sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
     sourceNote: '跟踪上证红利指数（华泰柏瑞）；2025年度每份0.143，2026-01-26发放',
     growth: { pessimistic: 0.00, neutral: 0.03, optimistic: 0.06 } },
-  { code: '515180', name: '红利ETF易方达', assetType: 'etf', category: '红利ETF',
+  { code: '515180', name: '红利ETF易方达', assetType: 'etf', category: '红利ETF', featured: true,
     dividendPerShare: 0.061, asOfYear: '2025', referencePrice: 1.440, priceAsOf: '2026-05-08',
     sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
     sourceNote: '跟踪中证红利指数（易方达）；每年10月分派，2025-10-24发放0.061元',
