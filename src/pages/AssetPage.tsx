@@ -235,12 +235,28 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
           series={trendSeries}
           signed={chartValueMode === 'realPnL'}
         />
+        {periodAnalysis && (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowAnalysis(v => !v)}
+              style={{
+                marginTop: 10, width: '100%', padding: '7px 0',
+                background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)',
+                border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              {showAnalysis ? '收起区间分析 ↑' : '区间分析 ↓'}
+            </button>
+            {showAnalysis && (
+              <div style={{ marginTop: 10 }}>
+                <PeriodAnalysisPanel analysis={periodAnalysis}
+                  onOpenCashFlow={() => onSubTabChange('cashflow')} />
+              </div>
+            )}
+          </>
+        )}
       </Section>
-
-      {periodAnalysis && (
-        <PeriodAnalysisPanel analysis={periodAnalysis}
-          onOpenCashFlow={() => onSubTabChange('cashflow')} />
-      )}
 
       {/* Distribution */}
       {latest && (
