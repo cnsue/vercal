@@ -381,6 +381,35 @@ export default function RetirementPage({ onNavigate, focusRequest }: {
   )
 }
 
+type RetirementTab = 'overview' | 'holdings' | 'pension'
+
+function RetirementTabBar({ tab, onChange }: { tab: RetirementTab; onChange: (t: RetirementTab) => void }) {
+  const tabs: { key: RetirementTab; label: string }[] = [
+    { key: 'overview', label: '概览' },
+    { key: 'holdings', label: '持仓' },
+    { key: 'pension', label: '养老金' },
+  ]
+  return (
+    <div style={{
+      display: 'flex', background: 'var(--surface-muted, var(--surface))',
+      borderRadius: 12, padding: 3, marginBottom: 12, gap: 3,
+    }}>
+      {tabs.map(t => (
+        <button key={t.key} type="button" onClick={() => onChange(t.key)}
+          style={{
+            flex: 1, padding: '8px 0', border: 'none', borderRadius: 9,
+            background: tab === t.key ? 'var(--surface)' : 'transparent',
+            color: tab === t.key ? 'var(--text)' : 'var(--muted)',
+            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            boxShadow: tab === t.key ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+          }}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function ScenarioSelector({ years, multiplier, hasHoldings, holdings, customAssets }: {
   years: number; multiplier: number; hasHoldings: boolean; holdings: DividendHolding[]
   customAssets: Parameters<typeof findDividendStock>[1]
