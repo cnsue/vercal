@@ -13,7 +13,7 @@ interface AnalyzeBody {
   context?: unknown
 }
 
-const DEFAULT_TIMEOUT_MS = 25_000
+const DEFAULT_TIMEOUT_MS = 55_000
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
