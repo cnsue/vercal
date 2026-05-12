@@ -282,25 +282,40 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
             还没有历史记录，点击右上角 + 开始录入
           </div>
         ) : (
-          sorted.slice(0, 7).map((snap, i) => {
-            const prev = sorted[i + 1]
-            const change = prev ? snap.totalValueCNY - prev.totalValueCNY : 0
-            return (
-              <button key={snap.id} onClick={() => onOpenEditor(snap)}
-                style={{ width: '100%', textAlign: 'left', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px', marginBottom: 8, cursor: 'pointer', color: 'var(--text)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>{displayDate(snap.dateKey)}</span>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{snap.items.length} 条记录</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 15, fontWeight: 700 }}>{formatCNY(snap.totalValueCNY)}</span>
-                  {prev && <span style={{ fontSize: 13, color: change >= 0 ? 'var(--primary-strong)' : 'var(--danger)' }}>
-                    {change >= 0 ? '+' : ''}{formatCNY(change)}
-                  </span>}
-                </div>
+          <>
+            {sorted.slice(0, showAllSnaps ? 7 : 3).map((snap, i) => {
+              const prev = sorted[i + 1]
+              const change = prev ? snap.totalValueCNY - prev.totalValueCNY : 0
+              return (
+                <button key={snap.id} onClick={() => onOpenEditor(snap)}
+                  style={{ width: '100%', textAlign: 'left', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px', marginBottom: 8, cursor: 'pointer', color: 'var(--text)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{displayDate(snap.dateKey)}</span>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{snap.items.length} 条记录</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 15, fontWeight: 700 }}>{formatCNY(snap.totalValueCNY)}</span>
+                    {prev && <span style={{ fontSize: 13, color: change >= 0 ? 'var(--primary-strong)' : 'var(--danger)' }}>
+                      {change >= 0 ? '+' : ''}{formatCNY(change)}
+                    </span>}
+                  </div>
+                </button>
+              )
+            })}
+            {sorted.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAllSnaps(v => !v)}
+                style={{
+                  width: '100%', padding: '8px 0', border: 'none', borderRadius: 9,
+                  background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)',
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                {showAllSnaps ? '收起 ↑' : `查看更多（共 ${Math.min(sorted.length, 7)} 条）↓`}
               </button>
-            )
-          })
+            )}
+          </>
         )}
       </Section>
 
