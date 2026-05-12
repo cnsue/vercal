@@ -294,6 +294,13 @@ export const StorageService = {
   },
   saveAISettings: (v: AISettings): void => set(K.aiSettings, v),
 
+  getAIApiKeys: (): Partial<Record<string, string>> =>
+    get<Partial<Record<string, string>>>(K.aiApiKeys, {}),
+  saveAIApiKey: (provider: string, key: string): void => {
+    const keys = get<Partial<Record<string, string>>>(K.aiApiKeys, {})
+    set(K.aiApiKeys, { ...keys, [provider]: key })
+  },
+
   getAIAnalysisHistory: (): AIAnalysisRecord[] => get<AIAnalysisRecord[]>(K.aiAnalysisHistory, []),
   saveAIAnalysisHistory: (v: AIAnalysisRecord[]): void => set(K.aiAnalysisHistory, v.slice(0, 50)),
 
