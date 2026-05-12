@@ -94,9 +94,9 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     key: 'mimo',
     label: 'MiMo',
     protocol: 'openai-compatible',
-    baseUrl: '',
-    model: '',
-    note: '请填 MiMo 的 OpenAI-compatible base URL 与 model',
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    model: 'MiMo-7B-RL',
+    note: '小米 MiMo OpenAI-compatible 接口，model 可填 MiMo-7B-RL 等',
   },
   {
     key: 'zhipu',
