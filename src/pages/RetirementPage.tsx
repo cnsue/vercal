@@ -82,13 +82,16 @@ export default function RetirementPage({ onNavigate, focusRequest }: {
   useEffect(() => {
     if (!focusRequest) return
     if (focusRequest.focus === 'target-simulator') {
+      setRetirementTab('overview')
       setShowSimulator(true)
       return
     }
     if (focusRequest.focus === 'decent-standard') {
+      setRetirementTab('overview')
       setShowDecentEditor(true)
       return
     }
+    setRetirementTab('holdings')
     window.setTimeout(() => {
       document.getElementById('dividend-holdings-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 80)
