@@ -3,6 +3,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "cleanUrls": true,
+  "functions": {
+    "api/ai/analyze.ts": { "maxDuration": 60 }
+  },
   "crons": [{ "path": "/api/remind", "schedule": "0 13 * * *" }],
   "rewrites": [
     {
