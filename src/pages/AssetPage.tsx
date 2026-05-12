@@ -54,6 +54,8 @@ export default function AssetPage({ onOpenEditor, subTab, onSubTabChange }: Prop
   const [showTargetEditor, setShowTargetEditor] = useState(false)
   const [targetInput, setTargetInput] = useState('')
   const [showDecentEditor, setShowDecentEditor] = useState(false)
+  const [showAnalysis, setShowAnalysis] = useState(false)
+  const [showAllSnaps, setShowAllSnaps] = useState(false)
 
   const coverage = useMemo(() => {
     const dividend = computeDividendSummary(plan.holdings, plan.customDividendAssets)
