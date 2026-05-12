@@ -294,11 +294,16 @@ export const StorageService = {
   },
   saveAISettings: (v: AISettings): void => set(K.aiSettings, v),
 
-  getAIApiKeys: (): Partial<Record<string, string>> =>
-    get<Partial<Record<string, string>>>(K.aiApiKeys, {}),
-  saveAIApiKey: (provider: string, key: string): void => {
-    const keys = get<Partial<Record<string, string>>>(K.aiApiKeys, {})
-    set(K.aiApiKeys, { ...keys, [provider]: key })
+  getAIProviderSettings: (provider: string): { apiKey?: string; model?: string; baseUrl?: string } => {
+    const all = get<Record<string, unknown>>(K.aiApiKeys, {})
+    const v = all[provider]
+    if (!v) return {}
+    if (typeof v === 'string') return { apiKey: v }  // migrate old plain-string format
+    return v as { apiKey?: string; model?: string; baseUrl?: string }
+  },
+  saveAIProviderSettings: (provider: string, s: { apiKey?: string; model?: string; baseUrl?: string }): void => {
+    const all = get<Record<string, unknown>>(K.aiApiKeys, {})
+    set(K.aiApiKeys, { ...all, [provider]: s })
   },
 
   getAIAnalysisHistory: (): AIAnalysisRecord[] => get<AIAnalysisRecord[]>(K.aiAnalysisHistory, []),
