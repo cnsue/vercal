@@ -19,20 +19,30 @@ export default function AISettingsPage() {
   }
 
   function selectProvider(provider: AIProviderKey) {
+    // Auto-save current provider before switching
+    StorageService.saveAIProviderSettings(settings.provider, {
+      apiKey: settings.apiKey,
+      model: settings.model,
+      baseUrl: settings.baseUrl,
+    })
     const preset = findAIProviderPreset(provider)
-    const savedKeys = StorageService.getAIApiKeys()
+    const saved = StorageService.getAIProviderSettings(provider)
     patch({
       provider,
       protocol: preset.protocol,
-      baseUrl: preset.baseUrl,
-      model: preset.model,
-      apiKey: savedKeys[provider] ?? '',
+      baseUrl: saved.baseUrl ?? preset.baseUrl,
+      model: saved.model ?? preset.model,
+      apiKey: saved.apiKey ?? '',
     })
   }
 
   function save() {
     StorageService.saveAISettings(settings)
-    StorageService.saveAIApiKey(settings.provider, settings.apiKey)
+    StorageService.saveAIProviderSettings(settings.provider, {
+      apiKey: settings.apiKey,
+      model: settings.model,
+      baseUrl: settings.baseUrl,
+    })
     setSaved(true)
   }
 
