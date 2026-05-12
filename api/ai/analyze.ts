@@ -50,7 +50,8 @@ async function callOpenAICompatible(input: {
   systemPrompt: string
   prompt: string
 }): Promise<string> {
-  const response = await fetchWithTimeout(`${input.baseUrl}/chat/completions`, {
+  const url = `${input.baseUrl}/chat/completions`
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${input.apiKey}`,
@@ -65,13 +66,23 @@ async function callOpenAICompatible(input: {
       temperature: 0.2,
     }),
   })
-  const data = await response.json().catch(() => ({})) as {
-    choices?: Array<{ message?: { content?: string } }>
-    error?: { message?: string }
+  const rawText = await response.text().catch(() => '')
+  let data: { choices?: Array<{ message?: { content?: string } }>; error?: string | { message?: string; code?: string } }
+  try { data = JSON.parse(rawText) } catch { data = {} }
+
+  if (!response.ok) {
+    const err = data.error
+    const msg = typeof err === 'string'
+      ? err
+      : err?.message ?? `AI 请求失败 ${response.status}`
+    console.error('[ai/analyze] upstream error', response.status, url, rawText.slice(0, 600))
+    throw new Error(`${msg}（HTTP ${response.status}）`)
   }
-  if (!response.ok) throw new Error(data.error?.message ?? `AI 请求失败：${response.status}`)
   const text = data.choices?.[0]?.message?.content
-  if (!text) throw new Error('AI 返回为空')
+  if (!text) {
+    console.error('[ai/analyze] empty response', url, rawText.slice(0, 400))
+    throw new Error('AI 返回为空')
+  }
   return text
 }
 
