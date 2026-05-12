@@ -174,24 +174,9 @@ export default function RetirementPage({ onNavigate, focusRequest }: {
 
   return (
     <div style={{ padding: '0 0 16px' }}>
-      <CoverageHero
-        decentMonthly={coverage.decentMonthly}
-        nowRatio={coverage.nowRatio}
-        retiredRatio={coverage.retiredRatio}
-        nowMonthly={coverage.nowMonthly}
-        retiredMonthly={coverage.retiredMonthly}
-        mode={coverageMode}
-        onModeChange={setCoverageMode}
-        breakdown={coverage.breakdown}
-        onEdit={() => setShowDecentEditor(true)}
-        onShare={handleShare}
-        shareDisabled={sharing}
-        dimensions={coverage.decentMonthly > 0 ? dimensions : []}
-        onDimensionClick={id => setDetailDimId(id)}
-        onSimulateGoal={() => setShowSimulator(true)}
-      />
+      <RetirementTabBar tab={retirementTab} onChange={setRetirementTab} />
 
-      {/* Off-screen share card source */}
+      {/* Off-screen share card — always rendered regardless of tab */}
       <div style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }} aria-hidden>
         <CoverageShareCard
           ref={shareCardRef}
@@ -207,150 +192,175 @@ export default function RetirementPage({ onNavigate, focusRequest }: {
         />
       </div>
 
-      <ScenarioSelector
-        years={pension.yearsToRetire}
-        multiplier={dividendMultiplier}
-        hasHoldings={plan.holdings.length > 0}
-        holdings={plan.holdings}
-        customAssets={plan.customDividendAssets}
-      />
+      {/* ── 概览 ── */}
+      {retirementTab === 'overview' && (
+        <>
+          <CoverageHero
+            decentMonthly={coverage.decentMonthly}
+            nowRatio={coverage.nowRatio}
+            retiredRatio={coverage.retiredRatio}
+            nowMonthly={coverage.nowMonthly}
+            retiredMonthly={coverage.retiredMonthly}
+            mode={coverageMode}
+            onModeChange={setCoverageMode}
+            breakdown={coverage.breakdown}
+            onEdit={() => setShowDecentEditor(true)}
+            onShare={handleShare}
+            shareDisabled={sharing}
+            dimensions={coverage.decentMonthly > 0 ? dimensions : []}
+            onDimensionClick={id => setDetailDimId(id)}
+            onSimulateGoal={() => setShowSimulator(true)}
+          />
 
-      {/* 收入构成 */}
-      {incomeItems.length > 0 || dividend.perHolding.some(h => h.holding.shares > 0) ? (
-        <Section title={`养老现金流构成（${coverageMode === 'now' ? '当前' : '退休后'}）`}>
-          <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 12 }}>
-            股息率非固定，建议每季度结合最新研报刷新预期股息数据
-          </div>
-          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-            {(['income', 'value'] as const).map(tab => (
-              <button key={tab} onClick={() => setChartTab(tab)}
-                style={{
-                  padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 700,
-                  background: chartTab === tab ? 'var(--primary)' : 'var(--button-secondary-bg)',
-                  color: chartTab === tab ? '#fff' : 'var(--button-secondary-text)',
-                }}>
-                {tab === 'income' ? '年现金流' : '持仓市值'}
-              </button>
-            ))}
-          </div>
-          {chartTab === 'income' && incomeItems.length > 0 && (
-            <DonutChart
-              items={incomeItems}
-              title={coverageMode === 'now' ? '当前年被动收入来源' : '退休后年被动收入来源'}
-            />
-          )}
-          {chartTab === 'income' && incomeItems.length === 0 && (
-            <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
-              配置养老金或其他被动收入后显示
-            </div>
-          )}
-          {chartTab === 'value' && holdingValueItems.length > 0 && (
-            <DonutChart items={holdingValueItems} title="持仓参考市值构成" />
-          )}
-          {chartTab === 'value' && holdingValueItems.length === 0 && (
-            <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
-              暂无持仓市值数据
-            </div>
-          )}
-          <HoldingsDetail
-            perHolding={dividend.perHolding.filter(h => h.holding.shares > 0)}
-            totalAssets={totalAssets}
+          <ScenarioSelector
+            years={pension.yearsToRetire}
+            multiplier={dividendMultiplier}
+            hasHoldings={plan.holdings.length > 0}
+            holdings={plan.holdings}
             customAssets={plan.customDividendAssets}
           />
-        </Section>
-      ) : (
-        <Section title="养老现金流构成">
-          <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>
-            添加股息持仓或配置养老金后显示
-          </div>
-        </Section>
-      )}
 
-      {/* 股息持仓 */}
-      <DividendHoldings onNavigate={onNavigate} />
-
-      {/* 养老金预估 */}
-      <Section title="养老金预估">
-        {!pensionConfigured ? (
-          <div style={{ color: 'var(--muted)', fontSize: 13, padding: '8px 0' }}>
-            去「设置 → 养老金信息」录入城市与缴费信息后，这里会显示预计月养老金。
-          </div>
-        ) : (
-          <div>
-            <StatRow label="预计月养老金" value={formatCNY(pension.monthlyTotal)} accent />
-            <StatRow label="  · 基础养老金" value={formatCNY(pension.basicPension)} />
-            <StatRow label="  · 个人账户养老金" value={formatCNY(pension.personalAccountPension)} />
-            <div style={{ height: 8 }} />
-            <StatRow label="缴费城市" value={city?.name ?? plan.pension.cityKey} />
-            <StatRow label="累计缴费" value={`${(pension.totalMonths / 12).toFixed(1)} 年`} />
-            <StatRow label="加权缴费指数" value={pension.weightedIndex.toFixed(4)} />
-            <StatRow label="实际退休年龄" value={`${pension.actualRetirementYears} 岁 ${pension.actualRetirementExtraMonths} 月`} />
-            <StatRow label="退休年月" value={pension.retirementYearMonth} />
-            <StatRow label="退休时社平工资" value={`${formatCNY(pension.projectedSocialWage)}/月`} />
-            <StatRow label="预计退休时个人账户" value={formatCNY(pension.projectedPersonalBalance)} />
-            <StatRow label="个人账户计发月数" value={pension.personalAccountPayoutMonths.toFixed(1)} />
-            <div style={{ marginTop: 10, padding: 10, background: 'var(--warning-bg)', borderRadius: 8, fontSize: 11, color: 'var(--warning-text)' }}>
-              MVP 简化公式：未考虑过渡性养老金、地方性补贴、缴费基数上下限等。精确数额以各地人社局测算为准。
-            </div>
-          </div>
-        )}
-      </Section>
-
-      {/* 缺口分析 / 建议 */}
-      {coverage.decentMonthly > 0 && (
-        <Section title={`缺口分析与建议（${coverageMode === 'now' ? '当前' : '退休后'}）`}>
-          {gap.gapMonthly <= 0 ? (
-            <div style={{ padding: 12, background: 'var(--success-bg)', border: '1px solid var(--success-border)', borderRadius: 10, fontSize: 13, color: 'var(--success-text)', fontWeight: 600 }}>
-              {coverageMode === 'now' ? '当前' : '退休后'}预估被动收入已覆盖体面标准。可以考虑把多出的现金流用于再投入或调高体面标准。
-            </div>
+          {incomeItems.length > 0 || dividend.perHolding.some(h => h.holding.shares > 0) ? (
+            <Section title={`养老现金流构成（${coverageMode === 'now' ? '当前' : '退休后'}）`}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 12 }}>
+                股息率非固定，建议每季度结合最新研报刷新预期股息数据
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                {(['income', 'value'] as const).map(tab => (
+                  <button key={tab} onClick={() => setChartTab(tab)}
+                    style={{
+                      padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      fontSize: 12, fontWeight: 700,
+                      background: chartTab === tab ? 'var(--primary)' : 'var(--button-secondary-bg)',
+                      color: chartTab === tab ? '#fff' : 'var(--button-secondary-text)',
+                    }}>
+                    {tab === 'income' ? '年现金流' : '持仓市值'}
+                  </button>
+                ))}
+              </div>
+              {chartTab === 'income' && incomeItems.length > 0 && (
+                <DonutChart
+                  items={incomeItems}
+                  title={coverageMode === 'now' ? '当前年被动收入来源' : '退休后年被动收入来源'}
+                />
+              )}
+              {chartTab === 'income' && incomeItems.length === 0 && (
+                <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
+                  配置养老金或其他被动收入后显示
+                </div>
+              )}
+              {chartTab === 'value' && holdingValueItems.length > 0 && (
+                <DonutChart items={holdingValueItems} title="持仓参考市值构成" />
+              )}
+              {chartTab === 'value' && holdingValueItems.length === 0 && (
+                <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
+                  暂无持仓市值数据
+                </div>
+              )}
+              <HoldingsDetail
+                perHolding={dividend.perHolding.filter(h => h.holding.shares > 0)}
+                totalAssets={totalAssets}
+                customAssets={plan.customDividendAssets}
+              />
+            </Section>
           ) : (
-            <div>
-              <StatRow label="月缺口" value={formatCNY(gap.gapMonthly)} accent />
-              <StatRow label="年缺口" value={formatCNY(gap.gapAnnual)} />
-              <div style={{ marginTop: 10, padding: 12, background: 'var(--warning-bg)', borderRadius: 10, fontSize: 13, lineHeight: 1.6 }}>
-                若按 <strong>{(gap.referenceYield * 100).toFixed(0)}%</strong> 参考股息率估算，还需增加约
-                <strong style={{ color: 'var(--danger)' }}> {formatCNY(gap.extraPrincipalAtReferenceYield)} </strong>
-                高股息本金，才能把月现金流拉平到体面标准。
+            <Section title="养老现金流构成">
+              <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>
+                添加股息持仓或配置养老金后显示
               </div>
-              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
-                建议关注红利低波、大行银行股、公用事业（如长江电力）等稳定分红标的。
-              </div>
-            </div>
+            </Section>
           )}
-        </Section>
+
+          {coverage.decentMonthly > 0 && (
+            <Section title={`缺口分析与建议（${coverageMode === 'now' ? '当前' : '退休后'}）`}>
+              {gap.gapMonthly <= 0 ? (
+                <div style={{ padding: 12, background: 'var(--success-bg)', border: '1px solid var(--success-border)', borderRadius: 10, fontSize: 13, color: 'var(--success-text)', fontWeight: 600 }}>
+                  {coverageMode === 'now' ? '当前' : '退休后'}预估被动收入已覆盖体面标准。可以考虑把多出的现金流用于再投入或调高体面标准。
+                </div>
+              ) : (
+                <div>
+                  <StatRow label="月缺口" value={formatCNY(gap.gapMonthly)} accent />
+                  <StatRow label="年缺口" value={formatCNY(gap.gapAnnual)} />
+                  <div style={{ marginTop: 10, padding: 12, background: 'var(--warning-bg)', borderRadius: 10, fontSize: 13, lineHeight: 1.6 }}>
+                    若按 <strong>{(gap.referenceYield * 100).toFixed(0)}%</strong> 参考股息率估算，还需增加约
+                    <strong style={{ color: 'var(--danger)' }}> {formatCNY(gap.extraPrincipalAtReferenceYield)} </strong>
+                    高股息本金，才能把月现金流拉平到体面标准。
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+                    建议关注红利低波、大行银行股、公用事业（如长江电力）等稳定分红标的。
+                  </div>
+                </div>
+              )}
+            </Section>
+          )}
+        </>
       )}
 
-      {/* 4% 参考 */}
-      {totalAssets > 0 && (
-        <Section title="安全提现率参考（4% 法则）">
-          <StatRow label="总资产" value={formatCNY(totalAssets)} />
-          <StatRow label="可安全提取月金额" value={formatCNY(safeMonthly)} accent />
-          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>
-            4% 法则来自美国历史回测，假设股债 60/40，长期年均 4% 提取大概率不会耗尽本金，仅供参考。
-          </div>
-        </Section>
+      {/* ── 持仓 ── */}
+      {retirementTab === 'holdings' && (
+        <DividendHoldings onNavigate={onNavigate} />
       )}
 
-      {/* 其它被动收入 */}
-      <Section title="其它被动收入">
-        {plan.otherIncomes.length === 0 ? (
-          <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
-            暂未添加。如有租金、年金、版税等，点击下方添加。
-          </div>
-        ) : (
-          plan.otherIncomes.map(o => (
-            <OtherIncomeRow key={o.id} id={o.id} name={o.name} monthly={o.monthlyAmount} />
-          ))
-        )}
-        <button onClick={() => setShowOtherEditor(true)} style={{
-          width: '100%', marginTop: 8, padding: 10, borderRadius: 10, border: '1px dashed var(--border-dashed)',
-          background: 'var(--surface-subtle)', color: 'var(--text-soft)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-        }}>
-          ＋ 添加一条被动收入
-        </button>
-      </Section>
+      {/* ── 养老金 ── */}
+      {retirementTab === 'pension' && (
+        <>
+          <Section title="养老金预估">
+            {!pensionConfigured ? (
+              <div style={{ color: 'var(--muted)', fontSize: 13, padding: '8px 0' }}>
+                去「设置 → 养老金信息」录入城市与缴费信息后，这里会显示预计月养老金。
+              </div>
+            ) : (
+              <div>
+                <StatRow label="预计月养老金" value={formatCNY(pension.monthlyTotal)} accent />
+                <StatRow label="  · 基础养老金" value={formatCNY(pension.basicPension)} />
+                <StatRow label="  · 个人账户养老金" value={formatCNY(pension.personalAccountPension)} />
+                <div style={{ height: 8 }} />
+                <StatRow label="缴费城市" value={city?.name ?? plan.pension.cityKey} />
+                <StatRow label="累计缴费" value={`${(pension.totalMonths / 12).toFixed(1)} 年`} />
+                <StatRow label="加权缴费指数" value={pension.weightedIndex.toFixed(4)} />
+                <StatRow label="实际退休年龄" value={`${pension.actualRetirementYears} 岁 ${pension.actualRetirementExtraMonths} 月`} />
+                <StatRow label="退休年月" value={pension.retirementYearMonth} />
+                <StatRow label="退休时社平工资" value={`${formatCNY(pension.projectedSocialWage)}/月`} />
+                <StatRow label="预计退休时个人账户" value={formatCNY(pension.projectedPersonalBalance)} />
+                <StatRow label="个人账户计发月数" value={pension.personalAccountPayoutMonths.toFixed(1)} />
+                <div style={{ marginTop: 10, padding: 10, background: 'var(--warning-bg)', borderRadius: 8, fontSize: 11, color: 'var(--warning-text)' }}>
+                  MVP 简化公式：未考虑过渡性养老金、地方性补贴、缴费基数上下限等。精确数额以各地人社局测算为准。
+                </div>
+              </div>
+            )}
+          </Section>
 
+          {totalAssets > 0 && (
+            <Section title="安全提现率参考（4% 法则）">
+              <StatRow label="总资产" value={formatCNY(totalAssets)} />
+              <StatRow label="可安全提取月金额" value={formatCNY(safeMonthly)} accent />
+              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>
+                4% 法则来自美国历史回测，假设股债 60/40，长期年均 4% 提取大概率不会耗尽本金，仅供参考。
+              </div>
+            </Section>
+          )}
+
+          <Section title="其它被动收入">
+            {plan.otherIncomes.length === 0 ? (
+              <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
+                暂未添加。如有租金、年金、版税等，点击下方添加。
+              </div>
+            ) : (
+              plan.otherIncomes.map(o => (
+                <OtherIncomeRow key={o.id} id={o.id} name={o.name} monthly={o.monthlyAmount} />
+              ))
+            )}
+            <button onClick={() => setShowOtherEditor(true)} style={{
+              width: '100%', marginTop: 8, padding: 10, borderRadius: 10, border: '1px dashed var(--border-dashed)',
+              background: 'var(--surface-subtle)', color: 'var(--text-soft)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            }}>
+              ＋ 添加一条被动收入
+            </button>
+          </Section>
+        </>
+      )}
+
+      {/* Dialogs — tab-independent */}
       <DecentStandardEditor open={showDecentEditor} onClose={() => setShowDecentEditor(false)} />
       <OtherIncomeEditor open={showOtherEditor} onClose={() => setShowOtherEditor(false)} />
       <TargetSimulator
