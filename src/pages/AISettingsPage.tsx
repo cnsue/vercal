@@ -20,16 +20,19 @@ export default function AISettingsPage() {
 
   function selectProvider(provider: AIProviderKey) {
     const preset = findAIProviderPreset(provider)
+    const savedKeys = StorageService.getAIApiKeys()
     patch({
       provider,
       protocol: preset.protocol,
       baseUrl: preset.baseUrl,
       model: preset.model,
+      apiKey: savedKeys[provider] ?? '',
     })
   }
 
   function save() {
     StorageService.saveAISettings(settings)
+    StorageService.saveAIApiKey(settings.provider, settings.apiKey)
     setSaved(true)
   }
 
