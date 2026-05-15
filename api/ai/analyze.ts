@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { AIProtocol, AIProviderKey } from '../../src/types/ai.js'
+import type { AIProtocol, AIProviderKey, AIWebSearchMode } from '../../src/types/ai.js'
 
 interface AnalyzeBody {
   provider?: AIProviderKey
@@ -11,8 +11,10 @@ interface AnalyzeBody {
   systemPrompt?: string
   userPrompt?: string
   context?: unknown
-  /** 启用供应商联网/搜索增强（目前仅 Gemini grounding 支持） */
+  /** 启用供应商联网/搜索增强；不传或 false 时关闭。具体怎么挂取决于 webSearchMode。 */
   enableWebSearch?: boolean
+  /** 联网模式标识，决定向上游请求体注入哪种字段 */
+  webSearchMode?: AIWebSearchMode
 }
 
 const DEFAULT_TIMEOUT_MS = 55_000
