@@ -11,7 +11,7 @@ export type AIProviderKey =
 
 export type AIProtocol = 'openai-compatible' | 'gemini'
 
-export type AIWebSearchMode = 'gemini-grounding' | 'qwen-enable_search' | 'doubao-web'
+export type AIWebSearchMode = 'gemini-grounding' | 'qwen-enable_search' | 'zhipu-web-search' | 'doubao-web'
 
 export interface AIProviderPreset {
   key: AIProviderKey
