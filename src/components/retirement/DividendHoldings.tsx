@@ -288,12 +288,36 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
 
   return (
     <div id="dividend-holdings-section" style={cardStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
         <div style={{ fontSize: 15, fontWeight: 700 }}>股息持仓</div>
-        <button onClick={() => setShowAdd(v => !v)} style={addBtn}>
-          {showAdd ? '收起' : '＋ 添加'}
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={handleRefreshPrices}
+            disabled={refreshing || holdings.length === 0}
+            style={{
+              ...secondaryBtn,
+              opacity: refreshing || holdings.length === 0 ? 0.55 : 1,
+              cursor: refreshing || holdings.length === 0 ? 'not-allowed' : 'pointer',
+            }}
+            title="使用 AI 联网拉取最新参考价并写入本地覆盖层"
+          >
+            {refreshing ? '刷新中…' : 'AI 刷新参考价'}
+          </button>
+          <button onClick={() => setShowAdd(v => !v)} style={addBtn}>
+            {showAdd ? '收起' : '＋ 添加'}
+          </button>
+        </div>
       </div>
+
+      {refreshError && (
+        <div style={{
+          marginBottom: 10, padding: 9, borderRadius: 10,
+          background: 'var(--danger-bg)', color: 'var(--danger)',
+          fontSize: 12, lineHeight: 1.5,
+        }}>
+          {refreshError}
+        </div>
+      )}
 
       {holdings.length === 0 && !showAdd && (
         <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, padding: '12px 0' }}>
