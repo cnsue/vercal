@@ -310,6 +310,11 @@ export const StorageService = {
   getAIAnalysisHistory: (): AIAnalysisRecord[] => get<AIAnalysisRecord[]>(K.aiAnalysisHistory, []),
   saveAIAnalysisHistory: (v: AIAnalysisRecord[]): void => set(K.aiAnalysisHistory, v.slice(0, 50)),
 
+  getDividendPriceRefreshLog: (): DividendPriceRefreshLogEntry[] =>
+    get<DividendPriceRefreshLogEntry[]>(K.dividendPriceRefreshLog, []),
+  saveDividendPriceRefreshLog: (v: DividendPriceRefreshLogEntry[]): void =>
+    set(K.dividendPriceRefreshLog, v.slice(0, 50)),
+
   estimateSizeKB: (): number => {
     let total = 0
     for (const key of Object.values(K)) {
