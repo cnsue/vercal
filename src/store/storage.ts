@@ -34,6 +34,7 @@ const K = {
   aiSettings: 'asset-tracker:aiSettings',
   aiAnalysisHistory: 'asset-tracker:aiAnalysisHistory',
   aiApiKeys: 'asset-tracker:aiApiKeys',
+  dividendPriceRefreshLog: 'asset-tracker:dividendPriceRefreshLog',
 } as const
 
 /** 进入设备同步的 key（推送通知偏好/汇率缓存/banner 状态等设备级数据不同步） */
