@@ -94,7 +94,8 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     protocol: 'openai-compatible',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     model: 'qwen-plus',
-    note: '阿里云 DashScope OpenAI-compatible 接口',
+    note: '阿里云 DashScope OpenAI-compatible 接口（已接通 enable_search 联网）',
+    webSearch: 'qwen-enable_search',
   },
   {
     key: 'doubao',
