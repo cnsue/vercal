@@ -37,11 +37,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const context = safeJson(body.context)
   const prompt = `${userPrompt}\n\n【本次分析数据】\n${context}`
   const enableWebSearch = body.enableWebSearch === true
+  const webSearchMode = enableWebSearch ? body.webSearchMode : undefined
 
   try {
     const text = protocol === 'gemini'
       ? await callGemini({ apiKey, baseUrl, model, systemPrompt, prompt, enableWebSearch })
-      : await callOpenAICompatible({ apiKey, baseUrl, model, systemPrompt, prompt })
+      : await callOpenAICompatible({ apiKey, baseUrl, model, systemPrompt, prompt, webSearchMode })
     return res.status(200).json({ text })
   } catch (err) {
     return res.status(502).json({ error: sanitizeError(err) })
