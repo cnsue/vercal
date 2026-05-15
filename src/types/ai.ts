@@ -11,6 +11,8 @@ export type AIProviderKey =
 
 export type AIProtocol = 'openai-compatible' | 'gemini'
 
+export type AIWebSearchMode = 'gemini-grounding' | 'qwen-enable_search' | 'doubao-web'
+
 export interface AIProviderPreset {
   key: AIProviderKey
   label: string
@@ -18,6 +20,8 @@ export interface AIProviderPreset {
   baseUrl: string
   model: string
   note: string
+  /** 该供应商是否声明支持联网搜索；不填表示本应用尚未接通，禁止用于需要实时数据的任务。 */
+  webSearch?: AIWebSearchMode
 }
 
 export interface AISettings {
