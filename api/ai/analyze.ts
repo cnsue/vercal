@@ -11,6 +11,8 @@ interface AnalyzeBody {
   systemPrompt?: string
   userPrompt?: string
   context?: unknown
+  /** 启用供应商联网/搜索增强（目前仅 Gemini grounding 支持） */
+  enableWebSearch?: boolean
 }
 
 const DEFAULT_TIMEOUT_MS = 55_000
