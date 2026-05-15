@@ -99,6 +99,66 @@ function StockCard({ stock, isCustom }: { stock: DividendAssetRef; isCustom: boo
   const upsidePct = researchUpsidePct(stock)
   const perUnitLabel = dividendPerUnitLabel(stock)
 
+  const customAssets = useRetirementStore(s => s.plan.customDividendAssets)
+  const addCustomDividendAsset = useRetirementStore(s => s.addCustomDividendAsset)
+  const updateCustomDividendAsset = useRetirementStore(s => s.updateCustomDividendAsset)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMsg, setRefreshMsg] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null)
+
+  async function handleAIRefresh() {
+    if (refreshing) return
+    setRefreshMsg(null)
+    const settings = StorageService.getAISettings()
+    const preset = findAIProviderPreset(settings.provider)
+    if (!preset.webSearch) {
+      setRefreshMsg({ tone: 'err', text: `${preset.label} 不支持联网；请到设置切换 Gemini` })
+      return
+    }
+    if (!settings.apiKey || !settings.baseUrl || !settings.model) {
+      setRefreshMsg({ tone: 'err', text: '请先到「设置 → AI 设置」配置 API Key' })
+      return
+    }
+    setRefreshing(true)
+    try {
+      const result = await refreshHoldingPrices({
+        settings,
+        holdings: [{ code: stock.code, name: stock.name, lastReferencePrice: stock.referencePrice }],
+      })
+      const item = result.items.find(i => i.code === stock.code)
+      if (!item) {
+        setRefreshMsg({ tone: 'err', text: 'AI 未返回有效价格' })
+        return
+      }
+      if (item.confidence !== 'high') {
+        const proceed = window.confirm(
+          `AI 返回 ¥${stock.referencePrice.toFixed(2)} → ¥${item.referencePrice.toFixed(2)}（${item.priceAsOf}），置信度：${item.confidence}。${item.sourceNote ?? ''}\n\n确认应用？`,
+        )
+        if (!proceed) {
+          setRefreshMsg({ tone: 'err', text: '已取消' })
+          return
+        }
+      }
+      const ctx = {
+        customAssets,
+        addCustomDividendAsset,
+        updateCustomDividendAsset,
+        providerKey: settings.provider,
+        providerLabel: preset.label,
+        model: settings.model,
+      }
+      const entry = applyPriceRefresh(item, ctx, item.confidence === 'high' ? 'auto' : 'manual')
+      if (entry) {
+        const prev = StorageService.getDividendPriceRefreshLog()
+        StorageService.saveDividendPriceRefreshLog([entry, ...prev])
+      }
+      setRefreshMsg({ tone: 'ok', text: `已更新到 ¥${item.referencePrice.toFixed(2)}（${item.priceAsOf}）` })
+    } catch (err) {
+      setRefreshMsg({ tone: 'err', text: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
     <article style={{
       background: 'var(--surface)', border: '1px solid var(--border)',
@@ -106,7 +166,7 @@ function StockCard({ stock, isCustom }: { stock: DividendAssetRef; isCustom: boo
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 17, fontWeight: 850, color: 'var(--text-strong)' }}>{stock.name}</span>
             <span style={{
               fontSize: 11, fontWeight: 800, color: 'var(--primary-text)',
@@ -141,8 +201,35 @@ function StockCard({ stock, isCustom }: { stock: DividendAssetRef; isCustom: boo
             {formatPct(yieldPct)}
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)' }}>参考股息率</div>
+          <button
+            type="button"
+            onClick={handleAIRefresh}
+            disabled={refreshing}
+            style={{
+              marginTop: 6, padding: '3px 8px', borderRadius: 999,
+              fontSize: 10.5, fontWeight: 800,
+              border: '1px solid var(--border)',
+              background: refreshing ? 'var(--surface-muted)' : 'var(--surface)',
+              color: refreshing ? 'var(--muted)' : 'var(--primary-strong)',
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+            title="使用 AI 联网拉取最新参考价"
+          >
+            {refreshing ? '刷新中…' : 'AI 刷新此价'}
+          </button>
         </div>
       </div>
+
+      {refreshMsg && (
+        <div style={{
+          marginBottom: 10, padding: '6px 9px', borderRadius: 8, fontSize: 11, lineHeight: 1.5,
+          background: refreshMsg.tone === 'ok' ? 'var(--primary-soft)' : 'var(--danger-bg)',
+          color: refreshMsg.tone === 'ok' ? 'var(--primary-strong)' : 'var(--danger)',
+        }}>
+          {refreshMsg.text}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
         <MetricBox label={perUnitLabel} value={`¥${stock.dividendPerShare.toFixed(3)}`} />
