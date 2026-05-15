@@ -94,6 +94,7 @@ export async function refreshHoldingPrices(args: {
       userPrompt: buildUserPrompt(holdings),
       context: { task: 'dividend-price-refresh', count: holdings.length },
       enableWebSearch: true,
+      webSearchMode: preset.webSearch,
     }),
   })
   const data = await res.json().catch(() => ({}))
