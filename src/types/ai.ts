@@ -53,6 +53,40 @@ export interface AIAnalysisRecord {
   result: string
 }
 
+export type AIPriceConfidence = 'high' | 'medium' | 'low'
+
+export interface DividendPriceRefreshItem {
+  code: string
+  /** AI 返回时的展示名，用于和原数据对照；前端会以本地 ref 为准 */
+  name?: string
+  referencePrice: number
+  /** YYYY-MM-DD，AI 给出的真实数据日期（如收盘日） */
+  priceAsOf: string
+  confidence: AIPriceConfidence
+  /** AI 引用的数据源 URL，便于人眼复核 */
+  sourceUrl?: string
+  /** 简短来源说明，例如「东方财富 2026-05-14 收盘」 */
+  sourceNote?: string
+}
+
+export interface DividendPriceRefreshLogEntry {
+  id: string
+  code: string
+  previousPrice: number
+  previousPriceAsOf?: string
+  newPrice: number
+  newPriceAsOf: string
+  confidence: AIPriceConfidence
+  provider: AIProviderKey
+  providerLabel: string
+  model: string
+  sourceUrl?: string
+  sourceNote?: string
+  appliedAt: string
+  /** 'auto' = 高置信度直接应用；'manual' = 用户在 Sheet 中勾选应用 */
+  appliedBy: 'auto' | 'manual'
+}
+
 export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
     key: 'qwen',
