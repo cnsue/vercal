@@ -14,7 +14,7 @@ import { DEFAULT_MORTGAGE_INPUTS } from '../utils/mortgageCalc'
 import type { ThemePreference } from '../types/theme'
 import type { PushPrefs } from '../types/push'
 import type { CashFlowEvent } from '../types/cashFlow'
-import type { AIAnalysisRecord, AISettings } from '../types/ai'
+import type { AIAnalysisRecord, AISettings, DividendPriceRefreshLogEntry } from '../types/ai'
 import { DEFAULT_AI_SETTINGS, findAIProviderPreset } from '../types/ai'
 
 const K = {
