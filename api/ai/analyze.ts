@@ -95,16 +95,23 @@ async function callGemini(input: {
   model: string
   systemPrompt: string
   prompt: string
+  enableWebSearch?: boolean
 }): Promise<string> {
   const url = `${input.baseUrl}/models/${encodeURIComponent(input.model)}:generateContent?key=${encodeURIComponent(input.apiKey)}`
+  // 注意：Gemini 启用 google_search 工具时不能同时设置 responseMimeType: application/json，
+  // 因此 JSON 输出统一通过 prompt 强约束 + 前端容错解析实现。
+  const body: Record<string, unknown> = {
+    systemInstruction: { parts: [{ text: input.systemPrompt }] },
+    contents: [{ role: 'user', parts: [{ text: input.prompt }] }],
+    generationConfig: { temperature: 0.2 },
+  }
+  if (input.enableWebSearch) {
+    body.tools = [{ google_search: {} }]
+  }
   const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: input.systemPrompt }] },
-      contents: [{ role: 'user', parts: [{ text: input.prompt }] }],
-      generationConfig: { temperature: 0.2 },
-    }),
+    body: JSON.stringify(body),
   })
   const data = await response.json().catch(() => ({})) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
