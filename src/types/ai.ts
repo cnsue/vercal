@@ -144,7 +144,8 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     protocol: 'openai-compatible',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     model: 'glm-4-flash',
-    note: '智谱 GLM OpenAI-compatible 接口',
+    note: '智谱 GLM OpenAI-compatible 接口（已接通 web_search 工具联网）',
+    webSearch: 'zhipu-web-search',
   },
   {
     key: 'minimax',
