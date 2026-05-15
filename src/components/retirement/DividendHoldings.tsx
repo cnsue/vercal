@@ -67,6 +67,105 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
   const [newShares, setNewShares] = useState('')
   const targetGapItems = buildTargetGapItems(holdings, customAssets)
 
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState('')
+  const [refreshSheet, setRefreshSheet] = useState<null | {
+    items: DividendPriceRefreshItem[]
+    missing: string[]
+    autoAppliedCodes: Set<string>
+    providerLabel: string
+    modelLabel: string
+  }>(null)
+
+  async function handleRefreshPrices() {
+    if (refreshing) return
+    if (holdings.length === 0) {
+      setRefreshError('还没有任何持仓，先添加再刷新。')
+      return
+    }
+    setRefreshError('')
+    const settings = StorageService.getAISettings()
+    const preset = findAIProviderPreset(settings.provider)
+    if (!preset.webSearch) {
+      setRefreshError(`${preset.label} 不支持联网搜索；请到「设置 → AI 设置」切换到 Gemini 等支持联网的供应商。`)
+      return
+    }
+    if (!settings.apiKey || !settings.baseUrl || !settings.model) {
+      setRefreshError('请先到「设置 → AI 设置」填写 API Key、Base URL、Model。')
+      return
+    }
+
+    setRefreshing(true)
+    try {
+      const refreshInput = buildHoldingsRefreshInput(holdings, customAssets)
+      const result = await refreshHoldingPrices({ settings, holdings: refreshInput })
+
+      const ctx = {
+        customAssets,
+        addCustomDividendAsset,
+        updateCustomDividendAsset,
+        providerKey: settings.provider,
+        providerLabel: preset.label,
+        model: settings.model,
+      }
+
+      const autoApplied = new Set<string>()
+      const logEntries = []
+      for (const item of result.items) {
+        if (item.confidence !== 'high') continue
+        const entry = applyPriceRefresh(item, ctx, 'auto')
+        if (entry) {
+          autoApplied.add(item.code)
+          logEntries.push(entry)
+        }
+      }
+      if (logEntries.length > 0) {
+        const prevLog = StorageService.getDividendPriceRefreshLog()
+        StorageService.saveDividendPriceRefreshLog([...logEntries, ...prevLog])
+      }
+
+      setRefreshSheet({
+        items: result.items,
+        missing: result.missing,
+        autoAppliedCodes: autoApplied,
+        providerLabel: preset.label,
+        modelLabel: settings.model,
+      })
+    } catch (err) {
+      setRefreshError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  function handleApplySelected(selected: DividendPriceRefreshItem[]) {
+    if (!refreshSheet) return
+    const settings = StorageService.getAISettings()
+    const preset = findAIProviderPreset(settings.provider)
+    const ctx = {
+      customAssets,
+      addCustomDividendAsset,
+      updateCustomDividendAsset,
+      providerKey: settings.provider,
+      providerLabel: preset.label,
+      model: settings.model,
+    }
+    const nextAuto = new Set(refreshSheet.autoAppliedCodes)
+    const logEntries = []
+    for (const item of selected) {
+      const entry = applyPriceRefresh(item, ctx, 'manual')
+      if (entry) {
+        nextAuto.add(item.code)
+        logEntries.push(entry)
+      }
+    }
+    if (logEntries.length > 0) {
+      const prevLog = StorageService.getDividendPriceRefreshLog()
+      StorageService.saveDividendPriceRefreshLog([...logEntries, ...prevLog])
+    }
+    setRefreshSheet({ ...refreshSheet, autoAppliedCodes: nextAuto })
+  }
+
   const pension = useRetirementStore(s => s.plan.pension)
   const dividendScenario = useRetirementStore(s => s.plan.dividendScenario)
   const decentMonthlyTarget = useRetirementStore(s => s.plan.decentStandard.monthlyAmount)
