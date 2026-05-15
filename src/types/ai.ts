@@ -84,7 +84,8 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     protocol: 'gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     model: 'gemini-2.5-flash',
-    note: 'Google Gemini generateContent 接口',
+    note: 'Google Gemini generateContent 接口（已接通 Google Search 联网）',
+    webSearch: 'gemini-grounding',
   },
   {
     key: 'openai',
