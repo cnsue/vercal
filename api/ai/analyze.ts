@@ -55,22 +55,33 @@ async function callOpenAICompatible(input: {
   model: string
   systemPrompt: string
   prompt: string
+  webSearchMode?: AIWebSearchMode
 }): Promise<string> {
   const url = `${input.baseUrl}/chat/completions`
+  const body: Record<string, unknown> = {
+    model: input.model,
+    messages: [
+      { role: 'system', content: input.systemPrompt },
+      { role: 'user', content: input.prompt },
+    ],
+    temperature: 0.2,
+  }
+  // 各家自有的联网搜索字段（OpenAI-compatible 协议下的方言）
+  if (input.webSearchMode === 'qwen-enable_search') {
+    // 阿里 DashScope: 顶层 enable_search; qwen-plus 等模型原生支持
+    body.enable_search = true
+  } else if (input.webSearchMode === 'zhipu-web-search') {
+    // 智谱 GLM: tools 中声明 web_search 工具
+    body.tools = [{ type: 'web_search', web_search: { enable: true } }]
+  }
+  // doubao-web 暂未支持（需切换 bot endpoint），其他 mode 忽略
   const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${input.apiKey}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({
-      model: input.model,
-      messages: [
-        { role: 'system', content: input.systemPrompt },
-        { role: 'user', content: input.prompt },
-      ],
-      temperature: 0.2,
-    }),
+    body: JSON.stringify(body),
   })
   const rawText = await response.text().catch(() => '')
   let data: { choices?: Array<{ message?: { content?: string } }>; error?: string | { message?: string; code?: string } }
