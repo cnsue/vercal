@@ -894,6 +894,11 @@ const addBtn: CSSProperties = {
   background: 'var(--primary)', color: '#fff', border: 'none',
   padding: '6px 12px', borderRadius: 14, fontSize: 12, fontWeight: 600, cursor: 'pointer',
 }
+const secondaryBtn: CSSProperties = {
+  background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)',
+  border: '1px solid var(--border)',
+  padding: '6px 10px', borderRadius: 14, fontSize: 12, fontWeight: 700,
+}
 const inputStyle: CSSProperties = {
   width: '100%', padding: '10px 12px', borderRadius: 8,
   border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit',
