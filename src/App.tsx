@@ -209,7 +209,7 @@ export default function App() {
             />
           </div>
         ) : subpage ? (
-          renderSubpage(subpage, () => setSubpage(null), handleAIAction)
+          renderSubpage(subpage, () => setSubpage(null), handleAIAction, setSubpage)
         ) : (
           <>
             {tab === 'asset' && (
