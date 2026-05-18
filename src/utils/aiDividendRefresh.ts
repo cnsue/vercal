@@ -1,9 +1,14 @@
 import type {
   AIPriceConfidence,
+  AIRequestLogEntry,
   AISettings,
   DividendPriceRefreshItem,
 } from '../types/ai'
 import { findAIProviderPreset } from '../types/ai'
+import { StorageService } from '../store/storage'
+import { v4 as uuidv4 } from './uuid'
+
+const RAW_RESPONSE_MAX = 8000
 
 export interface RefreshHoldingInput {
   code: string
