@@ -109,49 +109,18 @@ function StockCard({ stock, isCustom }: { stock: DividendAssetRef; isCustom: boo
   async function handleAIRefresh() {
     if (refreshing) return
     setRefreshMsg(null)
-    const settings = StorageService.getAISettings()
-    const preset = findAIProviderPreset(settings.provider)
-    if (!preset.webSearch) {
-      setRefreshMsg({ tone: 'err', text: `${preset.label} 不支持联网；请到设置切换 Gemini` })
-      return
-    }
-    if (!settings.apiKey || !settings.baseUrl || !settings.model) {
-      setRefreshMsg({ tone: 'err', text: '请先到「设置 → AI 设置」配置 API Key' })
-      return
-    }
     setRefreshing(true)
     try {
-      const result = await refreshHoldingPrices({
-        settings,
+      const result = await refreshHoldingPricesDeterministic({
         holdings: [{ code: stock.code, name: stock.name, lastReferencePrice: stock.referencePrice }],
       })
       const item = result.items.find(i => i.code === stock.code)
       if (!item) {
-        setRefreshMsg({ tone: 'err', text: 'AI 未返回有效价格' })
+        setRefreshMsg({ tone: 'err', text: '行情接口未返回价格（可能停牌或代码不在 A 股范围）' })
         return
       }
-      if (item.confidence !== 'high') {
-        const proceed = window.confirm(
-          `AI 返回 ¥${stock.referencePrice.toFixed(2)} → ¥${item.referencePrice.toFixed(2)}（${item.priceAsOf}），置信度：${item.confidence}。${item.sourceNote ?? ''}\n\n确认应用？`,
-        )
-        if (!proceed) {
-          setRefreshMsg({ tone: 'err', text: '已取消' })
-          return
-        }
-      }
-      const ctx = {
-        customAssets,
-        addCustomDividendAsset,
-        updateCustomDividendAsset,
-        providerKey: settings.provider,
-        providerLabel: preset.label,
-        model: settings.model,
-      }
-      const entry = applyPriceRefresh(item, ctx, item.confidence === 'high' ? 'auto' : 'manual')
-      if (entry) {
-        const prev = StorageService.getDividendPriceRefreshLog()
-        StorageService.saveDividendPriceRefreshLog([entry, ...prev])
-      }
+      const entry = applyDeterministicRefresh(item, { customAssets, addCustomDividendAsset, updateCustomDividendAsset })
+      if (entry) logRefresh([entry])
       setRefreshMsg({ tone: 'ok', text: `已更新到 ¥${item.referencePrice.toFixed(2)}（${item.priceAsOf}）` })
     } catch (err) {
       setRefreshMsg({ tone: 'err', text: err instanceof Error ? err.message : String(err) })
