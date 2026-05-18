@@ -254,6 +254,7 @@ function renderSubpage(
   subpage: Exclude<Subpage, null>,
   back: () => void,
   onAIAction: (action: AIAnalysisAction) => void,
+  onNavigate: (s: Subpage) => void,
 ) {
   switch (subpage.kind) {
     case 'pension-settings':
@@ -265,7 +266,7 @@ function renderSubpage(
     case 'dividend-stocks':
       return <DividendStocksPage />
     case 'ai-settings':
-      return <AISettingsPage onNavigate={setSubpage} />
+      return <AISettingsPage onNavigate={onNavigate} />
     case 'ai-analysis':
       return <AIAnalysisPage request={subpage.request} onAction={onAIAction} />
     case 'ai-logs':
