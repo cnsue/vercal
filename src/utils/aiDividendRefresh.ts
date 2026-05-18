@@ -140,7 +140,7 @@ export async function refreshHoldingPrices(args: {
       throw new Error(msg)
     }
     rawText = typeof data.text === 'string' ? data.text : ''
-    const parsed = parseRefreshResponse(rawText, holdings)
+    const parsed = parseRefreshResponse(rawText, holdings, settings.provider)
 
     writeLog({
       id: uuidv4(),
