@@ -184,9 +184,9 @@ function StockCard({ stock, isCustom }: { stock: DividendAssetRef; isCustom: boo
               cursor: refreshing ? 'not-allowed' : 'pointer',
               whiteSpace: 'nowrap',
             }}
-            title="使用 AI 联网拉取最新参考价"
+            title="直连东方财富行情接口拉取最新参考价"
           >
-            {refreshing ? '刷新中…' : 'AI 刷新此价'}
+            {refreshing ? '刷新中…' : '刷新此价'}
           </button>
         </div>
       </div>
