@@ -1,5 +1,6 @@
 import type {
   AIPriceConfidence,
+  AIProviderKey,
   AIRequestLogEntry,
   AISettings,
   DividendPriceRefreshItem,
@@ -9,6 +10,13 @@ import { StorageService } from '../store/storage'
 import { v4 as uuidv4 } from './uuid'
 
 const RAW_RESPONSE_MAX = 8000
+
+/**
+ * 只有 Gemini grounding 在生产中验证过可靠返回真实搜索结果；
+ * 其他 provider（千问/智谱）的联网搜索工具调用是否真正触发不可靠，
+ * 因此即使它们自报 high 置信度也要降级到 medium，强制走用户审核。
+ */
+const TRUSTED_HIGH_CONFIDENCE_PROVIDERS = new Set<AIProviderKey>(['gemini'])
 
 export interface RefreshHoldingInput {
   code: string
