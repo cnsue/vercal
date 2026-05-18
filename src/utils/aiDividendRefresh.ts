@@ -240,19 +240,25 @@ export function parseRefreshResponse(
       continue
     }
 
-    const priceAsOf = toIsoDate(raw.priceAsOf)
-    if (!priceAsOf || priceAsOf > today) continue
+    const rawPriceAsOf = toIsoDate(raw.priceAsOf)
+    if (!rawPriceAsOf || rawPriceAsOf > today) continue
 
     let confidence = toConfidence(raw.confidence)
     const notes: string[] = []
     const baseNote = toCleanString(raw.sourceNote)
     if (baseNote) notes.push(baseNote)
 
-    // 1) A 股交易日校验：周末直接降到 low
-    const weekday = weekdayOfIsoDate(priceAsOf)
-    if (weekday === 0 || weekday === 6) {
+    // 1) A 股交易日校验：priceAsOf 落在周末时自动校正到上一个工作日（5/15 周五→5/15；5/16 周六→5/15；5/17 周日→5/15）
+    // 这种情况通常是模型把页面上的实时盘中价误标了收盘日期；价格本身可能是对的，所以保留但降级 + 标注
+    let priceAsOf = rawPriceAsOf
+    const rawWeekday = weekdayOfIsoDate(priceAsOf)
+    if (rawWeekday === 0 || rawWeekday === 6) {
+      const coerced = coerceToPreviousWeekday(priceAsOf)
+      if (coerced) {
+        notes.push(`⚠️ AI 给的 priceAsOf ${priceAsOf} 是周${rawWeekday === 0 ? '日' : '六'}（A 股不开盘），已校正到 ${coerced}`)
+        priceAsOf = coerced
+      }
       confidence = 'low'
-      notes.push(`⚠️ priceAsOf ${priceAsOf} 是周${weekday === 0 ? '日' : '六'}，A 股不开盘，疑似模型幻觉`)
     }
 
     // 2) 数据日期距今超过 5 天：降级
