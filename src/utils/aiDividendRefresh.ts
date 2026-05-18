@@ -388,6 +388,20 @@ function weekdayOfIsoDate(iso: string): number {
   return new Date(ms).getDay()
 }
 
+/** 把周末日期回退到上一个 weekday（周六→周五，周日→周五）；非周末原样返回 */
+function coerceToPreviousWeekday(iso: string): string | undefined {
+  const ms = Date.parse(`${iso}T00:00:00`)
+  if (!Number.isFinite(ms)) return undefined
+  const d = new Date(ms)
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() - 1)
+  }
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
