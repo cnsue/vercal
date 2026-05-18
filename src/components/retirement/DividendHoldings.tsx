@@ -70,12 +70,10 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
 
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState('')
-  const [refreshSheet, setRefreshSheet] = useState<null | {
-    items: DividendPriceRefreshItem[]
+  const [refreshSummary, setRefreshSummary] = useState<null | {
+    applied: DeterministicRefreshItem[]
     missing: string[]
-    autoAppliedCodes: Set<string>
-    providerLabel: string
-    modelLabel: string
+    asOf: string
   }>(null)
 
   async function handleRefreshPrices() {
@@ -85,86 +83,43 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
       return
     }
     setRefreshError('')
-    const settings = StorageService.getAISettings()
-    const preset = findAIProviderPreset(settings.provider)
-    if (!preset.webSearch) {
-      setRefreshError(`${preset.label} 不支持联网搜索；请到「设置 → AI 设置」切换到 Gemini 等支持联网的供应商。`)
-      return
-    }
-    if (!settings.apiKey || !settings.baseUrl || !settings.model) {
-      setRefreshError('请先到「设置 → AI 设置」填写 API Key、Base URL、Model。')
-      return
-    }
-
+    setRefreshSummary(null)
     setRefreshing(true)
     try {
-      const refreshInput = buildHoldingsRefreshInput(holdings, customAssets)
-      const result = await refreshHoldingPrices({ settings, holdings: refreshInput })
+      const seen = new Set<string>()
+      const input = holdings
+        .filter(h => {
+          if (seen.has(h.stockCode)) return false
+          seen.add(h.stockCode)
+          return true
+        })
+        .map(h => {
+          const ref = findDividendStock(h.stockCode, customAssets)
+          return {
+            code: h.stockCode,
+            name: ref?.name ?? h.stockName,
+            lastReferencePrice: ref?.referencePrice ?? 0,
+          }
+        })
 
-      const ctx = {
-        customAssets,
-        addCustomDividendAsset,
-        updateCustomDividendAsset,
-        providerKey: settings.provider,
-        providerLabel: preset.label,
-        model: settings.model,
-      }
-
-      const autoApplied = new Set<string>()
-      const logEntries = []
+      const result = await refreshHoldingPricesDeterministic({ holdings: input })
+      const ctx = { customAssets, addCustomDividendAsset, updateCustomDividendAsset }
+      const logs = []
       for (const item of result.items) {
-        if (item.confidence !== 'high') continue
-        const entry = applyPriceRefresh(item, ctx, 'auto')
-        if (entry) {
-          autoApplied.add(item.code)
-          logEntries.push(entry)
-        }
+        const entry = applyDeterministicRefresh(item, ctx)
+        if (entry) logs.push(entry)
       }
-      if (logEntries.length > 0) {
-        const prevLog = StorageService.getDividendPriceRefreshLog()
-        StorageService.saveDividendPriceRefreshLog([...logEntries, ...prevLog])
-      }
-
-      setRefreshSheet({
-        items: result.items,
+      logRefresh(logs)
+      setRefreshSummary({
+        applied: result.items,
         missing: result.missing,
-        autoAppliedCodes: autoApplied,
-        providerLabel: preset.label,
-        modelLabel: settings.model,
+        asOf: result.asOf,
       })
     } catch (err) {
       setRefreshError(err instanceof Error ? err.message : String(err))
     } finally {
       setRefreshing(false)
     }
-  }
-
-  function handleApplySelected(selected: DividendPriceRefreshItem[]) {
-    if (!refreshSheet) return
-    const settings = StorageService.getAISettings()
-    const preset = findAIProviderPreset(settings.provider)
-    const ctx = {
-      customAssets,
-      addCustomDividendAsset,
-      updateCustomDividendAsset,
-      providerKey: settings.provider,
-      providerLabel: preset.label,
-      model: settings.model,
-    }
-    const nextAuto = new Set(refreshSheet.autoAppliedCodes)
-    const logEntries = []
-    for (const item of selected) {
-      const entry = applyPriceRefresh(item, ctx, 'manual')
-      if (entry) {
-        nextAuto.add(item.code)
-        logEntries.push(entry)
-      }
-    }
-    if (logEntries.length > 0) {
-      const prevLog = StorageService.getDividendPriceRefreshLog()
-      StorageService.saveDividendPriceRefreshLog([...logEntries, ...prevLog])
-    }
-    setRefreshSheet({ ...refreshSheet, autoAppliedCodes: nextAuto })
   }
 
   const pension = useRetirementStore(s => s.plan.pension)
