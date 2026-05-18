@@ -348,19 +348,6 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
         document.body,
       )}
 
-      {refreshSheet && createPortal(
-        <AIRefreshPricesSheet
-          items={refreshSheet.items}
-          missing={refreshSheet.missing}
-          customAssets={customAssets}
-          providerLabel={refreshSheet.providerLabel}
-          modelLabel={refreshSheet.modelLabel}
-          autoAppliedCodes={refreshSheet.autoAppliedCodes}
-          onApplySelected={handleApplySelected}
-          onClose={() => setRefreshSheet(null)}
-        />,
-        document.body,
-      )}
 
       {holdings.length > 0 && (
         <div style={{ marginTop: 12, padding: 12, background: 'var(--primary-soft)', borderRadius: 10 }}>
