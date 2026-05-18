@@ -55,6 +55,7 @@ function subpageTitle(s: Exclude<Subpage, null>): string {
     case 'dividend-stocks': return '高股息股票数据'
     case 'ai-settings': return 'AI 设置'
     case 'ai-analysis': return s.request.title
+    case 'ai-logs': return 'AI 请求日志'
     case 'external-tool': return s.title
   }
 }
