@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { Subpage } from '../App'
 import { StorageService } from '../store/storage'
 import {
   AI_PROVIDER_PRESETS,
@@ -8,7 +9,7 @@ import {
   type AISettings,
 } from '../types/ai'
 
-export default function AISettingsPage() {
+export default function AISettingsPage({ onNavigate }: { onNavigate?: (s: Subpage) => void }) {
   const [settings, setSettings] = useState<AISettings>(() => StorageService.getAISettings())
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
