@@ -13,20 +13,21 @@ import {
   type DividendAssetType,
 } from '../../data/dividendStocks'
 import { useRetirementStore } from '../../store/useRetirementStore'
-import { StorageService } from '../../store/storage'
 import type { DividendHolding } from '../../types/retirement'
 import { DIVIDEND_SCENARIO_LABELS } from '../../types/retirement'
-import { findAIProviderPreset, type DividendPriceRefreshItem } from '../../types/ai'
 import { formatCNY } from '../../utils/formatters'
 import {
   computeHoldingIncome,
   computePensionProjection, projectDividendSummary,
   projectHoldingIncomeByResearch,
 } from '../../utils/retirementCalc'
-import { refreshHoldingPrices } from '../../utils/aiDividendRefresh'
-import { applyPriceRefresh, buildHoldingsRefreshInput } from '../../utils/applyDividendRefresh'
+import {
+  applyDeterministicRefresh,
+  logRefresh,
+  refreshHoldingPricesDeterministic,
+  type DeterministicRefreshItem,
+} from '../../utils/deterministicPriceRefresh'
 import AIAnalysisPanel from '../AIAnalysisPanel'
-import AIRefreshPricesSheet from './AIRefreshPricesSheet'
 import DonutChart, { type BreakdownItem } from '../charts/DonutChart'
 
 const ASSET_CATEGORIES: DividendAssetCategory[] = ['银行', '能源', '基建', '消费', '通信', '红利ETF', '宽基ETF', '行业ETF', '其它']
