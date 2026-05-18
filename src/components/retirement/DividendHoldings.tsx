@@ -316,6 +316,17 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
           fontSize: 12, lineHeight: 1.5,
         }}>
           {refreshError}
+          <button
+            type="button"
+            onClick={() => onNavigate({ kind: 'ai-logs' })}
+            style={{
+              marginLeft: 8, background: 'none', border: 'none',
+              color: 'var(--danger)', textDecoration: 'underline',
+              cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0,
+            }}
+          >
+            查看日志 ↗
+          </button>
         </div>
       )}
 
