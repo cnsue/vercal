@@ -255,9 +255,9 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
               opacity: refreshing || holdings.length === 0 ? 0.55 : 1,
               cursor: refreshing || holdings.length === 0 ? 'not-allowed' : 'pointer',
             }}
-            title="使用 AI 联网拉取最新参考价并写入本地覆盖层"
+            title="直连东方财富行情接口拉取最新参考价（零 AI 幻觉）"
           >
-            {refreshing ? '刷新中…' : 'AI 刷新参考价'}
+            {refreshing ? '刷新中…' : '刷新参考价'}
           </button>
           <button onClick={() => setShowAdd(v => !v)} style={addBtn}>
             {showAdd ? '收起' : '＋ 添加'}
