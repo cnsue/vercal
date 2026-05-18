@@ -265,9 +265,11 @@ function renderSubpage(
     case 'dividend-stocks':
       return <DividendStocksPage />
     case 'ai-settings':
-      return <AISettingsPage />
+      return <AISettingsPage onNavigate={setSubpage} />
     case 'ai-analysis':
       return <AIAnalysisPage request={subpage.request} onAction={onAIAction} />
+    case 'ai-logs':
+      return <AILogsPage />
     case 'external-tool':
       return <ExternalToolPage url={subpage.url} />
   }
