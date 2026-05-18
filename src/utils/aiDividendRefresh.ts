@@ -375,6 +375,13 @@ function todayIsoDate(): string {
   return `${y}-${m}-${day}`
 }
 
+/** 返回 ISO 日期的 weekday（0=Sunday, 6=Saturday）；解析失败时返回 -1 */
+function weekdayOfIsoDate(iso: string): number {
+  const ms = Date.parse(`${iso}T00:00:00`)
+  if (!Number.isFinite(ms)) return -1
+  return new Date(ms).getDay()
+}
+
 function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
