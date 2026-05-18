@@ -134,6 +134,21 @@ export default function AISettingsPage({ onNavigate }: { onNavigate?: (s: Subpag
         </button>
         {saved && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--primary-strong)' }}>已保存到本机</div>}
       </section>
+
+      {onNavigate && (
+        <section style={cardStyle}>
+          <Label>排查与日志</Label>
+          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 10 }}>
+            查看最近 30 次 AI 联网请求的原始返回，便于排查「未返回有效价格」等问题。
+          </div>
+          <button type="button"
+            onClick={() => onNavigate({ kind: 'ai-logs' })}
+            style={{ ...btnStyle, width: '100%', background: 'var(--button-secondary-bg)', color: 'var(--button-secondary-text)', border: '1px solid var(--border)' }}
+          >
+            查看 AI 请求日志
+          </button>
+        </section>
+      )}
     </div>
   )
 }
