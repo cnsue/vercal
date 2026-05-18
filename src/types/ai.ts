@@ -69,6 +69,32 @@ export interface DividendPriceRefreshItem {
   sourceNote?: string
 }
 
+/** 每次 AI 调用的请求/响应快照，本机滚动保留最近若干条用于排查 */
+export interface AIRequestLogEntry {
+  id: string
+  timestamp: string
+  /** 业务任务标识，例如 'dividend-price-refresh-batch'、'dividend-price-refresh-single' */
+  task: string
+  provider: AIProviderKey
+  providerLabel: string
+  model: string
+  protocol: AIProtocol
+  webSearchMode?: AIWebSearchMode
+  /** 请求耗时（毫秒） */
+  durationMs: number
+  status: 'ok' | 'error'
+  /** 错误时记录消息（已脱敏） */
+  errorMessage?: string
+  /** 此次请求的输入摘要，例如刷新的代码列表 */
+  inputSummary?: string
+  /** AI 原始返回文本，超长会被截断 */
+  rawResponseText?: string
+  /** 业务层解析后的结果计数 */
+  parsedItemCount?: number
+  /** 业务层认为未拿到结果的标的数量 */
+  missingCount?: number
+}
+
 export interface DividendPriceRefreshLogEntry {
   id: string
   code: string
