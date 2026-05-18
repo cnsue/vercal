@@ -10,10 +10,11 @@ import {
   type DividendAssetRef,
 } from '../data/dividendStocks'
 import { useRetirementStore } from '../store/useRetirementStore'
-import { StorageService } from '../store/storage'
-import { findAIProviderPreset } from '../types/ai'
-import { refreshHoldingPrices } from '../utils/aiDividendRefresh'
-import { applyPriceRefresh } from '../utils/applyDividendRefresh'
+import {
+  applyDeterministicRefresh,
+  logRefresh,
+  refreshHoldingPricesDeterministic,
+} from '../utils/deterministicPriceRefresh'
 
 const CATEGORY_OPTIONS = ['全部', '银行', '能源', '基建', '消费', '通信', '红利ETF', '宽基ETF', '行业ETF', '其它'] as const
 type CategoryFilter = '全部' | DividendAssetCategory
