@@ -203,7 +203,11 @@ interface ParsedResponse {
   missing: string[]
 }
 
-export function parseRefreshResponse(rawText: string, holdings: RefreshHoldingInput[]): ParsedResponse {
+export function parseRefreshResponse(
+  rawText: string,
+  holdings: RefreshHoldingInput[],
+  provider?: AIProviderKey,
+): ParsedResponse {
   const json = extractJsonObject(rawText)
   if (!json || typeof json !== 'object') {
     throw new Error('AI 返回的不是合法 JSON；请检查模型是否启用了联网搜索')
@@ -212,6 +216,9 @@ export function parseRefreshResponse(rawText: string, holdings: RefreshHoldingIn
   const items: DividendPriceRefreshItem[] = []
   const missing: string[] = []
   const today = todayIsoDate()
+  const todayMs = Date.parse(`${today}T00:00:00`)
+  const fiveDaysMs = 5 * 24 * 60 * 60 * 1000
+  const trustHigh = provider ? TRUSTED_HIGH_CONFIDENCE_PROVIDERS.has(provider) : false
 
   const rawItems = Array.isArray((json as Record<string, unknown>).items)
     ? (json as { items: unknown[] }).items
@@ -236,7 +243,31 @@ export function parseRefreshResponse(rawText: string, holdings: RefreshHoldingIn
     const priceAsOf = toIsoDate(raw.priceAsOf)
     if (!priceAsOf || priceAsOf > today) continue
 
-    const confidence = toConfidence(raw.confidence)
+    let confidence = toConfidence(raw.confidence)
+    const notes: string[] = []
+    const baseNote = toCleanString(raw.sourceNote)
+    if (baseNote) notes.push(baseNote)
+
+    // 1) A 股交易日校验：周末直接降到 low
+    const weekday = weekdayOfIsoDate(priceAsOf)
+    if (weekday === 0 || weekday === 6) {
+      confidence = 'low'
+      notes.push(`⚠️ priceAsOf ${priceAsOf} 是周${weekday === 0 ? '日' : '六'}，A 股不开盘，疑似模型幻觉`)
+    }
+
+    // 2) 数据日期距今超过 5 天：降级
+    const asOfMs = Date.parse(`${priceAsOf}T00:00:00`)
+    if (Number.isFinite(asOfMs) && todayMs - asOfMs > fiveDaysMs) {
+      confidence = confidence === 'high' ? 'medium' : confidence
+      notes.push(`⚠️ priceAsOf 距今 ${Math.round((todayMs - asOfMs) / 86400000)} 天，可能不是最新`)
+    }
+
+    // 3) provider 信任降级：非可信 provider 的 high 一律降到 medium
+    if (confidence === 'high' && !trustHigh) {
+      confidence = 'medium'
+      notes.push('⚠️ 当前 provider 联网搜索不可信，已自动从 high 降为 medium，请人工核对来源')
+    }
+
     items.push({
       code,
       name: toCleanString(raw.name) ?? requested.name,
@@ -244,7 +275,7 @@ export function parseRefreshResponse(rawText: string, holdings: RefreshHoldingIn
       priceAsOf,
       confidence,
       sourceUrl: toCleanString(raw.sourceUrl),
-      sourceNote: toCleanString(raw.sourceNote),
+      sourceNote: notes.join(' · ') || undefined,
     })
   }
 
