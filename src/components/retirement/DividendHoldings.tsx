@@ -272,16 +272,33 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
           fontSize: 12, lineHeight: 1.5,
         }}>
           {refreshError}
+        </div>
+      )}
+
+      {refreshSummary && (
+        <div style={{
+          marginBottom: 10, padding: 9, borderRadius: 10,
+          background: 'var(--primary-soft)', color: 'var(--primary-strong)',
+          fontSize: 12, lineHeight: 1.55,
+        }}>
+          已更新 <strong>{refreshSummary.applied.length}</strong> 条参考价
+          {refreshSummary.asOf && ` · 行情日期 ${refreshSummary.asOf}`}
+          {refreshSummary.missing.length > 0 && (
+            <span style={{ color: 'var(--warning-text)', marginLeft: 6 }}>
+              · 未拉到 {refreshSummary.missing.length} 条（{refreshSummary.missing.join(', ')}）
+            </span>
+          )}
           <button
             type="button"
-            onClick={() => onNavigate({ kind: 'ai-logs' })}
+            onClick={() => setRefreshSummary(null)}
             style={{
               marginLeft: 8, background: 'none', border: 'none',
-              color: 'var(--danger)', textDecoration: 'underline',
-              cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0,
+              color: 'inherit', cursor: 'pointer',
+              fontSize: 12, fontWeight: 700, padding: 0,
             }}
+            aria-label="关闭"
           >
-            查看日志 ↗
+            ✕
           </button>
         </div>
       )}
