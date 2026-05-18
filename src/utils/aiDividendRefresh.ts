@@ -73,8 +73,14 @@ function buildUserPrompt(holdings: RefreshHoldingInput[]): string {
 export async function refreshHoldingPrices(args: {
   settings: AISettings
   holdings: RefreshHoldingInput[]
+  /** 业务任务名，便于日志识别批量 vs 单只 */
+  task?: string
 }): Promise<RefreshHoldingResult> {
   const { settings, holdings } = args
+  const task = args.task ?? (holdings.length === 1
+    ? 'dividend-price-refresh-single'
+    : 'dividend-price-refresh-batch')
+
   if (holdings.length === 0) {
     return { items: [], missing: [], rawText: '', modelUsed: settings.model }
   }
@@ -86,34 +92,89 @@ export async function refreshHoldingPrices(args: {
     throw new Error('AI 配置不完整：请先到「设置 → AI 设置」填写 API Key、Base URL、Model')
   }
 
-  const res = await fetch('/api/ai/analyze', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
+  const inputSummary = holdings.map(h => `${h.code}(${h.name})`).join(', ')
+  const startedAt = Date.now()
+  let rawText = ''
+
+  try {
+    const res = await fetch('/api/ai/analyze', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        provider: settings.provider,
+        protocol: settings.protocol,
+        apiKey: settings.apiKey,
+        baseUrl: settings.baseUrl,
+        model: settings.model,
+        systemPrompt: SYSTEM_PROMPT,
+        userPrompt: buildUserPrompt(holdings),
+        context: { task: 'dividend-price-refresh', count: holdings.length },
+        enableWebSearch: true,
+        webSearchMode: preset.webSearch,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const msg = typeof data?.error === 'string' ? data.error : `AI 调用失败 ${res.status}`
+      throw new Error(msg)
+    }
+    rawText = typeof data.text === 'string' ? data.text : ''
+    const parsed = parseRefreshResponse(rawText, holdings)
+
+    writeLog({
+      id: uuidv4(),
+      timestamp: new Date().toISOString(),
+      task,
       provider: settings.provider,
-      protocol: settings.protocol,
-      apiKey: settings.apiKey,
-      baseUrl: settings.baseUrl,
+      providerLabel: preset.label,
       model: settings.model,
-      systemPrompt: SYSTEM_PROMPT,
-      userPrompt: buildUserPrompt(holdings),
-      context: { task: 'dividend-price-refresh', count: holdings.length },
-      enableWebSearch: true,
+      protocol: settings.protocol,
       webSearchMode: preset.webSearch,
-    }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(typeof data?.error === 'string' ? data.error : `AI 调用失败 ${res.status}`)
+      durationMs: Date.now() - startedAt,
+      status: 'ok',
+      inputSummary,
+      rawResponseText: truncate(rawText, RAW_RESPONSE_MAX),
+      parsedItemCount: parsed.items.length,
+      missingCount: parsed.missing.length,
+    })
+
+    return {
+      items: parsed.items,
+      missing: parsed.missing,
+      rawText,
+      modelUsed: settings.model,
+    }
+  } catch (err) {
+    writeLog({
+      id: uuidv4(),
+      timestamp: new Date().toISOString(),
+      task,
+      provider: settings.provider,
+      providerLabel: preset.label,
+      model: settings.model,
+      protocol: settings.protocol,
+      webSearchMode: preset.webSearch,
+      durationMs: Date.now() - startedAt,
+      status: 'error',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      inputSummary,
+      rawResponseText: rawText ? truncate(rawText, RAW_RESPONSE_MAX) : undefined,
+    })
+    throw err
   }
-  const rawText = typeof data.text === 'string' ? data.text : ''
-  const parsed = parseRefreshResponse(rawText, holdings)
-  return {
-    items: parsed.items,
-    missing: parsed.missing,
-    rawText,
-    modelUsed: settings.model,
+}
+
+function writeLog(entry: AIRequestLogEntry): void {
+  try {
+    StorageService.appendAIRequestLog(entry)
+  } catch {
+    // 日志失败不影响主流程
   }
+}
+
+function truncate(s: string, n: number): string {
+  if (s.length <= n) return s
+  return s.slice(0, n) + `\n…（已截断，原始 ${s.length} 字符）`
 }
 
 interface ParsedResponse {
