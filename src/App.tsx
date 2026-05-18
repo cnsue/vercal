@@ -38,6 +38,7 @@ export type Subpage =
   | { kind: 'dividend-stocks' }
   | { kind: 'ai-settings' }
   | { kind: 'ai-analysis'; request: AIAnalysisRequest }
+  | { kind: 'ai-logs' }
   | { kind: 'external-tool'; title: string; url: string }
   | null
 
