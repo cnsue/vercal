@@ -316,6 +316,14 @@ export const StorageService = {
   saveDividendPriceRefreshLog: (v: DividendPriceRefreshLogEntry[]): void =>
     set(K.dividendPriceRefreshLog, v.slice(0, 50)),
 
+  getAIRequestLog: (): AIRequestLogEntry[] => get<AIRequestLogEntry[]>(K.aiRequestLog, []),
+  saveAIRequestLog: (v: AIRequestLogEntry[]): void => set(K.aiRequestLog, v.slice(0, 30)),
+  appendAIRequestLog: (entry: AIRequestLogEntry): void => {
+    const prev = get<AIRequestLogEntry[]>(K.aiRequestLog, [])
+    set(K.aiRequestLog, [entry, ...prev].slice(0, 30))
+  },
+  clearAIRequestLog: (): void => set(K.aiRequestLog, []),
+
   estimateSizeKB: (): number => {
     let total = 0
     for (const key of Object.values(K)) {
