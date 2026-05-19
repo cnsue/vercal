@@ -186,7 +186,7 @@ export default function TargetSimulator({
       shares: LOT,
       dps: ref.dividendPerShare,
       taxRate: 0,
-      growth: ref.growth?.[scenario] ?? 0,
+      growth: resolveGrowth(ref)[scenario],
       refPrice: ref.referencePrice,
     }
     setRows(rs => [...rs, newRow])
