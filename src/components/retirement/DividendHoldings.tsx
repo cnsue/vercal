@@ -8,6 +8,7 @@ import {
   dividendYieldPct,
   findDividendStock,
   getDividendAssets,
+  resolveGrowth,
   type DividendAssetCategory,
   type DividendAssetRef,
   type DividendAssetType,
