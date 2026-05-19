@@ -151,7 +151,7 @@ export default function DividendHoldings({ onNavigate }: { onNavigate: (subpage:
         netAnnual: round(income.netAnnual, 2),
         yieldPct: round(income.yieldPct, 2),
         referenceMarketValue: round(income.referenceMarketValue, 2),
-        growth: ref?.growth ?? null,
+        growth: ref ? resolveGrowth(ref) : null,
         research: research ? {
           targetPriceAvg: research.targetPriceAvg,
           targetPriceAsOf: research.targetPriceAsOf,
