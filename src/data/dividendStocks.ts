@@ -304,3 +304,28 @@ export function dividendUnitLabel(ref: DividendAssetRef | undefined): string {
 export function dividendPerUnitLabel(ref: DividendAssetRef | undefined): string {
   return ref?.assetType === 'etf' ? '每份分派' : '每股分红'
 }
+
+/**
+ * 解析股息增长率三档。
+ * 若有 research 数据：取非 null 归母净利润增速的中位数作为中立预期，±20% 为悲观/乐观。
+ * 负中位数时用 neutral ± |neutral|×0.2，保证悲观 < 中立 < 乐观方向正确。
+ * 无 research 时 fallback 到手工录入的 growth 字段。
+ */
+export function resolveGrowth(ref: DividendAssetRef): { pessimistic: number; neutral: number; optimistic: number } {
+  const values = (ref.research?.forecasts ?? [])
+    .map(f => f.growthPct)
+    .filter((v): v is number => v !== null)
+
+  if (values.length > 0) {
+    const sorted = [...values].sort((a, b) => a - b)
+    const mid = Math.floor(sorted.length / 2)
+    const medianPct = sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid]
+    const neutral = medianPct / 100
+    const spread = Math.abs(neutral) * 0.2
+    return { pessimistic: neutral - spread, neutral, optimistic: neutral + spread }
+  }
+
+  return ref.growth
+}
