@@ -40,7 +40,7 @@ export function projectHoldingIncome(
 ): HoldingIncome {
   const base = computeHoldingIncome(h, customAssets)
   const ref = findDividendStock(h.stockCode, customAssets)
-  const growth = ref?.growth?.[scenario] ?? 0
+  const growth = ref ? resolveGrowth(ref)[scenario] : 0
   const factor = Math.pow(1 + growth, Math.max(0, yearsForward))
   return {
     ...base,
