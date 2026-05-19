@@ -5,6 +5,7 @@ import {
   dividendPerUnitLabel,
   getDividendAssets,
   researchUpsidePct,
+  resolveGrowth,
   type DividendAssetCategory,
   type DividendAssetFieldSource,
   type DividendAssetRef,
