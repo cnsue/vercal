@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
-import { findDividendStock, dividendYieldPct, getDividendAssets, dividendUnitLabel } from '../../data/dividendStocks'
+import { findDividendStock, dividendYieldPct, getDividendAssets, dividendUnitLabel, resolveGrowth } from '../../data/dividendStocks'
 import { formatCNY } from '../../utils/formatters'
 import type { DividendGrowthScenario } from '../../types/retirement'
 import { DIVIDEND_SCENARIO_LABELS } from '../../types/retirement'
