@@ -76,7 +76,7 @@ export default function TargetSimulator({
       shares: startTarget,
       dps,
       taxRate: h.taxRate ?? 0,
-      growth: ref?.growth?.[scenario] ?? 0,
+      growth: ref ? resolveGrowth(ref)[scenario] : 0,
       refPrice: ref?.referencePrice ?? 0,
     }
   }), [holdings, scenario, customAssets])
