@@ -3,7 +3,7 @@ import type {
   DecentBreakdownItem, DecentPriority,
 } from '../types/retirement'
 import { DECENT_DIMENSIONS, DEFAULT_CUSTOM_SUGGESTION, CUSTOM_PRIORITY } from '../types/retirement'
-import { findDividendStock, type DividendAssetRef } from '../data/dividendStocks'
+import { findDividendStock, resolveGrowth, type DividendAssetRef } from '../data/dividendStocks'
 import {
   findPensionCity, getPersonalAccountMonths,
 } from '../data/pensionCities'
