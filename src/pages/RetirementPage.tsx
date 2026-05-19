@@ -428,7 +428,7 @@ function ScenarioSelector({ years, multiplier, hasHoldings, holdings, customAsse
         : '手动覆盖每股股息',
       dividendPerShare: income.dividendPerShare,
       netAnnual: income.netAnnual,
-      growth: ref?.growth?.[current] ?? 0,
+      growth: ref ? resolveGrowth(ref)[current] : 0,
       assetType: ref?.assetType ?? 'stock',
     }
   })
