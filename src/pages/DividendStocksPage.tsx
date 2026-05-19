@@ -217,9 +217,9 @@ function StockCard({ stock, isCustom }: { stock: DividendAssetRef; isCustom: boo
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6,
         background: 'var(--surface-muted)', borderRadius: 12, padding: 8, marginBottom: 10,
       }}>
-        <GrowthPill label="悲观" value={stock.growth.pessimistic * 100} />
-        <GrowthPill label="中性" value={stock.growth.neutral * 100} />
-        <GrowthPill label="乐观" value={stock.growth.optimistic * 100} />
+        <GrowthPill label="悲观" value={resolveGrowth(stock).pessimistic * 100} />
+        <GrowthPill label="中性" value={resolveGrowth(stock).neutral * 100} />
+        <GrowthPill label="乐观" value={resolveGrowth(stock).optimistic * 100} />
       </div>
 
       <ResearchBlock stock={stock} />
