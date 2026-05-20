@@ -136,7 +136,11 @@ export function inferCategory(assetType: DividendAssetType, name: string): Divid
 export function quotePrice(raw: EastmoneyQuote): number {
   const value = Number(raw.f43)
   if (!Number.isFinite(value) || value <= 0) return 0
-  return value / 100
+  const precision = Number(raw.f152)
+  const divisor = Number.isFinite(precision) && precision >= 0 && precision <= 6
+    ? Math.pow(10, precision)
+    : 100
+  return value / divisor
 }
 
 export function apiFieldSource(sourceNote: string, confidence: DividendAssetFieldSource['confidence'] = 'medium'): DividendAssetFieldSource {
