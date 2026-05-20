@@ -461,7 +461,7 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
           </ExampleSection>
 
           <ExampleSection title="③ 缴费指数">
-            <ExampleRow label="已缴费期间平均指数" value="1.00" hint="本人工资 ÷ 当地社平。1.00 即"跟社平差不多"（一般工薪族）；查 APP 里「缴费工资指数」最准，工资在社平 1.5 倍就填 1.50" />
+            <ExampleRow label="已缴费期间平均指数" value="1.00" hint="本人工资 ÷ 当地社平。1.00 即跟社平差不多（一般工薪族）；查 APP 里「缴费工资指数」最准，工资在社平 1.5 倍就填 1.50" />
             <ExampleRow label="未来期望平均指数" value="1.00" hint="假设未来工资跟当前一致；预期降薪选 0.60-0.80，预期升迁/换高薪选 1.50-2.00+" />
           </ExampleSection>
 
