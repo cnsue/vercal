@@ -27,7 +27,7 @@ export interface QuoteRefreshResult {
   asOf: string
 }
 
-const EASTMONEY_FIELDS = 'f43,f57,f58,f86,f152'
+const EASTMONEY_FIELDS = 'f43,f57,f58,f59,f86'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
