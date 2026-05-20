@@ -26,11 +26,12 @@ export default function PensionSettingsPage({ onBack }: Props) {
   const thisYear = new Date().getFullYear()
   const totalMonths = pension.monthsContributed + projection.plannedFutureMonths
   const retirementYear = parseInt(projection.retirementYearMonth.split('-')[0]) || thisYear
-  const minMonths = getMinimumContributionMonths(retirementYear)
-  const belowMinimum = totalMonths < minMonths
+  const minMonths = projection.minimumMonthsRequired
+  const belowMinimum = !projection.meetsMinimum
   const earlyRetire = pension.retirementOffsetMonths < 0
   const shortfallMonths = Math.max(minMonths - totalMonths, 0)
   const minYearsLabel = minMonths % 12 === 0 ? `${minMonths / 12}` : `${(minMonths / 12).toFixed(1)}`
+  const [showExample, setShowExample] = useState(false)
 
   const birthYears = useMemo(() => {
     const arr: number[] = []
