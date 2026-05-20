@@ -216,15 +216,30 @@ export function contributionMonthsUntil(year: number, month: number): number {
 }
 
 /**
- * 每月定额投入、按年利率 annualRate 月复利 months 个月后的未来值（FV annuity due approximation）。
- * r_monthly = (1+annualRate)^(1/12) - 1
- * FV = payment × ((1+r)^n - 1) / r
+ * 起始月缴 `startingMonthlyPayment`、缴费金额按 `annualGrowth` 复利（每月按 (1+g)^(1/12)-1 涨）、
+ * 同时账户余额按 `annualRate` 复利，月末计息的 ordinary annuity FV：
+ *   r = (1+annualRate)^(1/12) - 1
+ *   g = (1+annualGrowth)^(1/12) - 1
+ *   FV = C × ((1+r)^n - (1+g)^n) / (r - g)      r ≠ g
+ *   FV = C × n × (1+r)^(n-1)                    r = g
+ *
+ * 修复了原 fvMonthlyAnnuity 的缺陷：原实现假设每月缴费恒定，等同于把未来缴费基数当成"起止社平的算术平均"，
+ * 当社平按复利增长（socialGrowth > 0）时会系统性低估个人账户最终余额。
  */
-function fvMonthlyAnnuity(monthlyPayment: number, annualRate: number, months: number): number {
-  if (months <= 0 || monthlyPayment <= 0) return 0
-  if (annualRate <= 0) return monthlyPayment * months
-  const r = Math.pow(1 + annualRate, 1 / 12) - 1
-  return monthlyPayment * (Math.pow(1 + r, months) - 1) / r
+function fvGrowingMonthlyAnnuity(
+  startingMonthlyPayment: number,
+  annualRate: number,
+  annualGrowth: number,
+  months: number,
+): number {
+  if (months <= 0 || startingMonthlyPayment <= 0) return 0
+  const r = Math.pow(1 + Math.max(annualRate, 0), 1 / 12) - 1
+  const g = Math.pow(1 + Math.max(annualGrowth, 0), 1 / 12) - 1
+  if (r === 0 && g === 0) return startingMonthlyPayment * months
+  if (Math.abs(r - g) < 1e-12) {
+    return startingMonthlyPayment * months * Math.pow(1 + r, months - 1)
+  }
+  return startingMonthlyPayment * (Math.pow(1 + r, months) - Math.pow(1 + g, months)) / (r - g)
 }
 
 export function computePensionProjection(cfg: PensionConfig): PensionProjection {
