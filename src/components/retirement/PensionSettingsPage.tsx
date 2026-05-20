@@ -499,25 +499,29 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
             </div>
           </div>
 
-          <ExampleSection title="📈 想让数字更好看？两个最有效的杠杆">
+          <ExampleSection title="📈 弹性退休的 ±3 年差多少？外加一个最有用的杠杆">
             <ExampleRow
-              label="基准（按上面填）"
+              label="早退 3 年（60 岁退）"
+              value="¥7,300 / 月 (−19%)"
+              hint="少缴 36 月 + 余额少复利 3 年 + 计发月数 117→139，三重叠加往下" />
+            <ExampleRow
+              label="标准退休（63 岁，基准）"
               value="¥9,063 / 月"
-              hint="63 岁退、未来指数 1.5、其余按示例" />
+              hint="按上面填的参数；这是政策默认档" />
             <ExampleRow
-              label="① 晚退 3 年（66 岁退）"
-              value="¥11,600 (+28%)"
-              hint="弹性退休上限就是 ±3 年。多缴 36 月 + 余额多复利 3 年 + 计发月数 117→93，三重叠加" />
+              label="晚退 3 年（66 岁退）"
+              value="¥11,600 / 月 (+28%)"
+              hint="多缴 36 月 + 余额多复利 3 年 + 计发月数 117→93，三重叠加往上" />
             <ExampleRow
-              label="② 未来指数 1.5 → 2.5（升职/换高薪）"
-              value="¥12,800 (+41%)"
+              label="未来指数 1.5 → 2.5（升职/换高薪）"
+              value="¥12,800 / 月 (+41%)"
               hint="缴费基数升到 2.5 倍社平。只影响未来缴费段，过去 8 年算 1.5 不变" />
             <div style={{
               marginTop: 6, padding: 10, background: 'var(--surface)', borderRadius: 8,
               border: '1px dashed var(--primary-border)',
               fontSize: 11, lineHeight: 1.7, color: 'var(--text)',
             }}>
-              💡 <strong>晚退休是最值钱的单杠杆</strong>，因为它同时让"缴费年数 ↑、个人账户余额 ↑、计发月数 ↓"三件事发生；不过弹性退休上限只有 3 年，再往上挪不动。两个杠杆叠加（晚退 3 年 + 指数 2.5）能算到 <strong>¥16,700 / 月</strong>（+84%），但代价是多干 3 年 + 工资得真涨上去。
+              💡 <strong>弹性退休上限就是 ±3 年</strong>。早退 1 年代价约 -6%，晚退 1 年收益约 +9%（不对称是因为复利方向不同）；超过 ±3 年的档位在 UI 里选不到，再想往上挪只能靠把未来缴费基数撑上去。两个能动的杠杆叠加（晚退 3 年 + 指数 2.5）能算到 <strong>¥16,700 / 月</strong>（+84%），但代价是真要多干 3 年 + 工资得真涨上去。
             </div>
           </ExampleSection>
 
