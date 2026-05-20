@@ -192,6 +192,10 @@ export interface PensionProjection {
   yearsToRetire: number
   /** 加权平均缴费指数 */
   weightedIndex: number
+  /** 退休当年法定最低缴费月数（2025-2029=180、2039+=240，期间每年 +6） */
+  minimumMonthsRequired: number
+  /** 累计缴费是否满足按月领取基本养老金的最低年限 */
+  meetsMinimum: boolean
 }
 
 /** 从今起到指定 (year, month) 还剩多少月（向下取整，最少 0）。 */
