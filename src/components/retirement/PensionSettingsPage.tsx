@@ -499,7 +499,7 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
             </div>
           </div>
 
-          <ExampleSection title="📈 想让数字更好看？三个最有效的杠杆">
+          <ExampleSection title="📈 想让数字更好看？两个最有效的杠杆">
             <ExampleRow
               label="基准（按上面填）"
               value="¥9,063 / 月"
@@ -507,13 +507,9 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
             <ExampleRow
               label="① 晚退 3 年（66 岁退）"
               value="¥11,600 (+28%)"
-              hint="当前 UI 弹性退休上限。多缴 36 月 + 余额多复利 3 年 + 计发月数 117→93，三重叠加" />
+              hint="弹性退休上限就是 ±3 年。多缴 36 月 + 余额多复利 3 年 + 计发月数 117→93，三重叠加" />
             <ExampleRow
-              label="② 晚退 5 年（68 岁退）"
-              value="¥14,300 (+58%)"
-              hint="超出当前弹性退休上限，列出供你感受幅度。计发月数从 117 跳到 75 是大头" />
-            <ExampleRow
-              label="③ 未来指数 1.5 → 2.5（升职/换高薪）"
+              label="② 未来指数 1.5 → 2.5（升职/换高薪）"
               value="¥12,800 (+41%)"
               hint="缴费基数升到 2.5 倍社平。只影响未来缴费段，过去 8 年算 1.5 不变" />
             <div style={{
@@ -521,7 +517,7 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
               border: '1px dashed var(--primary-border)',
               fontSize: 11, lineHeight: 1.7, color: 'var(--text)',
             }}>
-              💡 <strong>晚退休是最值钱的杠杆</strong>，因为它同时让"缴费年数 ↑、个人账户余额 ↑、计发月数 ↓"三件事发生；只调一个杠杆的话单纯加缴费指数其实更"省力"。两个杠杆叠加（晚退 3 年 + 指数 2.5）能算到 <strong>¥16,700 / 月</strong>（+84%），但代价是多干 3 年 + 工资得真涨上去。
+              💡 <strong>晚退休是最值钱的单杠杆</strong>，因为它同时让"缴费年数 ↑、个人账户余额 ↑、计发月数 ↓"三件事发生；不过弹性退休上限只有 3 年，再往上挪不动。两个杠杆叠加（晚退 3 年 + 指数 2.5）能算到 <strong>¥16,700 / 月</strong>（+84%），但代价是多干 3 年 + 工资得真涨上去。
             </div>
           </ExampleSection>
 
