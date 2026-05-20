@@ -17,6 +17,8 @@ export interface EastmoneyQuote {
   f43?: number | string
   f57?: string
   f58?: string
+  /** 价格精度（小数位数）。A 股 / 港股通常为 2；美股可能 2 或 4。f43 = 真实价 × 10^f152 */
+  f152?: number | string
 }
 
 export const EASTMONEY_TOKEN = 'D43BF722C8E33A0EB5D0476A4A6B2C31'
