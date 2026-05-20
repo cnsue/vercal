@@ -140,7 +140,7 @@ export function inferCategory(assetType: DividendAssetType, name: string): Divid
 export function quotePrice(raw: EastmoneyQuote): number {
   const value = Number(raw.f43)
   if (!Number.isFinite(value) || value <= 0) return 0
-  const precision = Number(raw.f152)
+  const precision = Number(raw.f59)
   const divisor = Number.isFinite(precision) && precision >= 0 && precision <= 6
     ? Math.pow(10, precision)
     : 100
