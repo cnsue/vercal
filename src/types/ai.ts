@@ -55,20 +55,6 @@ export interface AIAnalysisRecord {
 
 export type AIPriceConfidence = 'high' | 'medium' | 'low'
 
-export interface DividendPriceRefreshItem {
-  code: string
-  /** AI 返回时的展示名，用于和原数据对照；前端会以本地 ref 为准 */
-  name?: string
-  referencePrice: number
-  /** YYYY-MM-DD，AI 给出的真实数据日期（如收盘日） */
-  priceAsOf: string
-  confidence: AIPriceConfidence
-  /** AI 引用的数据源 URL，便于人眼复核 */
-  sourceUrl?: string
-  /** 简短来源说明，例如「东方财富 2026-05-14 收盘」 */
-  sourceNote?: string
-}
-
 /** 每次 AI 调用的请求/响应快照，本机滚动保留最近若干条用于排查 */
 export interface AIRequestLogEntry {
   id: string
