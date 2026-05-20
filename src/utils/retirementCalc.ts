@@ -271,6 +271,10 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
     ? cfg.averageWageOverride
     : city?.averageWage ?? 0
 
+  const retirementYearForMin = retirementDateObj.getFullYear()
+  const minimumMonthsRequired = getMinimumContributionMonths(retirementYearForMin)
+  const meetsMinimum = totalMonths >= minimumMonthsRequired
+
   if (!city || totalMonths <= 0) {
     return {
       valid: false,
@@ -288,6 +292,8 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
       retirementYearMonth,
       yearsToRetire,
       weightedIndex,
+      minimumMonthsRequired,
+      meetsMinimum,
     }
   }
 
@@ -296,27 +302,27 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
   const accountRate = Number.isFinite(cfg.personalAccountRate) ? cfg.personalAccountRate : 0.0262
   const projectedSocialWage = baseSocialWage * Math.pow(1 + socialGrowth, yearsToRetire)
 
-  // 基础养老金 = 退休时社平 × (1 + 加权指数) / 2 × (总月数/12) × 1%
+  // 基础养老金按法规口径用「退休时上年度」社平工资；当 socialGrowth=0 时与 projectedSocialWage 相同
+  const basicSocialWage = baseSocialWage * Math.pow(1 + socialGrowth, Math.max(0, yearsToRetire - 1))
+
+  // 基础养老金 = 退休时上年度社平 × (1 + 加权指数) / 2 × (总月数/12) × 1%
   const totalYearsCredit = totalMonths / 12
-  const basicPension = projectedSocialWage * (1 + boundedIdx) / 2 * totalYearsCredit * 0.01
+  const basicPension = basicSocialWage * (1 + boundedIdx) / 2 * totalYearsCredit * 0.01
 
   // 个人账户：
   //   - 现有余额按记账利率（年）复利到退休
-  //   - 未来每月缴入 = 缴费基数 × 8%，缴费基数 = 当期社平 × 未来期望指数
-  //   - 未来缴入按 FV 年金公式复利累加
+  //   - 未来每月缴入 = 当期缴费基数 × 8%，缴费基数随社平按 socialGrowth 复利成长
+  //   - 用 growing annuity FV 公式累计（修复原 fvMonthlyAnnuity 在 socialGrowth>0 时低估缴费的问题）
   const grownBalance = cfg.personalAccountBalance * Math.pow(1 + accountRate, yearsToRetire)
-  const avgWage = (baseSocialWage + projectedSocialWage) / 2
   const boundedFutureIdx = Math.max(0.6, Math.min(cfg.futureIndex, 3.0))
-  const futureMonthlyContribution = avgWage * boundedFutureIdx * 0.08
-  const futureFV = fvMonthlyAnnuity(futureMonthlyContribution, accountRate, plannedFutureMonths)
+  const startingMonthlyContribution = baseSocialWage * boundedFutureIdx * 0.08
+  const futureFV = fvGrowingMonthlyAnnuity(
+    startingMonthlyContribution, accountRate, socialGrowth, plannedFutureMonths,
+  )
   const projectedPersonalBalance = grownBalance + futureFV
 
-  // 个人账户计发月数按实际退休年龄查表；退休当月纳入口径后按相邻整岁线性折算。
-  const payoutAgeTotalMonths = actualTotalMonths + 1
-  const payoutMonths = getPersonalAccountMonths(
-    Math.floor(payoutAgeTotalMonths / 12),
-    payoutAgeTotalMonths % 12,
-  )
+  // 个人账户计发月数按实际退休时整周岁查表（38 号文）；附加月数做相邻整岁线性折算
+  const payoutMonths = getPersonalAccountMonths(actualYears, actualExtraMonths)
   const personalAccountPension = projectedPersonalBalance / payoutMonths
 
   return {
@@ -335,6 +341,8 @@ export function computePensionProjection(cfg: PensionConfig): PensionProjection 
     retirementYearMonth,
     yearsToRetire,
     weightedIndex,
+    minimumMonthsRequired,
+    meetsMinimum,
   }
 }
 
