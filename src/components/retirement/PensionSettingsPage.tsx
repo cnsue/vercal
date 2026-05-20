@@ -443,7 +443,7 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
       {show && (
         <div style={{ marginTop: 12, fontSize: 12, lineHeight: 1.7, color: 'var(--text)' }}>
           <div style={{ marginBottom: 10 }}>
-            <strong>示例人物</strong>：李工，男，1988-05 生，在深圳互联网公司工作 8 年，目前月薪约社平 1.5 倍。
+            <strong>示例人物</strong>：李工，男，1988-05 生，在杭州互联网公司工作 8 年，目前月薪约社平 1.5 倍。
           </div>
 
           <ExampleSection title="① 个人信息">
