@@ -454,9 +454,9 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
           </ExampleSection>
 
           <ExampleSection title="② 缴费信息">
-            <ExampleRow label="缴费城市" value="深圳" hint="内置社平 ¥12,964/月" />
+            <ExampleRow label="缴费城市" value="杭州" hint="内置社平 ¥8,433/月（2024 年浙江口径）" />
             <ExampleRow label="当前社平 / 计发基数" value="留空" hint="留空就用内置值；只有当年人社局公布的新数还没收录进 APP 才需要手填" />
-            <ExampleRow label="已缴费月数" value="96" hint="8 年 × 12 = 96。不知道精确值就去「掌上 12333」/「粤省事」APP 查「参保缴费明细」" />
+            <ExampleRow label="已缴费月数" value="96" hint='8 年 × 12 = 96。不知道精确值就去「浙里办」/「掌上 12333」APP 查「参保缴费明细」' />
             <ExampleRow label="计划停止缴费" value="退休时停缴" hint="多数人都缴到退休；如打算 40/50 岁辞职，选对应预设" />
           </ExampleSection>
 
