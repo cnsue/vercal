@@ -17,8 +17,12 @@ export interface EastmoneyQuote {
   f43?: number | string
   f57?: string
   f58?: string
-  /** 价格精度（小数位数）。A 股 / 港股通常为 2；美股可能 2 或 4。f43 = 真实价 × 10^f152 */
-  f152?: number | string
+  /**
+   * 价格精度（小数位数）。f59 才是真实的除数指数，f152 不论市场都恒为 2 不可用。
+   * A 股股票 f59=2（÷100），ETF 多为 3（÷1000，因 NAV 通常在 1~5 元区间），美股可能 2 或 4。
+   * 真实价 = f43 / 10^f59；缺省按 2 处理。
+   */
+  f59?: number | string
 }
 
 export const EASTMONEY_TOKEN = 'D43BF722C8E33A0EB5D0476A4A6B2C31'
