@@ -493,9 +493,9 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
               📊 按此填完会算出
             </div>
             <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.7 }}>
-              月养老金约 <strong style={{ color: 'var(--primary)' }}>¥12,000+</strong>（今日购买力）<br />
-              ＝ 基础养老金 ~¥5,400 ＋ 个人账户养老金 ~¥6,900<br />
-              <span style={{ color: 'var(--muted)' }}>实际数额随社平、记账利率、退休年份政策变化，以人社局测算为准。</span>
+              月养老金约 <strong style={{ color: 'var(--primary)' }}>¥13,000+</strong>（按 1% 社平增长 + 1.62% 记账利率口径）<br />
+              ＝ 基础养老金 ~¥6,800 ＋ 个人账户养老金 ~¥6,600<br />
+              <span style={{ color: 'var(--muted)' }}>对比全默认（0% / 2.62%）会偏低约 ¥1,500/月——主要是 0% 增长把退休时社平压住了。实际数额随社平、记账利率、退休年份政策变化，以人社局测算为准。</span>
             </div>
           </div>
 
