@@ -3,7 +3,6 @@ import { useRetirementStore } from '../../store/useRetirementStore'
 import { PENSION_CITIES } from '../../data/pensionCities'
 import {
   computePensionProjection, contributionMonthsUntil,
-  getMinimumContributionMonths,
 } from '../../utils/retirementCalc'
 import { formatCNY } from '../../utils/formatters'
 import type { Gender } from '../../types/retirement'
