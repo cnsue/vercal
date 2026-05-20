@@ -425,6 +425,111 @@ function Card({ title, children }: { title?: string; children: React.ReactNode }
   )
 }
 
+function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void }) {
+  return (
+    <div style={{
+      background: 'var(--primary-soft)', borderRadius: 16, padding: 14, marginBottom: 12,
+      border: '1px solid var(--primary-border)',
+    }}>
+      <button type="button" onClick={onToggle} style={{
+        background: 'none', border: 'none', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        width: '100%', padding: 0, color: 'var(--primary-text)',
+        fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+      }}>
+        <span>💡 不会填？看一个使用示例</span>
+        <span style={{ fontSize: 14 }}>{show ? '▾' : '▸'}</span>
+      </button>
+      {show && (
+        <div style={{ marginTop: 12, fontSize: 12, lineHeight: 1.7, color: 'var(--text)' }}>
+          <div style={{ marginBottom: 10 }}>
+            <strong>示例人物</strong>：李工，男，1988-05 生，在深圳互联网公司工作 8 年，目前月薪约社平 1.5 倍。
+          </div>
+
+          <ExampleSection title="① 个人信息">
+            <ExampleRow label="性别 / 身份" value="男性" hint="影响标准退休年龄基准" />
+            <ExampleRow label="出生年" value="1988 年" />
+            <ExampleRow label="出生月" value="5 月" />
+            <ExampleRow label="实际退休年月" value="选「标准」" hint="1988-05 男性 = 63 岁 0 月退休（2051-05）；要弹性提前/延后再选其他档" />
+          </ExampleSection>
+
+          <ExampleSection title="② 缴费信息">
+            <ExampleRow label="缴费城市" value="深圳" hint="内置社平 ¥12,964/月" />
+            <ExampleRow label="当前社平 / 计发基数" value="留空" hint="留空就用内置值；只有当年人社局公布的新数还没收录进 APP 才需要手填" />
+            <ExampleRow label="已缴费月数" value="96" hint="8 年 × 12 = 96。不知道精确值就去「掌上 12333」/「粤省事」APP 查「参保缴费明细」" />
+            <ExampleRow label="计划停止缴费" value="退休时停缴" hint="多数人都缴到退休；如打算 40/50 岁辞职，选对应预设" />
+          </ExampleSection>
+
+          <ExampleSection title="③ 缴费指数">
+            <ExampleRow label="已缴费期间平均指数" value="1.50" hint="本人工资 ÷ 当地社平。不知道精确值就按工资段：社平用 1.00，1.5 倍社平用 1.50；查 APP 里「缴费工资指数」最准" />
+            <ExampleRow label="未来期望平均指数" value="1.50" hint="假设未来工资跟当前一致；预期降薪选 1.00，预期升迁选 2.00+" />
+          </ExampleSection>
+
+          <ExampleSection title="④ 可选参数（保持默认即可）">
+            <ExampleRow label="社平增长率" value="0%" hint="0% = 按今日购买力显示；填 1-3% 看名义金额（数字更大但购买力一样）" />
+            <ExampleRow label="个人账户记账利率" value="2.62%" hint="人社部 2024 年公布值；近 5 年都在 2.62-4.17% 区间" />
+          </ExampleSection>
+
+          <ExampleSection title="⑤ 个人账户">
+            <ExampleRow label="累计余额" value="80,000" hint="在社保 APP 首页「账户查询」能看到。不知道就先填 0，影响约 200-500 元/月的精度" />
+          </ExampleSection>
+
+          <div style={{
+            marginTop: 12, padding: 10, background: 'var(--surface)', borderRadius: 8,
+            border: '1px dashed var(--primary-border)',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-text)', marginBottom: 4 }}>
+              📊 按此填完会算出
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.7 }}>
+              月养老金约 <strong style={{ color: 'var(--primary)' }}>¥12,000+</strong>（今日购买力）<br />
+              ＝ 基础养老金 ~¥5,400 ＋ 个人账户养老金 ~¥6,900<br />
+              <span style={{ color: 'var(--muted)' }}>实际数额随社平、记账利率、退休年份政策变化，以人社局测算为准。</span>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: 10, fontSize: 11, color: 'var(--muted)', lineHeight: 1.6,
+          }}>
+            💬 三个最常查不到的字段：<br />
+            • <strong>已缴月数</strong>：社保 APP "参保缴费记录"，按年份累加<br />
+            • <strong>历史指数</strong>：社保 APP "个人养老保险账户" 或 "基本养老保险缴费明细"<br />
+            • <strong>个人账户余额</strong>：社保 APP "个人账户" 或 "账户查询"
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ExampleSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary-text)', marginBottom: 4 }}>
+        {title}
+      </div>
+      <div style={{ display: 'grid', gap: 4 }}>{children}</div>
+    </div>
+  )
+}
+
+function ExampleRow({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div style={{
+      padding: '6px 8px', background: 'var(--surface)', borderRadius: 6,
+      fontSize: 12, lineHeight: 1.5,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ color: 'var(--muted)' }}>{label}</span>
+        <span style={{ fontWeight: 700, color: 'var(--text-strong)' }}>{value}</span>
+      </div>
+      {hint && (
+        <div style={{ marginTop: 2, fontSize: 11, color: 'var(--muted)' }}>{hint}</div>
+      )}
+    </div>
+  )
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 12 }}>
