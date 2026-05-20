@@ -217,6 +217,11 @@ const DIVIDEND_ETFS: DividendAssetRef[] = [
     sourceProvider: '天天基金网', sourceAsOf: '2026-05-08',
     sourceNote: '跟踪恒生港股通红利低波动指数（富国）；2025年共6次分派合计0.063元',
     growth: { pessimistic: -0.02, neutral: 0.03, optimistic: 0.07 } },
+  { code: '159589', name: '红利ETF广发', assetType: 'etf', category: '红利ETF',
+    dividendPerShare: 0.0253, asOfYear: '2025', referencePrice: 1.089, priceAsOf: '2026-05-20',
+    sourceProvider: '天天基金网', sourceAsOf: '2026-05-20',
+    sourceNote: '跟踪中证红利指数（广发，成立于2024-03）；月度分派，2025年12次合计0.0253元',
+    growth: { pessimistic: 0.00, neutral: 0.03, optimistic: 0.06 } },
   // 红利低波ETF
   { code: '563020', name: '红利低波ETF易方达', assetType: 'etf', category: '红利ETF', featured: true,
     dividendPerShare: 0.043, asOfYear: '2025', referencePrice: 1.183, priceAsOf: '2026-05-08',
