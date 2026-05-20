@@ -42,6 +42,74 @@ export function eastmoneyMarket(exchange: string): string {
   return '0'
 }
 
+/**
+ * 行情接口支持的市场。
+ * A 股 SH/SZ/BJ：6 位数字代码。
+ * 港股 HK：5 位数字代码（不足左侧补 0）。
+ * 美股 US-NASDAQ / US-NYSE：字母（含 .、-）代码，无法从代码本身区分交易所，
+ *   refresh.ts 会先按 NASDAQ 试，失败再降级到 NYSE。
+ */
+export type QuoteMarket = 'SH' | 'SZ' | 'BJ' | 'HK' | 'US-NASDAQ' | 'US-NYSE'
+
+export interface ParsedQuoteCode {
+  /** 标准化后的代码：A 股 6 位、港股 5 位、美股大写字母 */
+  code: string
+  market: QuoteMarket
+  /** 若主市场拿不到行情，按顺序尝试的备用市场（目前只用于美股 NASDAQ↔NYSE） */
+  fallbackMarkets?: QuoteMarket[]
+}
+
+/**
+ * 解析用户输入的代码：识别 A 股 / 港股 / 美股并返回标准化形式与候选市场。
+ * 支持显式后缀（.SH .SZ .BJ .HK .US .N .O）。
+ * 返回 null 表示无法识别，refresh 层应直接把它放入 missing。
+ */
+export function parseQuoteCode(rawCode: string): ParsedQuoteCode | null {
+  const trimmed = rawCode.trim().toUpperCase()
+  if (!trimmed) return null
+
+  // 拆出可选后缀，例如 600036.SH / 00700.HK / AAPL.O
+  const suffixMatch = trimmed.match(/^(.+?)\.(SH|SZ|BJ|HK|US|N|O)$/)
+  const baseCode = suffixMatch ? suffixMatch[1] : trimmed
+  const suffixHint = suffixMatch ? suffixMatch[2] : null
+
+  // 纯数字：A 股 6 位 / 港股 5 位
+  if (/^\d+$/.test(baseCode)) {
+    if (suffixHint === 'HK' || (!suffixHint && baseCode.length > 0 && baseCode.length <= 5)) {
+      if (baseCode.length > 5) return null
+      return { code: baseCode.padStart(5, '0'), market: 'HK' }
+    }
+    if (baseCode.length > 6) return null
+    const padded = baseCode.padStart(6, '0')
+    if (suffixHint === 'SH') return { code: padded, market: 'SH' }
+    if (suffixHint === 'SZ') return { code: padded, market: 'SZ' }
+    if (suffixHint === 'BJ') return { code: padded, market: 'BJ' }
+    if (padded.startsWith('6') || padded.startsWith('5') || padded.startsWith('9')) return { code: padded, market: 'SH' }
+    if (padded.startsWith('8') || padded.startsWith('4')) return { code: padded, market: 'BJ' }
+    return { code: padded, market: 'SZ' }
+  }
+
+  // 字母（美股）：允许 A-Z 0-9 . -，必须以字母开头
+  if (/^[A-Z][A-Z0-9.\-]*$/.test(baseCode)) {
+    if (suffixHint === 'N') return { code: baseCode, market: 'US-NYSE' }
+    return { code: baseCode, market: 'US-NASDAQ', fallbackMarkets: ['US-NYSE'] }
+  }
+
+  return null
+}
+
+/** 把市场映射到 push2.eastmoney.com 的 secid 前缀。 */
+export function quoteMarketSecidPrefix(market: QuoteMarket): string {
+  switch (market) {
+    case 'SH': return '1'
+    case 'SZ': return '0'
+    case 'BJ': return '0'
+    case 'HK': return '116'
+    case 'US-NASDAQ': return '105'
+    case 'US-NYSE': return '106'
+  }
+}
+
 export function inferAssetType(code: string, name: string): DividendAssetType {
   const text = `${code} ${name}`.toLowerCase()
   if (/etf|基金|联接|lof|指数|红利|沪深300|中证|上证50|创业板|科创/.test(text)) return 'etf'
