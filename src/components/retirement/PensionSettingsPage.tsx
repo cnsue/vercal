@@ -465,9 +465,20 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
             <ExampleRow label="未来期望平均指数" value="1.50" hint="假设未来工资跟当前一致；预期降薪选 1.00，预期升迁选 2.00+" />
           </ExampleSection>
 
-          <ExampleSection title="④ 可选参数（保持默认即可）">
-            <ExampleRow label="社平增长率" value="0%" hint="0% = 按今日购买力显示；填 1-3% 看名义金额（数字更大但购买力一样）" />
-            <ExampleRow label="个人账户记账利率" value="2.62%" hint="人社部 2024 年公布值；近 5 年都在 2.62-4.17% 区间" />
+          <ExampleSection title="④ 可选参数（建议改一改，不要全用默认）">
+            <ExampleRow label="社平增长率" value="1%" hint="比默认 0% 高 1 个点：体现温和的实质工资增长" />
+            <ExampleRow label="个人账户记账利率" value="1.62%" hint="比默认 2.62% 低 1 个点：留出未来政策下行的安全垫" />
+            <div style={{
+              marginTop: 6, padding: 10, background: 'var(--surface)', borderRadius: 8,
+              border: '1px dashed var(--primary-border)',
+              fontSize: 11, lineHeight: 1.7, color: 'var(--text)',
+            }}>
+              <div style={{ fontWeight: 700, color: 'var(--primary-text)', marginBottom: 4 }}>
+                为什么不照搬默认值？
+              </div>
+              <strong>社平增长 1%</strong>：人社部测算器默认 0%，对应"假设社平永远不涨"，但过去 10 年深圳 / 上海实际社平名义增速都在 5–7%、扣通胀后约 1–2%。0% 会**系统性低估**基础养老金（公式里"退休上年度社平"会按这个增长率外推到 24 年后）。给 1% 是按今日购买力 + 实质增长 1% 的口径，更贴近近 5 年实际数据；想看名义金额可继续上调到 3–5%。<br /><br />
+              <strong>记账利率 1.62%</strong>：人社部 2024 年公布 2.62%，看起来不低；但有两个隐忧——① 2.62 本身就是近 5 年最低值（区间 2.62–4.17%），未来很可能再降；② 老龄化与基金支付压力下，公布利率长期会向同期 CPI 靠拢。**调低 1 个点是"宁可低估、不要高估"的退休规划原则**，万一未来真给 4% 那是惊喜，反过来踏空就麻烦。
+            </div>
           </ExampleSection>
 
           <ExampleSection title="⑤ 个人账户">
