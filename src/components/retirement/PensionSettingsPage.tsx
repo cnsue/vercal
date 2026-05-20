@@ -115,6 +115,9 @@ export default function PensionSettingsPage({ onBack }: Props) {
   return (
     <div>
       <div style={{ paddingTop: 4, paddingBottom: 12 }}>
+        {/* 使用示例（默认折叠） */}
+        <UsageExample show={showExample} onToggle={() => setShowExample(v => !v)} />
+
         {/* 推算结果 */}
         <Card>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>推算结果（实时）</div>
