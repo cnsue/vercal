@@ -397,11 +397,20 @@ function AIRecommendationPanel({ familySize, cityTier, onApply }: {
 
       <div style={{ marginBottom: 6 }}>
         <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>偏好 / 关注点（逗号分隔）</div>
-        <textarea value={preferences} onChange={e => setPreferences(e.target.value)}
-          placeholder="例如：重视医疗、每年 1-2 次国内旅游、需要养宠、孙辈教育支出..."
-          rows={2}
-          disabled={loading}
-          style={{ ...aiInputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+        <div style={{ position: 'relative' }}>
+          <textarea value={preferences} onChange={e => setPreferences(e.target.value)}
+            placeholder="例如：重视医疗、每年 1-2 次国内旅游、需要养宠、孙辈教育支出..."
+            rows={2}
+            disabled={loading}
+            style={{ ...aiInputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+          <div style={{ position: 'absolute', top: 4, right: 4 }}>
+            <VoiceInputButton
+              disabled={loading}
+              size="small"
+              onAppend={chunk => setPreferences(prev => prev ? `${prev}、${chunk}` : chunk)}
+            />
+          </div>
+        </div>
       </div>
 
       <button type="button" onClick={run} disabled={loading || !aiConfigured} style={{
