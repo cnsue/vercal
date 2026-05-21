@@ -245,6 +245,15 @@ function DimensionRow({ item, aiReason, onAmountChange, onFieldChange, onRemove 
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 }}>
             {description}
           </div>
+          {aiReason && (
+            <div style={{
+              marginTop: 4, padding: '4px 8px', borderRadius: 6,
+              background: 'var(--primary-soft)', border: '1px solid var(--primary-border)',
+              fontSize: 11, color: 'var(--primary-text)', lineHeight: 1.5,
+            }}>
+              🤖 {aiReason}
+            </div>
+          )}
         </div>
         {isCustom && (
           <button onClick={onRemove} aria-label="删除"
