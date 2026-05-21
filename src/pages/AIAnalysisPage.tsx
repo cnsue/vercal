@@ -115,6 +115,8 @@ export default function AIAnalysisPage({ request, onAction }: Props) {
     if (savedId === id) setSavedId('')
   }
 
+  const tokenStats = useMemo(() => computeTokenStats(history), [history])
+
   return (
     <div style={{ paddingBottom: 20 }}>
       <section style={cardStyle}>
@@ -129,6 +131,59 @@ export default function AIAnalysisPage({ request, onAction }: Props) {
         </div>
       </section>
 
+      <div style={{
+        display: 'flex', gap: 8, marginBottom: 12,
+        background: 'var(--surface-muted)', borderRadius: 12, padding: 4,
+      }}>
+        <TabButton label="分析" active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')} />
+        <TabButton
+          label={`Token 消耗${tokenStats.total > 0 ? ` · ${formatTokens(tokenStats.total)}` : ''}`}
+          active={activeTab === 'tokens'}
+          onClick={() => setActiveTab('tokens')}
+        />
+      </div>
+
+      {activeTab === 'tokens' ? (
+        <TokensView lastTokens={lastTokens} stats={tokenStats} />
+      ) : (
+        <AnalysisView
+          contextPreview={contextPreview}
+          loading={loading}
+          result={result}
+          error={error}
+          savedId={savedId}
+          actionItems={actionItems}
+          history={history}
+          onRun={run}
+          onSave={saveResult}
+          onDelete={deleteRecord}
+          onAction={onAction}
+        />
+      )}
+    </div>
+  )
+}
+
+interface AnalysisViewProps {
+  contextPreview: string
+  loading: boolean
+  result: string
+  error: string
+  savedId: string
+  actionItems: ActionItem[]
+  history: AIAnalysisRecord[]
+  onRun: () => void
+  onSave: () => void
+  onDelete: (id: string) => void
+  onAction: (action: AIAnalysisAction) => void
+}
+
+function AnalysisView({
+  contextPreview, loading, result, error, savedId, actionItems, history,
+  onRun, onSave, onDelete, onAction,
+}: AnalysisViewProps) {
+  return (
+    <>
       <section style={cardStyle}>
         <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>本次数据摘要</div>
         <pre style={previewStyle}>{contextPreview}</pre>
