@@ -254,9 +254,20 @@ export default function CashFlowEditor({ open, initial, onClose }: Props) {
           </FieldRow>
 
           <FieldRow label="备注（可选）">
-            <input type="text" value={note}
-              onChange={e => setNote(e.target.value.slice(0, 60))}
-              placeholder="一两个字描述这笔" style={inputStyle} />
+            <div style={{ position: 'relative' }}>
+              <input type="text" value={note}
+                onChange={e => setNote(e.target.value.slice(0, 60))}
+                placeholder="一两个字描述这笔" style={{ ...inputStyle, paddingRight: 40 }} />
+              <div style={{ position: 'absolute', top: '50%', right: 4, transform: 'translateY(-50%)' }}>
+                <VoiceInputButton
+                  size="small"
+                  onAppend={chunk => setNote(prev => {
+                    const next = prev ? `${prev} ${chunk}` : chunk
+                    return next.slice(0, 60)
+                  })}
+                />
+              </div>
+            </div>
           </FieldRow>
         </div>
 
