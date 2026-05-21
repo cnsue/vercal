@@ -11,7 +11,7 @@ import {
   findCategoryMeta,
   type CashFlowType, type PaymentMethod,
 } from '../types/cashFlow'
-import { PLATFORM_LABELS, type AssetPlatform } from '../types/models'
+import { PLATFORM_LABELS } from '../types/models'
 import { formatCNY } from '../utils/formatters'
 import VoiceInputButton from './VoiceInputButton'
 
