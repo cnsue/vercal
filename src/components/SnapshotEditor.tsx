@@ -120,6 +120,12 @@ export default function SnapshotEditor({ snapshot: initial, onSave, onDelete, on
         {/* Items */}
         <div style={{ ...sectionStyle, marginTop: 12 }}>
           <div style={labelStyle}>资产条目</div>
+          <SmartSnapshotInput
+            onApply={parsedItems => {
+              setSnap(s => ({ ...s, items: [...s.items, ...parsedItems] }))
+              if (parsedItems.length > 0) setActiveId(parsedItems[0].id)
+            }}
+          />
           {snap.items.length === 0 && (
             <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, padding: '12px 0' }}>点下方按钮添加资产条目</div>
           )}
