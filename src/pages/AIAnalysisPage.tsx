@@ -191,7 +191,7 @@ function AnalysisView({
 
       <section style={cardStyle}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" onClick={run} disabled={loading} style={{
+          <button type="button" onClick={onRun} disabled={loading} style={{
             ...btnStyle,
             flex: 2,
             background: loading ? 'var(--button-secondary-bg)' : 'var(--primary)',
@@ -200,7 +200,7 @@ function AnalysisView({
           }}>
             {loading ? '分析中...' : result ? '重新分析' : '开始分析'}
           </button>
-          <button type="button" onClick={saveResult} disabled={!result.trim()} style={{
+          <button type="button" onClick={onSave} disabled={!result.trim()} style={{
             ...btnStyle,
             flex: 1,
             background: result.trim() ? 'var(--button-secondary-bg)' : 'var(--surface-muted)',
