@@ -67,7 +67,7 @@ async function callOpenAICompatible(input: {
   systemPrompt: string
   prompt: string
   webSearchMode?: AIWebSearchMode
-}): Promise<string> {
+}): Promise<AnalyzeResult> {
   const url = `${input.baseUrl}/chat/completions`
   const body: Record<string, unknown> = {
     model: input.model,
@@ -95,7 +95,11 @@ async function callOpenAICompatible(input: {
     body: JSON.stringify(body),
   })
   const rawText = await response.text().catch(() => '')
-  let data: { choices?: Array<{ message?: { content?: string } }>; error?: string | { message?: string; code?: string } }
+  let data: {
+    choices?: Array<{ message?: { content?: string } }>
+    error?: string | { message?: string; code?: string }
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+  }
   try { data = JSON.parse(rawText) } catch { data = {} }
 
   if (!response.ok) {
@@ -111,7 +115,30 @@ async function callOpenAICompatible(input: {
     console.error('[ai/analyze] empty response', url, rawText.slice(0, 400))
     throw new Error('AI 返回为空')
   }
-  return text
+  const usage = normalizeOpenAIUsage(data.usage)
+  return usage ? { text, usage } : { text }
+}
+
+function normalizeOpenAIUsage(raw: {
+  prompt_tokens?: number
+  completion_tokens?: number
+  total_tokens?: number
+} | undefined): AnalyzeUsage | undefined {
+  if (!raw) return undefined
+  const prompt = toFiniteNonNegative(raw.prompt_tokens)
+  const completion = toFiniteNonNegative(raw.completion_tokens)
+  const total = toFiniteNonNegative(raw.total_tokens)
+  if (prompt + completion + total === 0) return undefined
+  return {
+    promptTokens: prompt,
+    completionTokens: completion,
+    totalTokens: total > 0 ? total : prompt + completion,
+  }
+}
+
+function toFiniteNonNegative(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(n) && n > 0 ? n : 0
 }
 
 async function callGemini(input: {
