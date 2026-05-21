@@ -502,26 +502,26 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
           <ExampleSection title="📈 弹性退休的 ±3 年差多少？外加一个最有用的杠杆">
             <ExampleRow
               label="早退 3 年（60 岁退）"
-              value="¥6,900 / 月 (−18%)"
+              value="¥6,600 / 月 (−18%)"
               hint="少缴 36 月 + 余额少复利 3 年 + 计发月数 117→139，三重叠加往下" />
             <ExampleRow
               label="标准退休（63 岁，基准）"
-              value="¥8,400 / 月"
+              value="¥8,000 / 月"
               hint="按上面填的参数；这是政策默认档" />
             <ExampleRow
               label="晚退 3 年（66 岁退）"
-              value="¥10,500 / 月 (+25%)"
+              value="¥9,900 / 月 (+24%)"
               hint="多缴 36 月 + 余额多复利 3 年 + 计发月数 117→93，三重叠加往上" />
             <ExampleRow
               label="未来指数 1.0 → 2.0（升职/换高薪）"
-              value="¥12,500 / 月 (+49%)"
+              value="¥12,100 / 月 (+51%)"
               hint="缴费基数翻倍到 2.0 倍社平。只影响未来缴费段，过去 13 年算 1.0 不变" />
             <div style={{
               marginTop: 6, padding: 10, background: 'var(--surface)', borderRadius: 8,
               border: '1px dashed var(--primary-border)',
               fontSize: 11, lineHeight: 1.7, color: 'var(--text)',
             }}>
-              💡 <strong>弹性退休上限就是 ±3 年</strong>。早退 1 年代价约 -6%，晚退 1 年收益约 +8%（不对称是因为复利方向不同）；超过 ±3 年的档位在 UI 里选不到，再想往上挪只能靠把未来缴费基数撑上去。两个能动的杠杆叠加（晚退 3 年 + 指数 2.0）能算到 <strong>¥16,000 / 月</strong>（+90%），但代价是真要多干 3 年 + 工资得真涨上去。
+              💡 <strong>弹性退休上限就是 ±3 年</strong>。早退 1 年代价约 -6%，晚退 1 年收益约 +8%（不对称是因为复利方向不同）；超过 ±3 年的档位在 UI 里选不到，再想往上挪只能靠把未来缴费基数撑上去。两个能动的杠杆叠加（晚退 3 年 + 指数 2.0）能算到 <strong>¥15,500 / 月</strong>（+94%），但代价是真要多干 3 年 + 工资得真涨上去。
             </div>
           </ExampleSection>
 
