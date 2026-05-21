@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from '../../utils/uuid'
 import { StorageService } from '../../store/storage'
 import { findAIProviderPreset } from '../../types/ai'
 import { recommendDecentStandard } from '../../utils/aiDecentRecommender'
+import VoiceInputButton from '../VoiceInputButton'
 
 interface Props {
   open: boolean
