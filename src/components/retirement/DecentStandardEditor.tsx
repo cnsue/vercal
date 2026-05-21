@@ -140,6 +140,15 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
             </button>
           </div>
 
+          <AIRecommendationPanel
+            familySize={presetFamily}
+            cityTier={presetCity}
+            onApply={(breakdown, reasons) => {
+              setItems(breakdown)
+              setAiReasons(reasons)
+            }}
+          />
+
           {items.map(item => (
             <DimensionRow
               key={item.id}
