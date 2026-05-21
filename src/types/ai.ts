@@ -180,9 +180,9 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     key: 'hunyuan',
     label: '混元',
     protocol: 'openai-compatible',
-    baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1',
-    model: 'hunyuan-turbos-latest',
-    note: '腾讯混元 OpenAI-compatible 接口；可换 hunyuan-pro / hunyuan-large / hunyuan-t1-latest 等',
+    baseUrl: 'https://tokenhub.tencentmaas.com/v1',
+    model: 'hy3-preview',
+    note: '腾讯 TokenHub (MaaS) OpenAI-compatible 接口；API Key 在 tokenhub.tencentmaas.com 申请',
   },
   {
     key: 'custom',
