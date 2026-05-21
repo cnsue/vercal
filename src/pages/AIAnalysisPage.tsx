@@ -266,7 +266,7 @@ function AnalysisView({
                     {new Date(record.createdAt).toLocaleString()} · {record.providerLabel} · {record.model}
                   </div>
                 </div>
-                <button type="button" onClick={e => { e.preventDefault(); deleteRecord(record.id) }} style={{
+                <button type="button" onClick={e => { e.preventDefault(); onDelete(record.id) }} style={{
                   border: 'none', background: 'transparent', color: 'var(--danger)',
                   fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
                 }}>
@@ -278,12 +278,219 @@ function AnalysisView({
               marginTop: 10,
             }}>
               <MarkdownText content={record.result} compact />
+              {record.tokens && (
+                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)' }}>
+                  本条消耗：输入 {record.tokens.prompt.toLocaleString()} ＋ 输出 {record.tokens.completion.toLocaleString()} ＝ <strong>{record.tokens.total.toLocaleString()}</strong> tokens
+                </div>
+              )}
             </div>
           </details>
         ))}
       </section>
+    </>
+  )
+}
+
+interface TokenStats {
+  total: number
+  prompt: number
+  completion: number
+  recordCount: number
+  recordsWithTokens: number
+  byModel: Array<{
+    key: string
+    providerLabel: string
+    model: string
+    total: number
+    prompt: number
+    completion: number
+    count: number
+  }>
+}
+
+function computeTokenStats(history: AIAnalysisRecord[]): TokenStats {
+  let total = 0
+  let prompt = 0
+  let completion = 0
+  let recordsWithTokens = 0
+  const groupMap = new Map<string, {
+    providerLabel: string; model: string;
+    total: number; prompt: number; completion: number; count: number
+  }>()
+  for (const r of history) {
+    if (!r.tokens) continue
+    recordsWithTokens += 1
+    total += r.tokens.total
+    prompt += r.tokens.prompt
+    completion += r.tokens.completion
+    const key = `${r.provider}::${r.model}`
+    const existing = groupMap.get(key) ?? {
+      providerLabel: r.providerLabel, model: r.model,
+      total: 0, prompt: 0, completion: 0, count: 0,
+    }
+    existing.total += r.tokens.total
+    existing.prompt += r.tokens.prompt
+    existing.completion += r.tokens.completion
+    existing.count += 1
+    groupMap.set(key, existing)
+  }
+  const byModel = Array.from(groupMap.entries())
+    .map(([key, v]) => ({ key, ...v }))
+    .sort((a, b) => b.total - a.total)
+  return { total, prompt, completion, recordCount: history.length, recordsWithTokens, byModel }
+}
+
+function TokensView({ lastTokens, stats }: { lastTokens: AIAnalysisTokens | null; stats: TokenStats }) {
+  return (
+    <>
+      <section style={cardStyle}>
+        <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>本次消耗</div>
+        {lastTokens ? (
+          <TokenTriplet
+            prompt={lastTokens.prompt}
+            completion={lastTokens.completion}
+            total={lastTokens.total}
+          />
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, padding: '6px 0' }}>
+            还没有运行过分析。回到「分析」标签页点击"开始分析"后这里会显示本次输入/输出/合计 token。
+          </div>
+        )}
+      </section>
+
+      <section style={cardStyle}>
+        <div style={{
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+          marginBottom: 10, gap: 8,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 800 }}>历史累计</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+            {stats.recordsWithTokens > 0
+              ? `${stats.recordsWithTokens} 条带 token 数据 / 共 ${stats.recordCount} 条`
+              : `共 ${stats.recordCount} 条记录`}
+          </div>
+        </div>
+        {stats.recordsWithTokens === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, padding: '6px 0' }}>
+            历史记录里都没有 token 数据。{stats.recordCount > 0
+              ? '旧记录是在新版本前保存的；下次保存分析时就会带上 token。'
+              : '保存几次分析后这里会汇总累计 token。'}
+          </div>
+        ) : (
+          <TokenTriplet prompt={stats.prompt} completion={stats.completion} total={stats.total} />
+        )}
+      </section>
+
+      {stats.byModel.length > 0 && (
+        <section style={cardStyle}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10 }}>按 Provider / Model 分组</div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {stats.byModel.map(group => (
+              <div key={group.key} style={{
+                padding: 10, background: 'var(--surface-muted)', borderRadius: 10,
+                border: '1px solid var(--border)',
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                  gap: 8, marginBottom: 4,
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-strong)', minWidth: 0 }}>
+                    {group.providerLabel} · <span style={{ fontWeight: 600, color: 'var(--text)' }}>{group.model}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>
+                    {group.count} 次
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                  输入 <strong style={{ color: 'var(--text)' }}>{group.prompt.toLocaleString()}</strong>
+                  ＋ 输出 <strong style={{ color: 'var(--text)' }}>{group.completion.toLocaleString()}</strong>
+                  ＝ 合计 <strong style={{ color: 'var(--primary-strong)' }}>{group.total.toLocaleString()}</strong> tokens
+                  <span style={{ marginLeft: 6, color: 'var(--muted)' }}>
+                    （均 {Math.round(group.total / group.count).toLocaleString()} / 次）
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section style={{
+        ...cardStyle,
+        background: 'var(--surface-muted)',
+        fontSize: 11, color: 'var(--muted)', lineHeight: 1.65,
+      }}>
+        ℹ️ token 数据由上游 AI 服务返回（OpenAI-compatible 走 <code>usage</code>，Gemini 走 <code>usageMetadata</code>）。
+        部分供应商（如豆包某些 endpoint）可能不返回 usage，这种情况下"本次消耗"会留空；保存的记录里也不会带 tokens 字段。
+        token 数据只在你点击"保存结果"后写入本机历史，不上传到同步数据。
+      </section>
+    </>
+  )
+}
+
+function TokenTriplet({ prompt, completion, total }: { prompt: number; completion: number; total: number }) {
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      <TokenStat label="输入" value={prompt} tone="muted" />
+      <TokenStat label="输出" value={completion} tone="muted" />
+      <TokenStat label="合计" value={total} tone="primary" />
     </div>
   )
+}
+
+function TokenStat({ label, value, tone }: { label: string; value: number; tone: 'muted' | 'primary' }) {
+  return (
+    <div style={{
+      flex: 1, minWidth: 0, padding: 10,
+      background: tone === 'primary' ? 'var(--primary-soft)' : 'var(--surface-muted)',
+      borderRadius: 10, border: '1px solid var(--border)',
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{label}</div>
+      <div style={{
+        marginTop: 4, fontSize: 18, fontWeight: 850,
+        color: tone === 'primary' ? 'var(--primary-strong)' : 'var(--text-strong)',
+      }}>
+        {value.toLocaleString()}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>tokens</div>
+    </div>
+  )
+}
+
+function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} style={{
+      flex: 1, padding: '8px 10px', borderRadius: 8, border: 'none',
+      background: active ? 'var(--surface)' : 'transparent',
+      color: active ? 'var(--text-strong)' : 'var(--muted)',
+      fontSize: 13, fontWeight: 800, cursor: 'pointer',
+      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+      fontFamily: 'inherit',
+    }}>
+      {label}
+    </button>
+  )
+}
+
+function normalizeUsage(raw: unknown): AIAnalysisTokens | null {
+  if (!raw || typeof raw !== 'object') return null
+  const obj = raw as Record<string, unknown>
+  const prompt = Number(obj.promptTokens)
+  const completion = Number(obj.completionTokens)
+  const total = Number(obj.totalTokens)
+  if (!Number.isFinite(prompt) || !Number.isFinite(completion) || !Number.isFinite(total)) return null
+  if (prompt <= 0 && completion <= 0 && total <= 0) return null
+  return {
+    prompt: Math.max(0, prompt),
+    completion: Math.max(0, completion),
+    total: total > 0 ? total : prompt + completion,
+  }
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
 }
 
 function buildUserPrompt(title: string, scope: string): string {
