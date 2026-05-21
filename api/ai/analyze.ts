@@ -40,13 +40,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const webSearchMode = enableWebSearch ? body.webSearchMode : undefined
 
   try {
-    const text = protocol === 'gemini'
+    const result = protocol === 'gemini'
       ? await callGemini({ apiKey, baseUrl, model, systemPrompt, prompt, enableWebSearch })
       : await callOpenAICompatible({ apiKey, baseUrl, model, systemPrompt, prompt, webSearchMode })
-    return res.status(200).json({ text })
+    return res.status(200).json(result)
   } catch (err) {
     return res.status(502).json({ error: sanitizeError(err) })
   }
+}
+
+export interface AnalyzeUsage {
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+}
+
+interface AnalyzeResult {
+  text: string
+  usage?: AnalyzeUsage
 }
 
 async function callOpenAICompatible(input: {
