@@ -154,6 +154,7 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
             <DimensionRow
               key={item.id}
               item={item}
+              aiReason={item.builtinKey ? aiReasons[item.builtinKey] : undefined}
               onAmountChange={v => updateAmount(item.id, v)}
               onFieldChange={patch => updateCustomField(item.id, patch)}
               onRemove={() => removeCustom(item.id)}
