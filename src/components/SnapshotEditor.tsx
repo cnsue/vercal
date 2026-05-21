@@ -4,6 +4,7 @@ import { PLATFORM_LABELS, CLASS_LABELS, PLATFORM_DEFAULT_CURRENCY, effectivePlat
 import { useAssetStore } from '../store/useAssetStore'
 import { formatCNY } from '../utils/formatters'
 import { v4 as uuidv4 } from '../utils/uuid'
+import SmartSnapshotInput from './SmartSnapshotInput'
 
 interface Props {
   snapshot: Snapshot
