@@ -5,6 +5,7 @@ import { StorageService } from '../store/storage'
 import { useAssetStore } from '../store/useAssetStore'
 import { parseSnapshotText, toSnapshotItem, type ParsedSnapshotItem } from '../utils/aiSnapshotParser'
 import { findAIProviderPreset } from '../types/ai'
+import VoiceInputButton from './VoiceInputButton'
 
 interface Props {
   /** 调用方接收 AI 解析后的 SnapshotItem 列表，自己 merge 到当前 snapshot */
