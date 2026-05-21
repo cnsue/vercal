@@ -1,8 +1,10 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import MarkdownText from '../components/MarkdownText'
 import { StorageService } from '../store/storage'
-import { findAIProviderPreset, type AIAnalysisAction, type AIAnalysisRecord, type AIAnalysisRequest } from '../types/ai'
+import { findAIProviderPreset, type AIAnalysisAction, type AIAnalysisRecord, type AIAnalysisRequest, type AIAnalysisTokens } from '../types/ai'
 import { v4 as uuidv4 } from '../utils/uuid'
+
+type ActiveTab = 'analysis' | 'tokens'
 
 interface Props {
   request: AIAnalysisRequest
