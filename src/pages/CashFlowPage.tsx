@@ -59,6 +59,8 @@ export default function CashFlowPage() {
 
   return (
     <div style={{ padding: '0 0 88px' }}>
+      <SmartCashFlowInput />
+
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {(Object.keys(RANGE_LABELS) as RangeKey[]).map(k => (
           <button key={k} type="button" onClick={() => setRange(k)}
