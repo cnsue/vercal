@@ -95,14 +95,22 @@ export default function SmartSnapshotInput({ onApply }: Props) {
         </div>
       )}
 
-      <textarea
-        value={text}
-        onChange={e => setText(e.target.value)}
-        placeholder={PLACEHOLDER}
-        rows={5}
-        disabled={loading}
-        style={textareaStyle}
-      />
+      <div style={{ position: 'relative' }}>
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder={PLACEHOLDER}
+          rows={5}
+          disabled={loading}
+          style={textareaStyle}
+        />
+        <div style={{ position: 'absolute', top: 6, right: 6 }}>
+          <VoiceInputButton
+            disabled={loading}
+            onAppend={chunk => setText(prev => prev ? `${prev}\n${chunk}` : chunk)}
+          />
+        </div>
+      </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
         <button
