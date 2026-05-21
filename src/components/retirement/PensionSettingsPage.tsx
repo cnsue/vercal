@@ -443,20 +443,20 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
       {show && (
         <div style={{ marginTop: 12, fontSize: 12, lineHeight: 1.7, color: 'var(--text)' }}>
           <div style={{ marginBottom: 10 }}>
-            <strong>示例人物</strong>：李工，男，1988-05 生，在杭州工作 8 年，目前月薪约当地社平水平（普通工薪）。
+            <strong>示例人物</strong>：李工，男，1990-05 生，在杭州工作 13 年，目前月薪约当地社平水平（普通工薪）。
           </div>
 
           <ExampleSection title="① 个人信息">
             <ExampleRow label="性别 / 身份" value="男性" hint="影响标准退休年龄基准" />
-            <ExampleRow label="出生年" value="1988 年" />
+            <ExampleRow label="出生年" value="1990 年" />
             <ExampleRow label="出生月" value="5 月" />
-            <ExampleRow label="实际退休年月" value="选「标准」" hint="1988-05 男性 = 63 岁 0 月退休（2051-05）；要弹性提前/延后再选其他档" />
+            <ExampleRow label="实际退休年月" value="选「标准」" hint="1990-05 男性 = 63 岁 0 月退休（2053-05）；要弹性提前/延后再选其他档" />
           </ExampleSection>
 
           <ExampleSection title="② 缴费信息">
-            <ExampleRow label="缴费城市" value="杭州" hint="内置社平 ¥8,433/月（2024 年浙江口径）" />
+            <ExampleRow label="缴费城市" value="杭州" hint="内置社平 ¥8,433/月（杭州 2024 公布计发基数）" />
             <ExampleRow label="当前社平 / 计发基数" value="留空" hint="留空就用内置值；只有当年人社局公布的新数还没收录进 APP 才需要手填" />
-            <ExampleRow label="已缴费月数" value="96" hint='8 年 × 12 = 96。不知道精确值就去「浙里办」/「掌上 12333」APP 查「参保缴费明细」' />
+            <ExampleRow label="已缴费月数" value="156" hint='13 年 × 12 = 156。不知道精确值就去「浙里办」/「掌上 12333」APP 查「参保缴费明细」' />
             <ExampleRow label="计划停止缴费" value="退休时停缴" hint="多数人都缴到退休；如打算 40/50 岁辞职，选对应预设" />
           </ExampleSection>
 
