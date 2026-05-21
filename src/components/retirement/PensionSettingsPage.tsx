@@ -443,14 +443,14 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
       {show && (
         <div style={{ marginTop: 12, fontSize: 12, lineHeight: 1.7, color: 'var(--text)' }}>
           <div style={{ marginBottom: 10 }}>
-            <strong>示例人物</strong>：李工，男，1990-05 生，在杭州工作 13 年，目前月薪约当地社平水平（普通工薪）。
+            <strong>示例人物</strong>：李工，男，1990-05 生，在杭州工作 13 年。月工资虽接近社平，但单位按最低基数（0.6 倍社平）给员工缴社保——这是国内中小企业 / 灵活就业很常见的情况。
           </div>
 
           <ExampleSection title="① 个人信息">
-            <ExampleRow label="性别 / 身份" value="男性" hint="影响标准退休年龄基准" />
+            <ExampleRow label="性别 / 身份" value="男性" hint="标准退休年龄基准：男 60 → 63（每年 +4 月）；女干部 55 → 58（每年 +4 月）；女工人 50 → 55（每年 +2 月）" />
             <ExampleRow label="出生年" value="1990 年" />
             <ExampleRow label="出生月" value="5 月" />
-            <ExampleRow label="实际退休年月" value="选「标准」" hint="1990-05 男性 = 63 岁 0 月退休（2053-05）；要弹性提前/延后再选其他档" />
+            <ExampleRow label="实际退休年月" value="选「标准」" hint="1990-05 标准退休：男 63 岁 0 月（2053-05）/ 女干部 58 岁 0 月（2048-05）/ 女工人 55 岁 0 月（2045-05）。本示例按男性算" />
           </ExampleSection>
 
           <ExampleSection title="② 缴费信息">
