@@ -502,26 +502,50 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
           <ExampleSection title="📈 弹性退休的 ±3 年差多少？外加一个最有用的杠杆">
             <ExampleRow
               label="早退 3 年（60 岁退）"
-              value="¥6,600 / 月 (−18%)"
+              value="¥5,000 / 月 (−16%)"
               hint="少缴 36 月 + 余额少复利 3 年 + 计发月数 117→139，三重叠加往下" />
             <ExampleRow
               label="标准退休（63 岁，基准）"
-              value="¥8,000 / 月"
+              value="¥6,000 / 月"
               hint="按上面填的参数；这是政策默认档" />
             <ExampleRow
               label="晚退 3 年（66 岁退）"
-              value="¥9,900 / 月 (+24%)"
+              value="¥7,400 / 月 (+23%)"
               hint="多缴 36 月 + 余额多复利 3 年 + 计发月数 117→93，三重叠加往上" />
             <ExampleRow
-              label="未来指数 1.0 → 2.0（升职/换高薪）"
-              value="¥12,100 / 月 (+51%)"
-              hint="缴费基数翻倍到 2.0 倍社平。只影响未来缴费段，过去 13 年算 1.0 不变" />
+              label="未来指数 0.6 → 1.5（跳槽到按真实工资缴费的公司）"
+              value="¥9,800 / 月 (+62%)"
+              hint="缴费基数从最低 0.6 升到 1.5 倍社平（涨 2.5 倍）。只影响未来缴费段，过去 13 年算 0.6 不变" />
             <div style={{
               marginTop: 6, padding: 10, background: 'var(--surface)', borderRadius: 8,
               border: '1px dashed var(--primary-border)',
               fontSize: 11, lineHeight: 1.7, color: 'var(--text)',
             }}>
-              💡 <strong>弹性退休上限就是 ±3 年</strong>。早退 1 年代价约 -6%，晚退 1 年收益约 +8%（不对称是因为复利方向不同）；超过 ±3 年的档位在 UI 里选不到，再想往上挪只能靠把未来缴费基数撑上去。两个能动的杠杆叠加（晚退 3 年 + 指数 2.0）能算到 <strong>¥15,500 / 月</strong>（+94%），但代价是真要多干 3 年 + 工资得真涨上去。
+              💡 <strong>弹性退休上限就是 ±3 年</strong>。早退 1 年代价约 -5%，晚退 1 年收益约 +8%（不对称是因为复利方向不同）；超过 ±3 年的档位在 UI 里选不到，再想往上挪只能靠把缴费基数撑上去——这就是为什么"跳槽到按真实工资缴社保的公司"是最有效的提升手段。两个杠杆叠加（晚退 3 年 + 指数 1.5）能算到 <strong>¥12,400 / 月</strong>（+106%），但代价是真要多干 3 年 + 跳到正规公司。
+            </div>
+          </ExampleSection>
+
+          <ExampleSection title="👥 男女退休年龄差 5-8 年，养老金能差多少？">
+            <ExampleRow
+              label="男性 · 63 岁 0 月退（2053-05）"
+              value="¥6,000 / 月"
+              hint="本示例的基准。退休年龄从老政策 60 → 63（2025-2039 每年 +4 月）" />
+            <ExampleRow
+              label="女干部 · 58 岁 0 月退（2048-05）"
+              value="¥4,500 / 月 (−25%)"
+              hint="同样 1990-05 生 + 13 年 + 0.6 指数 + 7 万余额。早退 5 年 + 计发月数 117→152，账户摊薄严重" />
+            <ExampleRow
+              label="女工人 · 55 岁 0 月退（2045-05）"
+              value="¥3,800 / 月 (−37%)"
+              hint="比男性早退 8 年。基础养老金少 8 年缴费 + 个人账户少 8 年累计 + 计发月数 117→170，差距进一步拉大" />
+            <div style={{
+              marginTop: 6, padding: 10, background: 'var(--surface)', borderRadius: 8,
+              border: '1px dashed var(--primary-border)',
+              fontSize: 11, lineHeight: 1.7, color: 'var(--text)',
+            }}>
+              💡 女工人退休年龄低不是"福利"——养老金体系是按缴费年限 + 个人账户余额算的，**早退 = 少领**。
+              <strong>女干部</strong>身份认定要看档案（机关事业 / 国企管理岗 / 高级技术职称），实际多数女性按"工人"身份退；
+              <strong>女工人</strong>如果工资水平可观，弹性退休 +3 年（→58 岁）能把月养老金拉回 ~¥4,700（接近女干部标准档）。
             </div>
           </ExampleSection>
 
