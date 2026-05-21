@@ -45,6 +45,8 @@ export default function AIAnalysisPage({ request, onAction }: Props) {
   const [error, setError] = useState('')
   const [savedId, setSavedId] = useState('')
   const [history, setHistory] = useState<AIAnalysisRecord[]>(() => StorageService.getAIAnalysisHistory())
+  const [lastTokens, setLastTokens] = useState<AIAnalysisTokens | null>(null)
+  const [activeTab, setActiveTab] = useState<ActiveTab>('analysis')
   const contextPreview = useMemo(() => summarizeContext(request.context), [request.context])
   const actionItems = useMemo(() => buildActionItems(request.context, result), [request.context, result])
 
@@ -58,6 +60,7 @@ export default function AIAnalysisPage({ request, onAction }: Props) {
     setLoading(true)
     setError('')
     setSavedId('')
+    setLastTokens(null)
     try {
       const preset = findAIProviderPreset(settings.provider)
       const res = await fetch('/api/ai/analyze', {
@@ -74,6 +77,8 @@ export default function AIAnalysisPage({ request, onAction }: Props) {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? `${preset.label} 分析失败`)
       setResult(String(data.text ?? '').trim())
+      const tokens = normalizeUsage(data.usage)
+      if (tokens) setLastTokens(tokens)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       setResult('')
@@ -95,6 +100,7 @@ export default function AIAnalysisPage({ request, onAction }: Props) {
       model: settings.model,
       createdAt: new Date().toISOString(),
       result: result.trim(),
+      ...(lastTokens ? { tokens: lastTokens } : {}),
     }
     const next = [record, ...history].slice(0, 50)
     StorageService.saveAIAnalysisHistory(next)
