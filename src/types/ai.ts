@@ -42,6 +42,12 @@ export type AIAnalysisAction =
   | { kind: 'retirement'; focus: 'dividend-holdings' | 'target-simulator' | 'decent-standard' }
   | { kind: 'pension-settings' }
 
+export interface AIAnalysisTokens {
+  prompt: number
+  completion: number
+  total: number
+}
+
 export interface AIAnalysisRecord {
   id: string
   title: string
@@ -51,6 +57,8 @@ export interface AIAnalysisRecord {
   model: string
   createdAt: string
   result: string
+  /** 本次 AI 调用消耗的 token 数；上游不返回 usage 时缺省 */
+  tokens?: AIAnalysisTokens
 }
 
 export type AIPriceConfidence = 'high' | 'medium' | 'low'
