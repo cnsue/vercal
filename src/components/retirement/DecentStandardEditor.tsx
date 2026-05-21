@@ -327,3 +327,134 @@ function PresetRow<K extends string>({ label, options, value, onChange }: {
     </div>
   )
 }
+
+function AIRecommendationPanel({ familySize, cityTier, onApply }: {
+  familySize: FamilySize
+  cityTier: CityTier
+  onApply: (breakdown: DecentBreakdownItem[], reasons: Partial<Record<DecentDimensionKey, string>>) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [city, setCity] = useState('')
+  const [preferences, setPreferences] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [summary, setSummary] = useState('')
+
+  async function run() {
+    setLoading(true)
+    setError('')
+    setSummary('')
+    try {
+      const settings = StorageService.getAISettings()
+      const result = await recommendDecentStandard({
+        settings, city, familySize, cityTier, preferences,
+      })
+      onApply(result.breakdown, result.reasons)
+      setSummary(result.summary || '已根据你的偏好生成推荐预算，下方表格已填入。')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} style={aiTriggerStyle}>
+        🤖 AI 个性化推荐（按你的城市 / 偏好生成）
+      </button>
+    )
+  }
+
+  const settings = StorageService.getAISettings()
+  const preset = findAIProviderPreset(settings.provider)
+  const aiConfigured = Boolean(settings.apiKey && settings.baseUrl && settings.model)
+
+  return (
+    <div style={aiPanelStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-strong)' }}>🤖 AI 个性化推荐</div>
+        <button type="button" onClick={() => setOpen(false)} style={aiCloseBtn}>收起</button>
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8 }}>
+        告诉 AI 你的城市和关注点，它会针对你的情况给出 7 项预算 + 必要时建议补充自定义项。当前模型：
+        <strong>{preset.label} · {settings.model || '未配置'}</strong>。
+        家庭 / 城市等级用上方的选择。
+      </div>
+
+      {!aiConfigured && (
+        <div style={aiErrorStyle}>AI 配置不完整。请先到「设置 → AI 设置」填写 API Key、Base URL、Model。</div>
+      )}
+
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>所在城市</div>
+        <input value={city} onChange={e => setCity(e.target.value)}
+          placeholder="例如 杭州、上海、长沙、苏州..."
+          disabled={loading}
+          style={aiInputStyle} />
+      </div>
+
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>偏好 / 关注点（逗号分隔）</div>
+        <textarea value={preferences} onChange={e => setPreferences(e.target.value)}
+          placeholder="例如：重视医疗、每年 1-2 次国内旅游、需要养宠、孙辈教育支出..."
+          rows={2}
+          disabled={loading}
+          style={{ ...aiInputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+      </div>
+
+      <button type="button" onClick={run} disabled={loading || !aiConfigured} style={{
+        width: '100%', padding: '9px 0', borderRadius: 8, border: 'none',
+        background: 'var(--primary)', color: '#fff',
+        fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+        opacity: loading || !aiConfigured ? 0.5 : 1,
+        cursor: loading || !aiConfigured ? 'not-allowed' : 'pointer',
+      }}>
+        {loading ? '生成中...' : '生成推荐预算'}
+      </button>
+
+      {error && <div style={aiErrorStyle}>{error}</div>}
+      {summary && (
+        <div style={{
+          marginTop: 8, padding: 9, borderRadius: 8,
+          background: 'var(--surface)', border: '1px solid var(--primary-border)',
+          fontSize: 11, color: 'var(--text)', lineHeight: 1.6,
+        }}>
+          ✅ {summary}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const aiTriggerStyle: CSSProperties = {
+  width: '100%', padding: 10, marginBottom: 14,
+  border: '1px dashed var(--primary-border)',
+  background: 'var(--primary-soft)', borderRadius: 10,
+  color: 'var(--primary-text)', fontSize: 13, fontWeight: 700,
+  cursor: 'pointer', fontFamily: 'inherit',
+}
+
+const aiPanelStyle: CSSProperties = {
+  padding: 12, marginBottom: 14,
+  border: '1px solid var(--primary-border)',
+  borderRadius: 12, background: 'var(--primary-soft)',
+}
+
+const aiCloseBtn: CSSProperties = {
+  background: 'none', border: 'none', color: 'var(--muted)',
+  fontSize: 12, fontWeight: 700, cursor: 'pointer',
+  padding: '2px 6px', fontFamily: 'inherit',
+}
+
+const aiInputStyle: CSSProperties = {
+  width: '100%', padding: '8px 10px', borderRadius: 8,
+  border: '1px solid var(--input-border)', background: 'var(--input-bg)',
+  color: 'var(--text)', fontSize: 13, boxSizing: 'border-box',
+}
+
+const aiErrorStyle: CSSProperties = {
+  marginTop: 8, padding: 9, borderRadius: 8,
+  background: 'var(--danger-bg)', color: 'var(--danger)',
+  fontSize: 11, lineHeight: 1.55,
+}
