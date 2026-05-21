@@ -200,8 +200,9 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
   )
 }
 
-function DimensionRow({ item, onAmountChange, onFieldChange, onRemove }: {
+function DimensionRow({ item, aiReason, onAmountChange, onFieldChange, onRemove }: {
   item: DecentBreakdownItem
+  aiReason?: string
   onAmountChange: (v: number) => void
   onFieldChange: (patch: Partial<Pick<DecentBreakdownItem, 'name' | 'icon'>>) => void
   onRemove: () => void
