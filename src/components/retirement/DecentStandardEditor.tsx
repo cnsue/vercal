@@ -29,6 +29,7 @@ export default function DecentStandardEditor({ open, onClose }: Props) {
   const [presetFamily, setPresetFamily] = useState<FamilySize>('family3')
   const [presetCity, setPresetCity] = useState<CityTier>('tier1')
   const [presetLevel, setPresetLevel] = useState<string>('decent')
+  const [aiReasons, setAiReasons] = useState<Partial<Record<DecentDimensionKey, string>>>({})
 
   useEffect(() => {
     if (open) {
