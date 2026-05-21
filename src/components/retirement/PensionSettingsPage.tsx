@@ -447,10 +447,10 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
           </div>
 
           <ExampleSection title="① 个人信息">
-            <ExampleRow label="性别 / 身份" value="男性" hint="标准退休年龄基准：男 60 → 63（每年 +4 月）；女干部 55 → 58（每年 +4 月）；女工人 50 → 55（每年 +2 月）" />
+            <ExampleRow label="性别 / 身份" value="男性" hint="标准退休年龄：男 60 → 63（每年 +4 月）；女工人 50 → 55（每年 +2 月）。女干部档位仅适用机关 / 国企管理岗 / 高级职称，要看档案认定" />
             <ExampleRow label="出生年" value="1990 年" />
             <ExampleRow label="出生月" value="5 月" />
-            <ExampleRow label="实际退休年月" value="选「标准」" hint="1990-05 标准退休：男 63 岁 0 月（2053-05）/ 女干部 58 岁 0 月（2048-05）/ 女工人 55 岁 0 月（2045-05）。本示例按男性算" />
+            <ExampleRow label="实际退休年月" value="选「标准」" hint="1990-05 标准退休：男 63 岁 0 月（2053-05）/ 女工人 55 岁 0 月（2045-05）。本示例按男性算" />
           </ExampleSection>
 
           <ExampleSection title="② 缴费信息">
