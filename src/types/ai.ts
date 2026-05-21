@@ -177,6 +177,14 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     note: 'MiniMax OpenAI-compatible 接口',
   },
   {
+    key: 'hunyuan',
+    label: '混元',
+    protocol: 'openai-compatible',
+    baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1',
+    model: 'hunyuan-turbos-latest',
+    note: '腾讯混元 OpenAI-compatible 接口；可换 hunyuan-pro / hunyuan-large / hunyuan-t1-latest 等',
+  },
+  {
     key: 'custom',
     label: '自定义',
     protocol: 'openai-compatible',
