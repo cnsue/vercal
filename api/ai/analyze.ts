@@ -148,7 +148,7 @@ async function callGemini(input: {
   systemPrompt: string
   prompt: string
   enableWebSearch?: boolean
-}): Promise<string> {
+}): Promise<AnalyzeResult> {
   const url = `${input.baseUrl}/models/${encodeURIComponent(input.model)}:generateContent?key=${encodeURIComponent(input.apiKey)}`
   // 注意：Gemini 启用 google_search 工具时不能同时设置 responseMimeType: application/json，
   // 因此 JSON 输出统一通过 prompt 强约束 + 前端容错解析实现。
@@ -168,11 +168,34 @@ async function callGemini(input: {
   const data = await response.json().catch(() => ({})) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
     error?: { message?: string }
+    usageMetadata?: {
+      promptTokenCount?: number
+      candidatesTokenCount?: number
+      totalTokenCount?: number
+    }
   }
   if (!response.ok) throw new Error(data.error?.message ?? `Gemini 请求失败：${response.status}`)
   const text = data.candidates?.[0]?.content?.parts?.map(p => p.text ?? '').join('').trim()
   if (!text) throw new Error('AI 返回为空')
-  return text
+  const usage = normalizeGeminiUsage(data.usageMetadata)
+  return usage ? { text, usage } : { text }
+}
+
+function normalizeGeminiUsage(raw: {
+  promptTokenCount?: number
+  candidatesTokenCount?: number
+  totalTokenCount?: number
+} | undefined): AnalyzeUsage | undefined {
+  if (!raw) return undefined
+  const prompt = toFiniteNonNegative(raw.promptTokenCount)
+  const completion = toFiniteNonNegative(raw.candidatesTokenCount)
+  const total = toFiniteNonNegative(raw.totalTokenCount)
+  if (prompt + completion + total === 0) return undefined
+  return {
+    promptTokens: prompt,
+    completionTokens: completion,
+    totalTokens: total > 0 ? total : prompt + completion,
+  }
 }
 
 function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
