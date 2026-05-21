@@ -7,6 +7,7 @@ import {
 } from '../types/cashFlow'
 import { PLATFORM_LABELS, type AssetPlatform } from '../types/models'
 import { formatDateKey, formatCNY } from '../utils/formatters'
+import VoiceInputButton from './VoiceInputButton'
 
 interface Props {
   open: boolean
