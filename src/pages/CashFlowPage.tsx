@@ -7,6 +7,7 @@ import {
 import { PLATFORM_LABELS, type AssetPlatform } from '../types/models'
 import { formatCNY, formatDateKey } from '../utils/formatters'
 import CashFlowEditor from '../components/CashFlowEditor'
+import SmartCashFlowInput from '../components/SmartCashFlowInput'
 
 type RangeKey = 'month' | 'year' | 'all'
 
