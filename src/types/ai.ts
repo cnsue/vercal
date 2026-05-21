@@ -7,6 +7,7 @@ export type AIProviderKey =
   | 'mimo'
   | 'zhipu'
   | 'minimax'
+  | 'hunyuan'
   | 'custom'
 
 export type AIProtocol = 'openai-compatible' | 'gemini'
