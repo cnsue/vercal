@@ -1,12 +1,15 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, type CSSProperties } from 'react'
 import { useRetirementStore } from '../../store/useRetirementStore'
 import {
   defaultDecentBreakdown, sumBreakdown, findDimensionMeta,
   buildPresetBreakdown, COVERAGE_LEVELS, FAMILY_SIZE_LABELS, CITY_TIER_LABELS,
-  type DecentBreakdownItem, type FamilySize, type CityTier,
+  type DecentBreakdownItem, type FamilySize, type CityTier, type DecentDimensionKey,
 } from '../../types/retirement'
 import { formatCNY } from '../../utils/formatters'
 import { v4 as uuidv4 } from '../../utils/uuid'
+import { StorageService } from '../../store/storage'
+import { findAIProviderPreset } from '../../types/ai'
+import { recommendDecentStandard } from '../../utils/aiDecentRecommender'
 
 interface Props {
   open: boolean
