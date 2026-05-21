@@ -482,7 +482,7 @@ function UsageExample({ show, onToggle }: { show: boolean; onToggle: () => void 
           </ExampleSection>
 
           <ExampleSection title="⑤ 个人账户">
-            <ExampleRow label="累计余额" value="70,000" hint="保守按历史平均 0.6 倍社平估算（年轻时工资多数低于社平）：13 年 × 0.6 × 8433 × 8% × 12 + 利息 ≈ 7 万。实际值见社保 APP「账户查询」；不知道就先填 0，影响约 300-800 元/月精度" />
+            <ExampleRow label="累计余额" value="70,000" hint="按 0.6 倍社平缴 13 年的估算：13 × 0.6 × 8433 × 8% × 12 + 历史利息 ≈ 7 万。实际值见社保 APP「账户查询」；不知道就先填 0，影响约 300-800 元/月精度" />
           </ExampleSection>
 
           <div style={{
