@@ -20,7 +20,7 @@ export default function CashFlowPage() {
   const load = useCashFlowStore(s => s.load)
 
   const [range, setRange] = useState<RangeKey>('month')
-  const [showRepay, setShowRepay] = useState(false)
+  const [showRepay, setShowRepay] = useState(true)
   const [editing, setEditing] = useState<CashFlowEvent | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
 
