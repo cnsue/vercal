@@ -86,7 +86,7 @@ export default function CashFlowPage() {
           accent={totals.net >= 0 ? 'positive' : 'negative'} bold />
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 11, color: 'var(--muted)' }}>
           <input type="checkbox" checked={showRepay} onChange={e => setShowRepay(e.target.checked)} />
-          显示信用卡还款（默认隐藏，避免与信用消费双计）
+          显示信用卡还款（取消勾选可避免与信用消费双计）
         </label>
       </div>
 
