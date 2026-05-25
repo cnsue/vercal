@@ -12,7 +12,8 @@ const SYNC_VERSION = 1
 const PUSH_DEBOUNCE_MS = 2500
 const PAIR_CODE_REGEX = /^[a-z0-9]{16,40}$/
 
-/** 参与同步的 localStorage key 白名单。push/exchangeRate/installBanner/同步元数据本身不进。 */
+/** 参与同步的 localStorage key 白名单。push/exchangeRate/installBanner/同步元数据本身不进。
+ *  AI 请求日志 (aiRequestLog) 为本机诊断数据，不进。 */
 const SYNCED_KEYS: readonly string[] = [
   'asset-tracker:snapshots',
   'asset-tracker:annualTarget',
@@ -24,6 +25,9 @@ const SYNCED_KEYS: readonly string[] = [
   'asset-tracker:mortgageInputs',
   'asset-tracker:themePreference',
   'asset-tracker:cashFlows',
+  'asset-tracker:aiSettings',
+  'asset-tracker:aiApiKeys',
+  'asset-tracker:aiAnalysisHistory',
 ]
 
 interface RemoteBlob {
