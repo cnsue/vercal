@@ -38,11 +38,12 @@ const K = {
   aiRequestLog: 'asset-tracker:aiRequestLog',
 } as const
 
-/** 进入设备同步的 key（推送通知偏好/汇率缓存/banner 状态等设备级数据不同步） */
+/** 进入设备同步的 key（推送通知偏好/汇率缓存/banner 状态/AI 请求日志等设备级数据不同步） */
 const SYNCED_LOCAL_KEYS: ReadonlySet<string> = new Set([
   K.snapshots, K.annualTarget, K.customPlatforms, K.customClasses,
   K.hiddenPlatforms, K.hiddenClasses, K.retirementPlan, K.cashFlows,
   K.mortgageInputs, K.themePreference,
+  K.aiSettings, K.aiApiKeys, K.aiAnalysisHistory,
 ])
 
 function get<T>(key: string, fallback: T): T {
