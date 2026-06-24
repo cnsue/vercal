@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>一掷千金 · Deal or No Deal</title>
+<style>
+  :root{
+    --bg0:#0a0a14; --bg1:#15101f; --bg2:#1c1530;
+    --gold:#f4c542; --gold-d:#b8860b; --gold-l:#ffe89a;
+    --steel0:#dfe4ec; --steel1:#aab2c0; --steel2:#7c8597;
+    --low:#f4c542; --high:#ff5d6c;
+    --ink:#e9e6f5; --muted:#9b94b5; --panel:#120d20; --panel2:#1a1430;
+    --line:rgba(255,255,255,.08);
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(1200px 700px at 20% -10%, #2a1840 0%, transparent 55%),
+      radial-gradient(1100px 800px at 100% 110%, #3a0f24 0%, transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1) 55%,var(--bg2));
+    color:var(--ink); min-height:100vh; padding:18px; overflow-x:hidden;
+  }
+  .wrap{max-width:1480px; margin:0 auto}
+
+  /* ---------- header ---------- */
+  header{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px}
+  .ctrl{display:flex; gap:10px}
+  .btn{
+    border:1px solid var(--line); background:#1b1530; color:var(--ink);
+    padding:10px 16px; border-radius:12px; font-weight:700; cursor:pointer; font-size:14px;
+    transition:.15s; display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn:hover{background:#241b40; transform:translateY(-1px)}
+  .btn.gold{
+    background:linear-gradient(180deg,#3a2c12,#241a08);
+    border-color:#6b5316; color:var(--gold-l);
+  }
+  .btn:disabled{opacity:.4; cursor:not-allowed; transform:none}
+  .title-box{
+    text-align:center; padding:10px 40px; border-radius:16px;
+    border:1px solid rgba(244,197,66,.35);
+    background:radial-gradient(120% 140% at 50% 0%, rgba(244,197,66,.12), rgba(0,0,0,.2));
+    box-shadow:0 0 40px rgba(244,197,66,.12), inset 0 0 30px rgba(244,197,66,.06);
+  }
+  .title-box h1{
+    font-size:40px; letter-spacing:4px; font-weight:900;
+    color:var(--gold-l);
+    text-shadow:0 0 18px rgba(244,197,66,.7),0 2px 0 #5a4209;
+  }
+  .title-box .sub{font-size:12px; color:var(--muted); letter-spacing:2px; margin-top:2px}
+
+  /* ---------- progress dashes ---------- */
+  .progress{display:flex; gap:6px; justify-content:center; margin-bottom:14px; flex-wrap:wrap}
+  .dash{width:42px; height:7px; border-radius:6px; background:#241b3c; transition:.3s}
+  .dash.done{background:linear-gradient(90deg,#6b5316,var(--gold)); box-shadow:0 0 8px rgba(244,197,66,.5)}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid; grid-template-columns:230px 1fr 230px; gap:16px; align-items:start}
+
+  .sidepanel{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px}
+  .sidepanel h2{font-size:13px; letter-spacing:2px; text-align:center; color:var(--muted); margin-bottom:12px; font-weight:800}
+  .amts{display:flex; flex-direction:column; gap:8px}
+  .amt{
+    position:relative; text-align:center; font-weight:800; font-size:15px;
+    padding:10px 6px; border-radius:999px;
+    background:linear-gradient(180deg,var(--gold-l),var(--gold) 45%,var(--gold-d));
+    color:#3a2a05; border:1px solid #7a5e12;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 2px 4px rgba(0,0,0,.4);
+    transition:.35s;
+  }
+  .amt.high{background:linear-gradient(180deg,#ffd1d6,#ff5d6c 45%,#a31221); border-color:#7a1018; color:#3a0408}
+  .amt.out{
+    opacity:.28; filter:grayscale(.7); text-decoration:line-through;
+    box-shadow:none; transform:scale(.96);
+  }
+  .amt.flash{animation:flash .6s ease}
+  @keyframes flash{0%{transform:scale(1.12); filter:brightness(1.6)}100%{transform:scale(1)}}
+
+  /* ---------- center stage ---------- */
+  .center{display:flex; flex-direction:column; gap:14px}
+  .stage{
+    background:linear-gradient(180deg,#15102a,#0e0a1c); border:1px solid var(--line);
+    border-radius:16px; padding:16px 20px;
+  }
+  .roundbar{display:flex; align-items:center; justify-content:space-between; gap:14px}
+  .roundbar .lbl{font-size:12px; color:var(--muted); letter-spacing:1px}
+  .roundbar .big{font-size:26px; font-weight:900; color:var(--gold-l)}
+  .roundbar .msg{flex:1; text-align:center; font-size:18px; font-weight:700; min-height:26px}
+  .roundbar .right{text-align:right}
+  .roundbar .right .num{font-size:26px; font-weight:900; color:#fff}
+
+  .trio{display:grid; grid-template-columns:1fr auto 1fr; gap:16px; align-items:stretch}
+  .card{background:var(--panel2); border:1px solid var(--line); border-radius:16px; padding:16px; display:flex; gap:14px; align-items:center}
+  .card.host{}
+  .host .av{
+    width:46px; height:46px; border-radius:50%; flex:none;
+    background:radial-gradient(circle at 50% 35%, #fff 0 30%, #4a3a8a 60%, #241a4a);
+    border:2px solid var(--gold-d);
+  }
+  .card .name{font-weight:800; margin-bottom:4px}
+  .card .desc{font-size:13px; color:var(--muted); line-height:1.5}
+  .mycase{
+    text-align:center; min-width:170px; border:1px dashed rgba(244,197,66,.4);
+    border-radius:16px; padding:10px 22px; background:rgba(244,197,66,.04);
+  }
+  .mycase .cap{font-size:11px; letter-spacing:2px; color:var(--muted)}
+  .mycase .case-ico{font-size:46px; margin:6px 0; filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+  .mycase .val{font-size:19px; font-weight:900; color:var(--gold-l)}
+  .card.banker{flex-direction:column; text-align:center; justify-content:center; gap:6px}
+  .bankerFace{width:96px; height:106px; filter:drop-shadow(0 4px 10px rgba(0,0,0,.5)); transition:.3s}
+  .card.banker.ring .bankerFace{animation:ring .5s infinite}
+  @keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(-10deg)}75%{transform:rotate(10deg)}}
+  /* face parts */
+  .bk-hat{fill:#1f1830; stroke:#3a2f55; stroke-width:1}
+  .bk-head{fill:#e8b489; stroke:#c8895c; stroke-width:1.5}
+  .bk-eyew{fill:#fff}
+  .bk-pupil{fill:#241a3a; transition:.2s}
+  .bk-brow{fill:#5a3d28; transform-box:fill-box; transform-origin:center; transition:.25s}
+  .bk-stache{fill:#5a3d28}
+  .bk-mouth{fill:none; stroke:#7a3b2a; stroke-width:3.4; stroke-linecap:round; display:none}
+  .m-evil{fill:#7a1f1a; stroke:#5a140f}
+  .bk-sweat{fill:#7fd4ff; opacity:0; transition:.3s}
+  /* moods: choose mouth */
+  [data-mood="idle"]    .m-idle,
+  [data-mood="smug"]    .m-smug,
+  [data-mood="nervous"] .m-nervous,
+  [data-mood="evil"]    .m-evil,
+  [data-mood="happy"]   .m-happy,
+  [data-mood="annoyed"] .m-annoyed{display:block}
+  /* eyebrow attitudes */
+  [data-mood="smug"]    .bk-brow-l{transform:translateY(-3px) rotate(-12deg)}
+  [data-mood="smug"]    .bk-brow-r{transform:rotate(6deg)}
+  [data-mood="nervous"] .bk-brow-l{transform:translateY(-3px) rotate(14deg)}
+  [data-mood="nervous"] .bk-brow-r{transform:translateY(-3px) rotate(-14deg)}
+  [data-mood="evil"]    .bk-brow-l{transform:rotate(20deg)}
+  [data-mood="evil"]    .bk-brow-r{transform:rotate(-20deg)}
+  [data-mood="annoyed"] .bk-brow-l{transform:rotate(18deg)}
+  [data-mood="annoyed"] .bk-brow-r{transform:rotate(-18deg)}
+  [data-mood="happy"]   .bk-brow-l{transform:translateY(-2px)}
+  [data-mood="happy"]   .bk-brow-r{transform:translateY(-2px)}
+  /* nervous sweat + shifty eyes */
+  [data-mood="nervous"] .bk-sweat{opacity:.9; animation:drip 1.2s infinite}
+  @keyframes drip{0%{transform:translateY(-3px)}100%{transform:translateY(4px); opacity:.3}}
+  [data-mood="nervous"] .bk-pupil{transform:translateX(2px)}
+  [data-mood="evil"]    .bk-pupil{transform:translateY(1px) scale(.8)}
+
+  /* ---------- boxes ---------- */
+  .boxes{
+    display:grid; grid-template-columns:repeat(7,1fr); gap:12px;
+    background:linear-gradient(180deg,#120d24,#0c0918); border:1px solid var(--line);
+    border-radius:16px; padding:16px;
+  }
+  .box{
+    position:relative; aspect-ratio:1.18/1; border-radius:12px; cursor:pointer;
+    background:linear-gradient(160deg,var(--steel0),var(--steel1) 55%,var(--steel2));
+    border:1px solid #5b637a;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.7), inset 0 -6px 12px rgba(0,0,0,.25), 0 4px 8px rgba(0,0,0,.4);
+    display:flex; align-items:center; justify-content:center;
+    transition:.18s;
+  }
+  .box::before{
+    content:""; position:absolute; top:8%; left:34%; width:32%; height:10%;
+    border:3px solid #6c748a; border-bottom:none; border-radius:14px 14px 0 0;
+  }
+  .box .n{font-size:26px; font-weight:900; color:#3b4256; text-shadow:0 1px 0 rgba(255,255,255,.5)}
+  .box:hover:not(.dis){transform:translateY(-4px); box-shadow:inset 0 2px 0 rgba(255,255,255,.8), 0 0 0 2px var(--gold), 0 10px 18px rgba(0,0,0,.5)}
+  .box.selectable{box-shadow:inset 0 2px 0 rgba(255,255,255,.7), 0 0 0 2px rgba(244,197,66,.5), 0 4px 8px rgba(0,0,0,.4); animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 0 0 2px rgba(244,197,66,.35),0 4px 8px rgba(0,0,0,.4)}50%{box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 0 0 3px rgba(244,197,66,.85),0 6px 14px rgba(0,0,0,.5)}}
+  .box.mine{background:linear-gradient(160deg,#fff0c0,#f4c542 55%,#b8860b); border-color:#7a5e12}
+  .box.mine .n{color:#5a4209}
+  .box.mine::after{content:"YOUR CASE"; position:absolute; bottom:6px; font-size:8px; font-weight:900; letter-spacing:1px; color:#5a4209}
+  .box.opened{cursor:default; background:#161226; border:1px solid #2a2240; box-shadow:none}
+  .box.opened::before{display:none}
+  .box.opened .n{display:none}
+  .box .reveal{display:none}
+  .box.opened .reveal{display:flex; flex-direction:column; align-items:center; gap:2px}
+  .box.opened .reveal .ov{font-weight:900; font-size:15px}
+  .box.opened.low .reveal .ov{color:var(--gold)}
+  .box.opened.high .reveal .ov{color:var(--high)}
+  .box.opened .reveal .on{font-size:10px; color:var(--muted)}
+  .box.opened.pop{animation:pop .5s ease}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1)}}
+  .box.dis{cursor:not-allowed}
+
+  /* ---------- offer / decision ---------- */
+  .offerpanel{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px; margin-top:12px}
+  .offerpanel h2{font-size:13px; letter-spacing:2px; text-align:center; color:var(--muted); margin-bottom:10px; font-weight:800}
+  .offer-val{text-align:center; font-size:34px; font-weight:900; color:var(--gold-l); text-shadow:0 0 16px rgba(244,197,66,.5); min-height:42px}
+  .offer-sub{text-align:center; font-size:12px; color:var(--muted); margin-top:2px; min-height:16px}
+  .deal-btns{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px}
+  .deal-btns button{
+    padding:16px; border-radius:14px; font-size:18px; font-weight:900; cursor:pointer; border:none; transition:.15s;
+  }
+  .deal-btns .deal{background:linear-gradient(180deg,#2ec27a,#0f8a4d); color:#fff; box-shadow:0 4px 0 #0a5c34}
+  .deal-btns .nodeal{background:linear-gradient(180deg,#ff6a78,#c81e2f); color:#fff; box-shadow:0 4px 0 #8a1320}
+  .deal-btns button:hover{transform:translateY(-2px)}
+  .deal-btns button:active{transform:translateY(2px); box-shadow:none}
+  .deal-btns button:disabled{opacity:.35; cursor:not-allowed; transform:none}
+
+  .help{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px; margin-top:12px}
+  .help h2{font-size:13px; letter-spacing:1px; color:var(--gold-l); margin-bottom:8px}
+  .help ol{margin-left:18px; font-size:12.5px; color:var(--muted); line-height:1.7}
+
+  /* ---------- result overlay ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(5,3,12,.82); backdrop-filter:blur(6px);
+    display:none; align-items:center; justify-content:center; z-index:50;
+  }
+  .overlay.show{display:flex; animation:fade .4s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .result{
+    text-align:center; padding:40px 60px; border-radius:24px; max-width:560px;
+    background:linear-gradient(180deg,#1c1535,#120c22); border:1px solid rgba(244,197,66,.4);
+    box-shadow:0 0 70px rgba(244,197,66,.2);
+  }
+  .result .em{font-size:64px; margin-bottom:10px}
+  .result h3{font-size:26px; margin-bottom:8px; color:var(--gold-l)}
+  .result .money{font-size:48px; font-weight:900; color:#fff; margin:14px 0; text-shadow:0 0 24px rgba(244,197,66,.5)}
+  .result p{color:var(--muted); font-size:14px; line-height:1.6; margin-bottom:6px}
+  .result .btn.gold{margin-top:18px; font-size:16px; padding:12px 28px}
+
+  /* ---------- responsive ---------- */
+  @media(max-width:1100px){
+    .grid{grid-template-columns:1fr}
+    .center{order:-1}                       /* 舞台+箱子置顶，金额表跟在后面 */
+    .sidepanel .amts{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px}
+    .title-box h1{font-size:28px}
+  }
+  @media(max-width:720px){
+    body{padding:10px}
+    header{flex-wrap:wrap; gap:10px}
+    .title-box{order:-1; flex-basis:100%; padding:8px 16px}
+    .title-box h1{font-size:24px; letter-spacing:2px}
+    .ctrl{flex:1}
+    .btn{flex:1; justify-content:center; padding:10px 8px; font-size:13px}
+    .dash{width:26px; height:6px}
+    .roundbar{flex-wrap:wrap; row-gap:6px}
+    .roundbar .msg{order:3; flex-basis:100%; font-size:15px}
+    .roundbar .big{font-size:20px}
+    .roundbar .right .num{font-size:20px}
+    .trio{grid-template-columns:1fr; gap:10px}
+    .mycase{order:-1}
+    .boxes{grid-template-columns:repeat(4,1fr); gap:8px; padding:10px}
+    .box{border-radius:10px}
+    .box .n{font-size:20px}
+    .box.opened .reveal .ov{font-size:12px}
+    .box.mine::after{font-size:7px}
+    .offer-val{font-size:28px}
+    .deal-btns button{font-size:16px; padding:14px}
+    .result{padding:30px 24px; max-width:92vw}
+    .result .money{font-size:38px}
+  }
+  @media(max-width:420px){
+    .boxes{grid-template-columns:repeat(3,1fr)}
+    .sidepanel .amts{grid-template-columns:repeat(3,1fr)}
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="ctrl">
+      <button class="btn" id="soundBtn">🔊 开启音效</button>
+    </div>
+    <div class="title-box">
+      <h1>DEAL OR NO DEAL</h1>
+      <div class="sub">一掷千金 · 26 箱 · 9 轮 · 银行家报价</div>
+    </div>
+    <div class="ctrl">
+      <button class="btn gold" id="restartBtn">↻ 重新开局</button>
+    </div>
+  </header>
+
+  <div class="progress" id="progress"></div>
+
+  <div class="grid">
+    <!-- LOW -->
+    <div class="sidepanel">
+      <h2>LOW AMOUNTS</h2>
+      <div class="amts" id="lowAmts"></div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center">
+      <div class="stage">
+        <div class="roundbar">
+          <div>
+            <div class="lbl">当前回合</div>
+            <div class="big" id="roundName">选箱</div>
+          </div>
+          <div class="msg" id="message">请选择一个箱子作为你的命运箱。</div>
+          <div class="right">
+            <div class="lbl">本轮还需开箱</div>
+            <div class="num" id="needOpen">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="trio">
+        <div class="card host">
+          <div class="av"></div>
+          <div>
+            <div class="name">主持人</div>
+            <div class="desc">从 26 个箱子中选出你的命运箱。它的金额不会揭晓，直到你成交或走到最后。</div>
+          </div>
+        </div>
+        <div class="mycase">
+          <div class="cap">YOUR CASE</div>
+          <div class="case-ico">💼</div>
+          <div class="val" id="myCaseVal">未选择</div>
+        </div>
+        <div class="card banker" id="bankerCard">
+          <svg class="bankerFace" id="bankerFace" data-mood="idle" viewBox="0 0 100 110">
+            <!-- 礼帽 -->
+            <rect class="bk-hat" x="26" y="6" width="48" height="12" rx="3"/>
+            <rect class="bk-hat" x="18" y="16" width="64" height="6" rx="3"/>
+            <!-- 脸 -->
+            <circle class="bk-head" cx="50" cy="52" r="32"/>
+            <!-- 耳朵 -->
+            <circle class="bk-head" cx="18" cy="52" r="6"/>
+            <circle class="bk-head" cx="82" cy="52" r="6"/>
+            <!-- 眼白 + 瞳孔 -->
+            <ellipse class="bk-eyew" cx="38" cy="48" rx="6" ry="6.5"/>
+            <ellipse class="bk-eyew" cx="62" cy="48" rx="6" ry="6.5"/>
+            <circle class="bk-pupil" cx="39" cy="49" r="2.6"/>
+            <circle class="bk-pupil" cx="63" cy="49" r="2.6"/>
+            <!-- 眉毛 -->
+            <rect class="bk-brow bk-brow-l" x="30" y="36" width="16" height="3.4" rx="2"/>
+            <rect class="bk-brow bk-brow-r" x="54" y="36" width="16" height="3.4" rx="2"/>
+            <!-- 嘴（按表情显示其一） -->
+            <path class="bk-mouth m-idle"    d="M41 70 H59"/>
+            <path class="bk-mouth m-smug"    d="M40 70 Q53 78 63 66"/>
+            <path class="bk-mouth m-nervous" d="M45 70 a5 5 0 1 0 10 0 a5 5 0 1 0 -10 0"/>
+            <path class="bk-mouth m-evil"    d="M36 66 Q50 84 64 66 Q50 74 36 66 Z"/>
+            <path class="bk-mouth m-happy"   d="M38 66 Q50 82 62 66"/>
+            <path class="bk-mouth m-annoyed" d="M40 74 Q50 66 60 74"/>
+            <!-- 小胡子 -->
+            <path class="bk-stache" d="M40 62 Q50 66 60 62 Q50 60 40 62 Z"/>
+            <!-- 汗珠（仅紧张时） -->
+            <path class="bk-sweat" d="M76 34 q-5 8 0 11 a3.2 3.2 0 0 0 6 -2.2 q0 -4 -6 -8.8 Z"/>
+          </svg>
+          <div class="name" id="bankerName">银行家等待中</div>
+        </div>
+      </div>
+
+      <div class="boxes" id="boxes"></div>
+    </div>
+
+    <!-- HIGH -->
+    <div class="sidepanel">
+      <h2>HIGH AMOUNTS</h2>
+      <div class="amts" id="highAmts"></div>
+
+      <div class="offerpanel">
+        <h2>BANK OFFER</h2>
+        <div class="offer-val" id="offerVal">—</div>
+        <div class="offer-sub" id="offerSub">暂无报价</div>
+        <div class="deal-btns">
+          <button class="deal" id="dealBtn" disabled>DEAL</button>
+          <button class="nodeal" id="noDealBtn" disabled>NO DEAL</button>
+        </div>
+      </div>
+
+      <div class="help">
+        <h2>规则流程</h2>
+        <ol>
+          <li>先选 1 个箱子作为命运箱。</li>
+          <li>每轮开指定数量的其他箱子：6 / 5 / 4 / 3 / 2 / 1 / 1 / 1 / 1。</li>
+          <li>每轮结束银行家来电报价：Deal 拿钱走人；No Deal 继续。</li>
+          <li>只剩 2 箱仍 No Deal，则获得你命运箱里的金额。</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="result">
+    <div class="em" id="resEm">🎉</div>
+    <h3 id="resTitle">游戏结束</h3>
+    <div class="money" id="resMoney">$0</div>
+    <p id="resDesc"></p>
+    <button class="btn gold" id="resBtn">再玩一局</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- data ----------
+  const VALUES = [0.01,1,5,10,25,50,75,100,200,300,400,500,750,
+                  1000,5000,10000,25000,50000,75000,100000,200000,300000,400000,500000,750000,1000000];
+  const LOW_SET = new Set(VALUES.slice(0,13));   // 0.01 .. 750  -> 开出="好"，欢快
+  const HIGH_SET = new Set(VALUES.slice(13));    // 1000 .. 1M   -> 开出="坏"，沮丧
+  const ROUNDS = [6,5,4,3,2,1,1,1,1];            // 每轮开箱数
+
+  // 银行家台词池
+  const TAUNTS = {
+    lowball:[ "就这点钱，拿了吧，别太贪心。", "我看你那箱子里啊……八成是空气。",
+              "见好就收，下轮我可不保证还这么大方。", "你真以为百万在你手里？清醒点。",
+              "听老哥一句，落袋为安。" ],
+    tempting:[ "瞧瞧这个数字，够你舒坦一阵子了。", "这么慷慨的报价，错过可别哭。",
+               "聪明人都会在这时候点头。", "我都心疼自己的钱了，赶紧成交。" ],
+    final:[ "最后的机会，要钱、还是要赌一把？", "再走一步，可就没有回头路了。",
+            "命运箱就在那儿……你敢开吗？" ],
+  };
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+  const fmt = v => v < 1 ? '$'+v.toFixed(2) : '$'+v.toLocaleString('en-US');
+
+  // ---------- sound (Web Audio, no files) ----------
+  let AC=null, soundOn=false;
+  function ensureAudio(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(AC&&AC.state==='suspended')AC.resume(); }
+  function tone(freq,t0,dur,type='sine',vol=.25,glideTo=null){
+    if(!AC||!soundOn)return;
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,AC.currentTime+t0);
+    if(glideTo)o.frequency.exponentialRampToValueAtTime(glideTo,AC.currentTime+t0+dur);
+    g.gain.setValueAtTime(0,AC.currentTime+t0);
+    g.gain.linearRampToValueAtTime(vol,AC.currentTime+t0+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+t0+dur);
+    o.connect(g).connect(AC.destination); o.start(AC.currentTime+t0); o.stop(AC.currentTime+t0+dur+.05);
+  }
+  // 开出小额：上扬大调琶音，明亮欢快
+  function sfxHappy(){ if(!soundOn)return; const n=[523.25,659.25,783.99,1046.5]; n.forEach((f,i)=>{tone(f,i*.07,.18,'triangle',.28); tone(f*2,i*.07,.16,'sine',.08);}); tone(1318.5,.30,.30,'triangle',.22); }
+  // 开出大额：下行小调 + 失真，沮丧
+  function sfxSad(){ if(!soundOn)return; tone(330,0,.5,'sawtooth',.22,196); tone(196,.18,.6,'sawtooth',.2,130); tone(110,.36,.7,'square',.12,82); }
+  function sfxClick(){ tone(800,0,.05,'square',.12); }
+  function sfxRing(){ if(!soundOn)return; for(let i=0;i<3;i++){tone(1000,i*.4,.12,'sine',.2);tone(800,i*.4+.13,.12,'sine',.2);} }
+  function sfxDeal(){ if(!soundOn)return; [392,523,659,784,1046].forEach((f,i)=>tone(f,i*.09,.4,'triangle',.26)); }
+  function sfxFinal(win){ if(!soundOn)return; if(win){[523,659,784,1046,1318].forEach((f,i)=>tone(f,i*.12,.5,'triangle',.28));}else{tone(440,0,.6,'sawtooth',.22,220);tone(220,.3,.8,'sawtooth',.2,110);} }
+  // 银行家“说话”音效：一串低沉抖动的音节，像在咕哝/嘲讽
+  function sfxBankerVoice(){
+    if(!soundOn)return;
+    const base=[180,150,200,165,140,190,160,210,170,145];
+    const n=6+Math.floor(Math.random()*4);
+    for(let i=0;i<n;i++){
+      const f=base[i%base.length]*(0.92+Math.random()*0.2);
+      tone(f, i*0.11, 0.1, 'sawtooth', .16, f*0.8);
+      tone(f*2, i*0.11, 0.08, 'square', .04);
+    }
+  }
+
+  // ----- 合成鼓组 -----
+  function noiseBurst(t0,dur,vol,hp){
+    if(!AC||!soundOn)return;
+    const n=Math.max(1,Math.floor(AC.sampleRate*dur));
+    const buf=AC.createBuffer(1,n,AC.sampleRate); const d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    const src=AC.createBufferSource(); src.buffer=buf;
+    const g=AC.createGain();
+    g.gain.setValueAtTime(vol,AC.currentTime+t0);
+    g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+t0+dur);
+    let node=src;
+    if(hp){ const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp; src.connect(f); node=f; }
+    node.connect(g).connect(AC.destination);
+    src.start(AC.currentTime+t0); src.stop(AC.currentTime+t0+dur+.02);
+  }
+  function kick(t0,vol){ if(!AC||!soundOn)return;
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.frequency.setValueAtTime(155,AC.currentTime+t0);
+    o.frequency.exponentialRampToValueAtTime(45,AC.currentTime+t0+.12);
+    g.gain.setValueAtTime(vol,AC.currentTime+t0);
+    g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+t0+.2);
+    o.connect(g).connect(AC.destination); o.start(AC.currentTime+t0); o.stop(AC.currentTime+t0+.22); }
+  function snare(t0,vol){ noiseBurst(t0,.18,vol,1400); tone(190,t0,.12,'triangle',vol*.4); }
+  function hat(t0,vol){ noiseBurst(t0,.035,vol,7000); }
+
+  // 背景音乐：和弦 + 低音 + 鼓组循环；offer 阶段进入“紧张模式”（更快更密）
+  const PROG=[
+    {root:110.00, chord:[220.00,261.63,329.63]}, // Am
+    {root:87.31,  chord:[174.61,220.00,261.63]}, // F
+    {root:130.81, chord:[261.63,329.63,392.00]}, // C
+    {root:98.00,  chord:[196.00,246.94,293.66]}, // G
+  ];
+  let bgm={timer:null, step:0, tense:false};
+  function bgmBar(){
+    if(!AC||!soundOn) return;
+    const p=PROG[bgm.step%PROG.length], T=bgm.tense, beat=T?0.34:0.5;
+    // 铺底和弦 + 深低音
+    p.chord.forEach(f=>tone(f,0,beat*3.6,'triangle',T?.020:.030));
+    tone(p.root/2,0,beat*3.6,'sine',.035);
+    // 低音线：普通=四分；紧张=驱动八分
+    if(T){ for(let i=0;i<8;i++) tone(p.root,i*beat/2,beat*0.4,'square',.060); }
+    else { for(let b=0;b<4;b++) tone(p.root,b*beat,beat*0.6,'square',.060); }
+    // 鼓组
+    for(let b=0;b<4;b++){
+      if(T || b%2===0) kick(b*beat, T?.6:.5);          // 紧张=每拍底鼓
+      if(b%2===1) snare(b*beat, T?.36:.28);            // 2、4 拍军鼓
+      hat(b*beat, .12); hat(b*beat+beat/2, T?.13:.08); // 八分踩镲
+      if(T){ hat(b*beat+beat/4,.06); hat(b*beat+beat*3/4,.06); } // 紧张=十六分
+    }
+    if(T) tone(1320,0,beat*0.08,'sine',.03);           // 紧张高音点缀
+    bgm.step++;
+  }
+  function barMs(){ return bgm.tense?1360:2000; }
+  function scheduleBgm(){ if(bgm.timer)clearInterval(bgm.timer); bgm.timer=setInterval(bgmBar,barMs()); }
+  function startBgm(){ if(!soundOn||bgm.timer)return; bgmBar(); scheduleBgm(); }
+  function stopBgm(){ if(bgm.timer){clearInterval(bgm.timer); bgm.timer=null;} }
+  function setTense(on){ if(bgm.tense===on)return; bgm.tense=on; if(bgm.timer){ bgmBar(); scheduleBgm(); } }
+
+  // ---------- state ----------
+  let state;
+  function newGame(){
+    const shuffled = [...VALUES].sort(()=>Math.random()-.5);
+    state = {
+      boxes: shuffled.map((v,i)=>({id:i+1, value:v, opened:false})),
+      myCase:null, phase:'pick', roundIdx:0, openedThisRound:0, lastOffer:0, finished:false,
+    };
+    setBankerFace('idle'); setTense(false);
+    render();
+  }
+
+  // ---------- helpers ----------
+  const inPlayValues = () => state.boxes.filter(b=>!b.opened || b.id===state.myCase?.id)
+        // boxes still sealed = not opened (myCase is never "opened")
+        .filter(b=>!b.opened).map(b=>b.value);
+  const sealedValues = () => state.boxes.filter(b=>!b.opened).map(b=>b.value);
+
+  function bankerOffer(){
+    const vals = sealedValues();                 // 命运箱 + 未开箱
+    const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+    // 报价系数：第1轮压价(~0.25)，逐轮升到接近公平(~1.0)，末轮略高制造张力
+    const r = state.roundIdx; // 0-based 已完成轮
+    const factor = 0.22 + (r/(ROUNDS.length-1)) * 0.82;
+    let offer = avg * factor * (0.93 + Math.random()*0.12);
+    // 取整成漂亮数字
+    if(offer>=100000) offer=Math.round(offer/5000)*5000;
+    else if(offer>=10000) offer=Math.round(offer/1000)*1000;
+    else if(offer>=1000) offer=Math.round(offer/100)*100;
+    else if(offer>=100) offer=Math.round(offer/10)*10;
+    else offer=Math.round(offer);
+    return Math.max(1,offer);
+  }
+
+  // ---------- render ----------
+  function render(){
+    // progress dashes
+    const prog=document.getElementById('progress'); prog.innerHTML='';
+    const totalToOpen=25; const opened=state.boxes.filter(b=>b.opened).length;
+    for(let i=0;i<totalToOpen;i++){const d=document.createElement('div'); d.className='dash'+(i<opened?' done':''); prog.appendChild(d);}
+
+    // side amount lists
+    const buildAmts=(el,set)=>{el.innerHTML=''; VALUES.filter(v=>set.has(v)).forEach(v=>{
+      const opened = state.boxes.some(b=>b.opened && b.value===v);
+      const d=document.createElement('div'); d.className='amt'+(set===HIGH_SET?' high':'')+(opened?' out':''); d.dataset.v=v; d.textContent=fmt(v); el.appendChild(d);
+    });};
+    buildAmts(document.getElementById('lowAmts'),LOW_SET);
+    buildAmts(document.getElementById('highAmts'),HIGH_SET);
+
+    // boxes
+    const bx=document.getElementById('boxes'); bx.innerHTML='';
+    state.boxes.forEach(b=>{
+      const el=document.createElement('div'); el.className='box'; el.dataset.id=b.id;
+      const mine = state.myCase && b.id===state.myCase.id;
+      if(mine) el.classList.add('mine');
+      if(b.opened) el.classList.add('opened', LOW_SET.has(b.value)?'low':'high');
+      const canPick = state.phase==='pick';
+      const canOpen = state.phase==='open' && !b.opened && !mine && state.openedThisRound<ROUNDS[state.roundIdx];
+      if(canPick) el.classList.add('selectable');
+      if(!canPick && !canOpen && !b.opened) el.classList.add('dis');
+      el.innerHTML = `<div class="n">${b.id}</div>
+        <div class="reveal"><div class="ov">${fmt(b.value)}</div><div class="on">#${b.id}</div></div>`;
+      if(canPick) el.onclick=()=>pickCase(b);
+      else if(canOpen) el.onclick=()=>openBox(b,el);
+      bx.appendChild(el);
+    });
+
+    // round bar
+    const phaseNames={pick:'选箱', open:'开箱', offer:'银行家报价', done:'结束'};
+    document.getElementById('roundName').textContent =
+      state.phase==='pick' ? '选箱' : `第 ${state.roundIdx+1} 轮 · ${phaseNames[state.phase]||''}`;
+    if(state.phase==='open'){
+      document.getElementById('needOpen').textContent = ROUNDS[state.roundIdx]-state.openedThisRound;
+    } else if(state.phase==='offer'){
+      document.getElementById('needOpen').textContent='0';
+    } else {
+      document.getElementById('needOpen').textContent='—';
+    }
+
+    // my case
+    document.getElementById('myCaseVal').textContent = state.myCase ? `已锁定 #${state.myCase.id}` : '未选择';
+  }
+
+  function setMsg(t){ document.getElementById('message').textContent=t; }
+  function setBankerFace(mood){ const f=document.getElementById('bankerFace'); if(f) f.dataset.mood=mood; }
+
+  // ---------- actions ----------
+  function pickCase(b){
+    ensureAudio(); sfxClick();
+    state.myCase=b; state.phase='open'; state.roundIdx=0; state.openedThisRound=0;
+    setMsg(`命运箱 #${b.id} 已锁定！本轮请开 ${ROUNDS[0]} 个箱子。`);
+    render();
+  }
+
+  function openBox(b,el){
+    if(b.opened) return;
+    b.opened=true; state.openedThisRound++;
+    const isLow=LOW_SET.has(b.value);
+    // sound + feedback
+    if(isLow){ sfxHappy(); setBankerFace('annoyed'); } else { sfxSad(); setBankerFace('smug'); }
+    render();
+    // animate the just-opened box + side amount
+    const newEl=document.querySelector(`.box[data-id="${b.id}"]`);
+    if(newEl) newEl.classList.add('pop');
+    const amtEl=document.querySelector(`.amt[data-v="${b.value}"]`);
+    if(amtEl) amtEl.classList.add('flash');
+
+    if(isLow) setMsg(`开出 ${fmt(b.value)} ！小额减少 → 你箱子是大额的概率上升 😄`);
+    else      setMsg(`开出 ${fmt(b.value)} … 大额减少 → 你箱子的潜力下降 😩`);
+
+    const need=ROUNDS[state.roundIdx]-state.openedThisRound;
+    if(need<=0){
+      // round complete -> banker offer
+      setTimeout(()=>goOffer(), 700);
+    } else {
+      setMsg((isLow?'😄 ':'😩 ')+`开出 ${fmt(b.value)} · 本轮还需开 ${need} 个`);
+    }
+  }
+
+  function goOffer(){
+    state.phase='offer';
+    const offer=bankerOffer(); state.lastOffer=offer;
+    const sealed=sealedValues().length;            // 含命运箱
+    // banker rings
+    const card=document.getElementById('bankerCard'); card.classList.add('ring');
+    document.getElementById('bankerName').textContent='银行家来电…';
+    sfxRing(); setTense(true);
+    render();
+    document.getElementById('offerVal').textContent=fmt(offer);
+    document.getElementById('offerSub').textContent=`场上剩 ${sealed} 箱（含你的命运箱）`;
+
+    // 选一句台词：末轮 / 压价 / 诱惑
+    let line;
+    if(sealed<=2) line=pick(TAUNTS.final);
+    else if(state.roundIdx < 4) line=pick(TAUNTS.lowball);
+    else line=pick(TAUNTS.tempting);
+
+    // 铃响后银行家“开口”，台词逐句呈现 + 语音感音效
+    setMsg('☎️ 银行家来电……');
+    setTimeout(()=>{
+      card.classList.remove('ring');
+      document.getElementById('bankerName').textContent='💬 银行家';
+      setBankerFace(sealed<=2 ? 'evil' : (state.roundIdx<4 ? 'smug' : 'nervous'));
+      sfxBankerVoice();
+      setMsg(`银行家：「${line}」　报价 ${fmt(offer)}`);
+      document.getElementById('dealBtn').disabled=false;
+      document.getElementById('noDealBtn').disabled=false;
+    }, 900);
+    // if only 2 sealed remain, no-deal means "open your own case"
+    document.getElementById('noDealBtn').textContent = (sealed<=2) ? 'NO DEAL · 开命运箱' : 'NO DEAL';
+  }
+
+  function clearOffer(){
+    document.getElementById('bankerCard').classList.remove('ring');
+    document.getElementById('bankerName').textContent='银行家等待中';
+    document.getElementById('dealBtn').disabled=true;
+    document.getElementById('noDealBtn').disabled=true;
+    document.getElementById('offerVal').textContent='—';
+    document.getElementById('offerSub').textContent='暂无报价';
+    document.getElementById('noDealBtn').textContent='NO DEAL';
+    setBankerFace('idle'); setTense(false);
+  }
+
+  function onDeal(){
+    if(state.phase!=='offer')return;
+    setBankerFace('happy'); sfxDeal(); setTense(false);
+    document.getElementById('dealBtn').disabled=true;
+    document.getElementById('noDealBtn').disabled=true;
+    document.getElementById('bankerCard').classList.remove('ring');
+    endGame(true, state.lastOffer);
+  }
+
+  function onNoDeal(){
+    if(state.phase!=='offer')return;
+    clearOffer();
+    const sealed=sealedValues().length;
+    if(sealed<=2){
+      // 只剩 2 箱仍 No Deal -> 拿命运箱里的金额
+      endGame(false, state.myCase.value);
+      return;
+    }
+    // next round
+    state.roundIdx++; state.openedThisRound=0; state.phase='open';
+    setMsg(`No Deal！进入第 ${state.roundIdx+1} 轮，请开 ${ROUNDS[state.roundIdx]} 个箱子。`);
+    render();
+  }
+
+  function endGame(dealt, amount){
+    state.phase='done'; state.finished=true;
+    // reveal everything
+    state.boxes.forEach(b=>b.opened=true);
+    render();
+    const caseVal=state.myCase.value;
+    const ov=document.getElementById('overlay');
+    const win = dealt ? (amount>=caseVal) : true; // dealt: 与命运箱比较；走到底：拿到自己的箱子
+    let title, desc, em;
+    if(dealt){
+      em = amount>=caseVal ? '🤑' : '😅';
+      title='成交！DEAL';
+      desc = `你接受了银行家报价。<br>你的命运箱 #${state.myCase.id} 里其实是 <b>${fmt(caseVal)}</b>。<br>` +
+             (amount>=caseVal ? '明智的决定，你赚到了！' : '可惜，硬撑下去本可拿更多。');
+    } else {
+      em = caseVal>=10000 ? '🏆' : '😬';
+      title='坚持到底！';
+      desc = `你拒绝了所有报价，打开命运箱 #${state.myCase.id}。`;
+    }
+    document.getElementById('resEm').textContent=em;
+    document.getElementById('resTitle').textContent=title;
+    document.getElementById('resMoney').textContent=fmt(amount);
+    document.getElementById('resDesc').innerHTML=desc;
+    sfxFinal(amount>=50000);
+    ov.classList.add('show');
+  }
+
+  // ---------- wire up ----------
+  document.getElementById('soundBtn').onclick=function(){
+    ensureAudio(); soundOn=!soundOn;
+    this.textContent = soundOn?'🔊 音效开启':'🔇 音效关闭';
+    if(soundOn){ sfxClick(); startBgm(); } else { stopBgm(); }
+  };
+  document.getElementById('restartBtn').onclick=()=>{document.getElementById('overlay').classList.remove('show'); newGame();};
+  document.getElementById('resBtn').onclick=()=>{document.getElementById('overlay').classList.remove('show'); newGame();};
+  document.getElementById('dealBtn').onclick=onDeal;
+  document.getElementById('noDealBtn').onclick=onNoDeal;
+
+  newGame();
+})();
+</script></body>
+</html>

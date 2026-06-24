@@ -9,7 +9,7 @@
   "crons": [{ "path": "/api/remind", "schedule": "0 13 * * *" }],
   "rewrites": [
     {
-      "source": "/((?!retirement-gap-calculator|pension-calc-v5|flex-pension-city-compare).*)",
+      "source": "/((?!retirement-gap-calculator|pension-calc-v5|flex-pension-city-compare|deal-or-no-deal).*)",
       "destination": "/index.html"
     }
   ]
